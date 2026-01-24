@@ -2,8 +2,9 @@
 
 **Active app:** [birds-app/](birds-app/) — Next.js, Prisma, NextAuth, Google OAuth, optional Google Sheets sync.
 
-- **Local setup:** [birds-app/SETUP_NEXT_STEPS.md](birds-app/SETUP_NEXT_STEPS.md)
-- **Deploy (Vercel + Neon):** [birds-app/DEPLOY_NOW.md](birds-app/DEPLOY_NOW.md)
+- **Local setup:** [birds-app/README.md](birds-app/README.md#getting-started)
+- **After deploy:** [birds-app/NEXT_STEPS.md](birds-app/NEXT_STEPS.md)
+- **Reference (Sheets, deploy):** [birds-app/REFERENCE.md](birds-app/REFERENCE.md)
 
 ---
 

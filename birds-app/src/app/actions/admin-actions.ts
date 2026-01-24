@@ -110,7 +110,7 @@ export async function getSettings() {
       settings = await prisma.settings.create({
         data: {
           id: "default",
-          maxBirdsPerSubmission: 31,
+          maxBirdsPerPeriod: 31,
           resetPeriod: ResetPeriod.YEARLY,
           currentYear: new Date().getFullYear(),
         },
@@ -126,7 +126,7 @@ export async function getSettings() {
 
 // Update settings
 export async function updateSettings(input: {
-  maxBirdsPerSubmission: number;
+  maxBirdsPerPeriod: number;
   resetPeriod: ResetPeriod;
   currentYear: number;
 }) {
@@ -136,13 +136,13 @@ export async function updateSettings(input: {
     await prisma.settings.upsert({
       where: { id: "default" },
       update: {
-        maxBirdsPerSubmission: input.maxBirdsPerSubmission,
+        maxBirdsPerPeriod: input.maxBirdsPerPeriod,
         resetPeriod: input.resetPeriod,
         currentYear: input.currentYear,
       },
       create: {
         id: "default",
-        maxBirdsPerSubmission: input.maxBirdsPerSubmission,
+        maxBirdsPerPeriod: input.maxBirdsPerPeriod,
         resetPeriod: input.resetPeriod,
         currentYear: input.currentYear,
       },

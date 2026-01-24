@@ -1,6 +1,8 @@
 # Deploy birds-app to Vercel + Neon ($0/month)
 
-This guide deploys the Bird Submission Tracker for **$0/month** using Vercel (Hobby) for the app and Neon's free PostgreSQL tier.
+First-time setup (Vercel project, env vars, deploy) is done. Use this doc to: change env vars, switch to Render, fix connection pooling, or troubleshoot.
+
+This guide describes **Vercel (Hobby) + Neon (Free)** for **$0/month**.
 
 **Caveats:**
 - Vercel Hobby is for **non-commercial / personal** use. For commercial use, consider Vercel Pro (~$20/mo) or Render (see [Alternative: Render](#alternative-deploy-to-render)).

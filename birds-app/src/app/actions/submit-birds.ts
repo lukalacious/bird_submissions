@@ -9,6 +9,7 @@ interface SubmitBirdsInput {
   regionId: string;
   birdNames: string[];
   year: number;
+  month: number;
 }
 
 interface SubmitBirdsResult {
@@ -18,7 +19,7 @@ interface SubmitBirdsResult {
 }
 
 export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsResult> {
-  const { userId, regionId, birdNames, year } = input;
+  const { userId, regionId, birdNames, year, month } = input;
 
   try {
     // Validate input
@@ -26,20 +27,30 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
       return { success: false, error: "No birds selected" };
     }
 
-    // Get settings to check max birds
+    // Get settings to check max birds per period (month)
     const settings = await prisma.settings.findUnique({ where: { id: "default" } });
-    const maxBirds = settings?.maxBirdsPerSubmission || 31;
+    const maxBirdsPerPeriod = settings?.maxBirdsPerPeriod ?? 31;
 
-    if (birdNames.length > maxBirds) {
-      return { success: false, error: `Cannot submit more than ${maxBirds} birds` };
+    // Cap: count existing submissions for (userId, regionId, year, month)
+    const currentCount = await prisma.submission.count({
+      where: { userId, regionId, year, month },
+    });
+
+    if (currentCount + birdNames.length > maxBirdsPerPeriod) {
+      const remaining = Math.max(0, maxBirdsPerPeriod - currentCount);
+      return {
+        success: false,
+        error: `You can submit at most ${remaining} more birds this month`,
+      };
     }
 
-    // Check for already submitted birds
+    // Duplicates: check for already submitted birds in this (userId, regionId, year, month)
     const existingSubmissions = await prisma.submission.findMany({
       where: {
         userId,
         regionId,
         year,
+        month,
         birdName: { in: birdNames },
       },
       select: { birdName: true },
@@ -85,6 +96,7 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
         regionId,
         birdName,
         year,
+        month,
       })),
     });
 
@@ -112,10 +124,47 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
     // Revalidate paths
     revalidatePath("/region");
     revalidatePath("/submit");
+    revalidatePath("/submissions");
 
     return { success: true, count: submissions.count };
   } catch (error) {
     console.error("Failed to submit birds:", error);
     return { success: false, error: "Failed to submit birds. Please try again." };
+  }
+}
+
+// Delete a single submission
+export async function deleteSubmission(input: {
+  userId: string;
+  birdName: string;
+  year: number;
+  month: number;
+}): Promise<{ success: boolean; error?: string }> {
+  const { userId, birdName, year, month } = input;
+
+  try {
+    // Find and delete the submission
+    const deleted = await prisma.submission.deleteMany({
+      where: {
+        userId,
+        birdName,
+        year,
+        month,
+      },
+    });
+
+    if (deleted.count === 0) {
+      return { success: false, error: "Submission not found" };
+    }
+
+    // Revalidate paths
+    revalidatePath("/region");
+    revalidatePath("/submit");
+    revalidatePath("/submissions");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete submission:", error);
+    return { success: false, error: "Failed to delete submission" };
   }
 }

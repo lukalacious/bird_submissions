@@ -101,7 +101,7 @@ async function main() {
     update: {},
     create: {
       id: "default",
-      maxBirdsPerSubmission: 31,
+      maxBirdsPerPeriod: 31,
       resetPeriod: "YEARLY",
       currentYear: new Date().getFullYear(),
     },

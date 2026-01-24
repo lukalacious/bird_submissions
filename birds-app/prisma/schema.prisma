@@ -95,7 +95,7 @@ model Bird {
 }
 
 // Submission model - stores individual bird submissions
-// Each row = one bird submitted by one user for one region in one year
+// Each row = one bird submitted by one user for one region in one year and month
 model Submission {
   id        String   @id @default(cuid())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -103,20 +103,21 @@ model Submission {
   region    Region   @relation(fields: [regionId], references: [id], onDelete: Cascade)
   regionId  String
   birdName  String   // The full name of the bird submitted
-  year      Int      // Year of submission (for yearly greying logic)
+  year      Int      // Year of submission
+  month     Int      @default(1) // Month (1-12) for per-month cap and greying
   createdAt DateTime @default(now())
 
-  @@unique([userId, regionId, birdName, year]) // Prevent duplicate submissions
-  @@index([userId, regionId, year])
+  @@unique([userId, regionId, birdName, year, month])
+  @@index([userId, regionId, year, month])
 }
 
 // Settings model - stores app-wide configuration
 model Settings {
-  id                    String      @id @default("default")
-  maxBirdsPerSubmission Int         @default(31)
-  resetPeriod           ResetPeriod @default(YEARLY)
-  currentYear           Int         @default(2026)
-  updatedAt             DateTime    @updatedAt
+  id                 String      @id @default("default")
+  maxBirdsPerPeriod  Int         @default(31)
+  resetPeriod        ResetPeriod @default(YEARLY)
+  currentYear        Int         @default(2026)
+  updatedAt          DateTime    @updatedAt
 }
 
 enum ResetPeriod {

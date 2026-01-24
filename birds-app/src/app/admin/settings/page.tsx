@@ -22,7 +22,7 @@ export default function SettingsPage() {
     async function loadSettings() {
       const settings = await getSettings();
       if (settings) {
-        setMaxBirds(settings.maxBirdsPerSubmission);
+        setMaxBirds(settings.maxBirdsPerPeriod);
         setResetPeriod(settings.resetPeriod);
         setCurrentYear(settings.currentYear);
       }
@@ -36,7 +36,7 @@ export default function SettingsPage() {
 
     startTransition(async () => {
       const result = await updateSettings({
-        maxBirdsPerSubmission: maxBirds,
+        maxBirdsPerPeriod: maxBirds,
         resetPeriod,
         currentYear,
       });
@@ -80,7 +80,7 @@ export default function SettingsPage() {
             <div className="space-y-2">
               <Label htmlFor="maxBirds" className="flex items-center gap-2">
                 <Bird className="h-4 w-4" />
-                Maximum Birds Per Submission
+                Maximum Birds Per Period (month)
               </Label>
               <Input
                 id="maxBirds"
@@ -91,7 +91,7 @@ export default function SettingsPage() {
                 onChange={(e) => setMaxBirds(parseInt(e.target.value) || 31)}
               />
               <p className="text-sm text-gray-500">
-                The maximum number of birds a user can submit at once
+                The maximum number of birds a user can submit per month (across all submissions in that month). Users may submit multiple times until they reach this limit.
               </p>
             </div>
 

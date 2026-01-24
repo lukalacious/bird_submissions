@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bird, MapPin, CheckCircle, Users } from "lucide-react";
+import { Bird, MapPin, CheckCircle, Globe } from "lucide-react";
 
 export default async function LoginPage() {
   const session = await auth();
@@ -39,13 +39,13 @@ export default async function LoginPage() {
           <Card className="bg-white/95 backdrop-blur">
             <CardContent className="p-4 flex flex-col items-center text-center">
               <CheckCircle className="h-8 w-8 text-purple-600 mb-2" />
-              <span className="text-sm font-medium">31 Birds/Submission</span>
+              <span className="text-sm font-medium">31 Birds/Month</span>
             </CardContent>
           </Card>
           <Card className="bg-white/95 backdrop-blur">
             <CardContent className="p-4 flex flex-col items-center text-center">
-              <Users className="h-8 w-8 text-purple-600 mb-2" />
-              <span className="text-sm font-medium">Invite Only</span>
+              <Globe className="h-8 w-8 text-purple-600 mb-2" />
+              <span className="text-sm font-medium">Free Access</span>
             </CardContent>
           </Card>
         </div>
@@ -86,7 +86,7 @@ export default async function LoginPage() {
               </Button>
             </form>
             <p className="mt-4 text-center text-sm text-gray-500">
-              Access is by invitation only. Contact an administrator if you need access.
+              Sign in with your Google account to start tracking birds
             </p>
           </CardContent>
         </Card>

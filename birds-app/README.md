@@ -21,7 +21,7 @@ A Next.js application for tracking bird submissions by region with Google OAuth 
 
 ## Getting Started
 
-**New to this project?** Follow **[SETUP_NEXT_STEPS.md](SETUP_NEXT_STEPS.md)** for a full step-by-step checklist (local setup, then optional deploy).
+**Deployed?** See **[NEXT_STEPS.md](NEXT_STEPS.md)** for what to do after the Vercel build. **Local setup:** see below.
 
 ### Prerequisites
 
@@ -70,13 +70,12 @@ A Next.js application for tracking bird submissions by region with Google OAuth 
    ```bash
    npm run dev
    ```
+   Or: `npm run local:start` (runs db:push, db:seed, then dev).
 
 ## Deployment (Vercel + Neon — $0/month)
 
-The cheapest way to run birds-app in production is **Vercel (Hobby) + Neon (Free)**.
-
-- **Ready to deploy now?** → **[DEPLOY_NOW.md](DEPLOY_NOW.md)** (short checklist)
-- **Full reference** → [DEPLOY_VERCEL.md](DEPLOY_VERCEL.md)
+- **What to do after the build:** [NEXT_STEPS.md](NEXT_STEPS.md)
+- **Env vars, Render, pooling, troubleshooting:** [DEPLOY_VERCEL.md](DEPLOY_VERCEL.md)
 
 **Important for Vercel:** Use Neon’s **pooled** connection string (`-pooler` or serverless-compatible) in `DATABASE_URL` so Prisma does not exhaust connections in serverless. See [DEPLOY_VERCEL.md#6-prisma--vercel-serverless](DEPLOY_VERCEL.md#6-prisma--vercel-serverless).
 
@@ -198,6 +197,7 @@ birds-app/
 | `npm run db:push` | Push schema to database |
 | `npm run db:seed` | Seed bird data |
 | `npm run db:studio` | Open Prisma Studio |
+| `npm run local:start` | Run db:push, db:seed, then dev |
 
 ## Adding Initial Admin
 

@@ -39,11 +39,19 @@ export default async function ProtectedLayout({
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <Link href="/region" className="flex items-center gap-2">
-              <Bird className="h-8 w-8 text-purple-600" />
-              <span className="font-bold text-xl text-gray-900">Bird Tracker</span>
-            </Link>
+            {/* Logo and Nav */}
+            <div className="flex items-center gap-6">
+              <Link href="/region" className="flex items-center gap-2">
+                <Bird className="h-8 w-8 text-purple-600" />
+                <span className="font-bold text-xl text-gray-900">Bird Tracker</span>
+              </Link>
+              <Link
+                href="/submissions"
+                className="text-sm font-medium text-gray-600 hover:text-purple-600 transition"
+              >
+                My Submissions
+              </Link>
+            </div>
 
             {/* User Menu */}
             <DropdownMenu>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { submitBirds } from "@/app/actions/submit-birds";
-import { MapPin, Search, AlertTriangle, Check, X } from "lucide-react";
+import { MapPin, Search, AlertTriangle, Check, X, ChevronLeft } from "lucide-react";
 
 interface Bird {
   id: string;
@@ -31,6 +31,7 @@ interface BirdSubmissionFormProps {
   birds: Bird[];
   maxBirds: number;
   currentYear: number;
+  currentMonth: number;
   userId: string;
 }
 
@@ -39,12 +40,21 @@ export function BirdSubmissionForm({
   birds,
   maxBirds,
   currentYear,
+  currentMonth,
   userId,
 }: BirdSubmissionFormProps) {
   const [selectedBirds, setSelectedBirds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
+  const [step, setStep] = useState<"select" | "review">("select");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  // Guard: if in review with no selection, go back to select
+  useEffect(() => {
+    if (step === "review" && selectedBirds.size === 0) {
+      setStep("select");
+    }
+  }, [step, selectedBirds.size]);
 
   const canSelectMore = selectedBirds.size < maxBirds;
   const limitReached = selectedBirds.size >= maxBirds;
@@ -83,6 +93,7 @@ export function BirdSubmissionForm({
         regionId: region.id,
         birdNames: Array.from(selectedBirds),
         year: currentYear,
+        month: currentMonth,
       });
 
       if (result.success) {
@@ -104,44 +115,43 @@ export function BirdSubmissionForm({
             <span>•</span>
             <span>{currentYear}</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Select Your Birds</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {step === "review" ? "Review your selection" : "Select Your Birds"}
+          </h1>
         </div>
         <Button variant="outline" asChild>
           <Link href="/region">Change Region</Link>
         </Button>
       </div>
 
-      {/* Counter and Actions */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">
-                  {selectedBirds.size}
-                </div>
-                <div className="text-sm text-gray-500">of {maxBirds}</div>
-              </div>
-              {limitReached && (
-                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span className="text-sm font-medium">Maximum reached</span>
-                </div>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={clearSelection}
-                disabled={selectedBirds.size === 0 || isPending}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Clear
+      {step === "review" ? (
+        /* Review card */
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">Review your selection</h2>
+            <p className="text-sm text-gray-600">
+              You&apos;re about to submit {selectedBirds.size} bird
+              {selectedBirds.size !== 1 ? "s" : ""} for {region.label} in {currentYear}.
+            </p>
+            <ul className="space-y-2 max-h-60 overflow-y-auto pr-2">
+              {Array.from(selectedBirds)
+                .sort((a, b) => a.localeCompare(b))
+                .map((fullName) => {
+                  const sci = birds.find((b) => b.fullName === fullName)?.scientificName ?? "";
+                  return (
+                    <li key={fullName} className="text-sm">
+                      <span className="font-medium text-gray-900">{fullName}</span>
+                      {sci && <span className="italic text-gray-500"> ({sci})</span>}
+                    </li>
+                  );
+                })}
+            </ul>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" onClick={() => setStep("select")} disabled={isPending}>
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Edit selection
               </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={selectedBirds.size === 0 || isPending}
-              >
+              <Button onClick={handleSubmit} disabled={isPending}>
                 {isPending ? (
                   <>
                     <span className="animate-spin mr-2">⏳</span>
@@ -150,109 +160,175 @@ export function BirdSubmissionForm({
                 ) : (
                   <>
                     <Check className="h-4 w-4 mr-2" />
-                    Submit {selectedBirds.size} Bird{selectedBirds.size !== 1 ? "s" : ""}
+                    Confirm and submit
                   </>
                 )}
               </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          placeholder="Search birds by name..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      {/* Bird Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredBirds.map((bird) => {
-          const isSelected = selectedBirds.has(bird.fullName);
-          const isLimitDisabled = !isSelected && !canSelectMore;
-
-          return (
-            <Card
-              key={bird.id}
-              className={`relative cursor-pointer transition-all ${
-                bird.isDisabled
-                  ? "opacity-50 bg-gray-50 cursor-not-allowed"
-                  : isSelected
-                  ? "ring-2 ring-purple-500 bg-purple-50"
-                  : isLimitDisabled
-                  ? "opacity-60 cursor-not-allowed"
-                  : "hover:border-purple-300 hover:shadow-md"
-              }`}
-              onClick={() => {
-                if (!bird.isDisabled && !isLimitDisabled) {
-                  toggleBird(bird.fullName);
-                }
-              }}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <Checkbox
-                    checked={isSelected}
-                    disabled={bird.isDisabled || isLimitDisabled}
-                    className="mt-1 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">
-                      {bird.fullName}
-                    </p>
-                    <p className="text-sm text-gray-500 italic truncate">
-                      {bird.scientificName}
-                    </p>
-                    {bird.isDisabled && (
-                      <Badge variant="secondary" className="mt-2 bg-amber-100 text-amber-800">
-                        Already Submitted
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {filteredBirds.length === 0 && (
-        <Card className="text-center py-12">
-          <CardContent>
-            <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No birds found</h3>
-            <p className="text-gray-500">Try adjusting your search query</p>
           </CardContent>
         </Card>
-      )}
+      ) : (
+        <>
+          {/* Counter and Actions */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-purple-600">
+                      {selectedBirds.size}
+                    </div>
+                    <div className="text-sm text-gray-500">of {maxBirds}</div>
+                  </div>
+                  {limitReached && (
+                    <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span className="text-sm font-medium">Maximum reached</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={clearSelection}
+                    disabled={selectedBirds.size === 0 || isPending}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Clear
+                  </Button>
+                  <Button
+                    onClick={() => setStep("review")}
+                    disabled={selectedBirds.size === 0 || isPending}
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Submit {selectedBirds.size} Bird{selectedBirds.size !== 1 ? "s" : ""}
+                  </Button>
+                </div>
+              </div>
+              {selectedBirds.size > 0 && (
+                <div className="flex flex-wrap gap-2 pt-3 mt-3 border-t border-gray-100">
+                  {Array.from(selectedBirds)
+                    .sort((a, b) => a.localeCompare(b))
+                    .map((fullName) => (
+                      <span
+                        key={fullName}
+                        className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-sm text-purple-800"
+                      >
+                        {fullName}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleBird(fullName);
+                          }}
+                          className="rounded-full p-0.5 hover:bg-purple-200"
+                          aria-label={`Remove ${fullName}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-      {/* Bottom Actions (for mobile) */}
-      <Card className="sticky bottom-4 sm:hidden">
-        <CardContent className="p-4">
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={clearSelection}
-              disabled={selectedBirds.size === 0 || isPending}
-              className="flex-1"
-            >
-              Clear
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={selectedBirds.size === 0 || isPending}
-              className="flex-1"
-            >
-              Submit ({selectedBirds.size})
-            </Button>
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search birds by name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Bird Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredBirds.map((bird) => {
+              const isSelected = selectedBirds.has(bird.fullName);
+              const isLimitDisabled = !isSelected && !canSelectMore;
+
+              return (
+                <Card
+                  key={bird.id}
+                  className={`relative cursor-pointer transition-all ${
+                    bird.isDisabled
+                      ? "opacity-50 bg-gray-50 cursor-not-allowed"
+                      : isSelected
+                      ? "ring-2 ring-purple-500 bg-purple-50"
+                      : isLimitDisabled
+                      ? "opacity-60 cursor-not-allowed"
+                      : "hover:border-purple-300 hover:shadow-md"
+                  }`}
+                  onClick={() => {
+                    if (!bird.isDisabled && !isLimitDisabled) {
+                      toggleBird(bird.fullName);
+                    }
+                  }}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={isSelected}
+                        disabled={bird.isDisabled || isLimitDisabled}
+                        className="mt-1 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">
+                          {bird.fullName}
+                        </p>
+                        <p className="text-sm text-gray-500 italic truncate">
+                          {bird.scientificName}
+                        </p>
+                        {bird.isDisabled && (
+                          <Badge variant="secondary" className="mt-2 bg-amber-100 text-amber-800">
+                            Already Submitted
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          {filteredBirds.length === 0 && (
+            <Card className="text-center py-12">
+              <CardContent>
+                <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No birds found</h3>
+                <p className="text-gray-500">Try adjusting your search query</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Bottom Actions (for mobile) */}
+          <Card className="sticky bottom-4 sm:hidden">
+            <CardContent className="p-4">
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={clearSelection}
+                  disabled={selectedBirds.size === 0 || isPending}
+                  className="flex-1"
+                >
+                  Clear
+                </Button>
+                <Button
+                  onClick={() => setStep("review")}
+                  disabled={selectedBirds.size === 0 || isPending}
+                  className="flex-1"
+                >
+                  Submit ({selectedBirds.size})
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

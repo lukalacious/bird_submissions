@@ -9,7 +9,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      // Required for invite-only: we pre-create Users; link the new OAuth Account to that User
+      // Allow linking OAuth accounts to existing users with same email
       allowDangerousEmailAccountLinking: true,
     }),
   ],
@@ -18,24 +18,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     error: "/auth/error",
   },
   callbacks: {
-    // Invite-only: only allow sign in if user exists in database
-    async signIn({ user, account }) {
-      if (account?.provider === "google" && user.email) {
-        try {
-          const existingUser = await prisma.user.findUnique({
-            where: { email: user.email },
-          });
-          if (!existingUser) {
-            return "/auth/error?error=AccessDenied";
-          }
-        } catch {
-          return "/auth/error?error=Configuration";
-        }
-        return true;
-      }
-      return true;
-    },
-
     // JWT: store id and role in the token at sign-in
     async jwt({ token, user }) {
       if (user && "id" in user && "role" in user) {
