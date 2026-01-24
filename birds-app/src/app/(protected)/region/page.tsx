@@ -2,8 +2,12 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, ChevronRight, Calendar, Clock } from "lucide-react";
+import { MapPin, ChevronRight, Calendar, Clock, Award, Users } from "lucide-react";
 import { OpenMonthBirds } from "@/components/open-month-birds";
+import { getCommunityFeed, getLeaderboard } from "@/app/actions/feed-actions";
+import { getCurrentUserGamification } from "@/app/actions/gamification-actions";
+import { GamificationPanel } from "./gamification-panel";
+import { CommunitySection } from "./community-section";
 
 async function getRegions() {
   return prisma.region.findMany({
@@ -63,10 +67,25 @@ function monthYearLabel(year: number, month: number): string {
 
 export default async function RegionSelectionPage() {
   const session = await auth();
-  const [regions, { counts: submissionCounts, maxBirdsPerPeriod, currentYear, currentMonth }, submissions] = await Promise.all([
+  const userId = session!.user.id!;
+
+  // Fetch all data in parallel
+  const [
+    regions,
+    { counts: submissionCounts, maxBirdsPerPeriod, currentYear, currentMonth },
+    submissions,
+    gamification,
+    communityFeed,
+    monthlyLeaderboard,
+    allTimeLeaderboard,
+  ] = await Promise.all([
     getRegions(),
-    getUserSubmissionCounts(session!.user.id!),
-    getUserSubmissions(session!.user.id!),
+    getUserSubmissionCounts(userId),
+    getUserSubmissions(userId),
+    getCurrentUserGamification(),
+    getCommunityFeed(15),
+    getLeaderboard("month"),
+    getLeaderboard("alltime"),
   ]);
 
   // Group submissions by (year, month)
@@ -88,7 +107,7 @@ export default async function RegionSelectionPage() {
   const pastMonthGroups = groups.filter((g) => !(g.year === currentYear && g.month === currentMonth));
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Select a Region</h1>
         <p className="text-gray-600">
@@ -96,6 +115,7 @@ export default async function RegionSelectionPage() {
         </p>
       </div>
 
+      {/* Region Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {regions.map((region) => {
           const submittedCount = submissionCounts[region.id] || 0;
@@ -155,6 +175,30 @@ export default async function RegionSelectionPage() {
         </Card>
       )}
 
+      {/* Your Progress Section */}
+      {gamification && (
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <Award className="h-6 w-6 text-purple-600" />
+            Your Progress
+          </h2>
+          <GamificationPanel gamification={gamification} />
+        </div>
+      )}
+
+      {/* Community Section */}
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+          <Users className="h-6 w-6 text-purple-600" />
+          Community
+        </h2>
+        <CommunitySection
+          feedEntries={communityFeed}
+          monthlyLeaderboard={monthlyLeaderboard}
+          allTimeLeaderboard={allTimeLeaderboard}
+        />
+      </div>
+
       {/* Submissions History */}
       {(currentMonthGroup || pastMonthGroups.length > 0) && (
         <div className="mt-12 space-y-6">
@@ -182,7 +226,7 @@ export default async function RegionSelectionPage() {
               <CardContent>
                 <OpenMonthBirds
                   birds={currentMonthGroup.birds}
-                  userId={session!.user.id!}
+                  userId={userId}
                   year={currentYear}
                   month={currentMonth}
                 />

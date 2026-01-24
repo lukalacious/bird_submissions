@@ -1,23 +1,7 @@
 "use client";
 
-import {
-  Card,
-  Title,
-  Text,
-  Metric,
-  Flex,
-  Grid,
-  AreaChart,
-  BarChart,
-  Table,
-  TableHead,
-  TableHeaderCell,
-  TableBody,
-  TableRow,
-  TableCell,
-  Badge,
-  ProgressBar,
-} from "@tremor/react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Users, Bird, MapPin, TrendingUp, TrendingDown } from "lucide-react";
 
 interface AnalyticsOverview {
@@ -69,197 +53,224 @@ export function AnalyticsDashboard({
   if (!overview) {
     return (
       <Card>
-        <Text>Unable to load analytics data</Text>
+        <CardContent className="p-6">
+          <p className="text-gray-500">Unable to load analytics data</p>
+        </CardContent>
       </Card>
     );
   }
 
   const maxSubmissions = Math.max(...regionData.map((r) => r.submissions), 1);
+  const maxTrend = Math.max(...trends.map((t) => t.submissions), 1);
 
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
-      <Grid numItemsSm={2} numItemsLg={4} className="gap-6">
-        <Card decoration="top" decorationColor="blue">
-          <Flex justifyContent="between" alignItems="center">
-            <div>
-              <Text>Total Users</Text>
-              <Metric>{overview.totalUsers}</Metric>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="border-t-4 border-t-blue-500">
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm text-gray-500">Total Users</p>
+                <p className="text-3xl font-bold">{overview.totalUsers}</p>
+              </div>
+              <Users className="h-8 w-8 text-blue-500" />
             </div>
-            <Users className="h-8 w-8 text-blue-500" />
-          </Flex>
-          <Text className="mt-2 text-sm text-gray-500">
-            {overview.activeUsers} active
-          </Text>
+            <p className="mt-2 text-sm text-gray-500">
+              {overview.activeUsers} active
+            </p>
+          </CardContent>
         </Card>
 
-        <Card decoration="top" decorationColor="emerald">
-          <Flex justifyContent="between" alignItems="center">
-            <div>
-              <Text>Total Submissions</Text>
-              <Metric>{overview.totalSubmissions.toLocaleString()}</Metric>
+        <Card className="border-t-4 border-t-emerald-500">
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm text-gray-500">Total Submissions</p>
+                <p className="text-3xl font-bold">{overview.totalSubmissions.toLocaleString()}</p>
+              </div>
+              <Bird className="h-8 w-8 text-emerald-500" />
             </div>
-            <Bird className="h-8 w-8 text-emerald-500" />
-          </Flex>
-          <Flex className="mt-2" justifyContent="start" alignItems="center">
-            {monthlyComparison.change >= 0 ? (
-              <TrendingUp className="h-4 w-4 text-emerald-500 mr-1" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
-            )}
-            <Text className="text-sm">
-              <span
-                className={
-                  monthlyComparison.change >= 0
-                    ? "text-emerald-500"
-                    : "text-red-500"
-                }
-              >
-                {monthlyComparison.change >= 0 ? "+" : ""}
-                {monthlyComparison.change}%
-              </span>{" "}
-              vs last month
-            </Text>
-          </Flex>
+            <div className="mt-2 flex items-center">
+              {monthlyComparison.change >= 0 ? (
+                <TrendingUp className="h-4 w-4 text-emerald-500 mr-1" />
+              ) : (
+                <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
+              )}
+              <span className="text-sm">
+                <span
+                  className={
+                    monthlyComparison.change >= 0
+                      ? "text-emerald-500"
+                      : "text-red-500"
+                  }
+                >
+                  {monthlyComparison.change >= 0 ? "+" : ""}
+                  {monthlyComparison.change}%
+                </span>{" "}
+                vs last month
+              </span>
+            </div>
+          </CardContent>
         </Card>
 
-        <Card decoration="top" decorationColor="amber">
-          <Flex justifyContent="between" alignItems="center">
-            <div>
-              <Text>Unique Species</Text>
-              <Metric>{overview.uniqueSpecies.toLocaleString()}</Metric>
+        <Card className="border-t-4 border-t-amber-500">
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm text-gray-500">Unique Species</p>
+                <p className="text-3xl font-bold">{overview.uniqueSpecies.toLocaleString()}</p>
+              </div>
+              <Bird className="h-8 w-8 text-amber-500" />
             </div>
-            <Bird className="h-8 w-8 text-amber-500" />
-          </Flex>
-          <Text className="mt-2 text-sm text-gray-500">
-            Submitted this year
-          </Text>
+            <p className="mt-2 text-sm text-gray-500">
+              Submitted this year
+            </p>
+          </CardContent>
         </Card>
 
-        <Card decoration="top" decorationColor="violet">
-          <Flex justifyContent="between" alignItems="center">
-            <div>
-              <Text>Regions</Text>
-              <Metric>{overview.totalRegions}</Metric>
+        <Card className="border-t-4 border-t-violet-500">
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm text-gray-500">Regions</p>
+                <p className="text-3xl font-bold">{overview.totalRegions}</p>
+              </div>
+              <MapPin className="h-8 w-8 text-violet-500" />
             </div>
-            <MapPin className="h-8 w-8 text-violet-500" />
-          </Flex>
-          <Text className="mt-2 text-sm text-gray-500">Active regions</Text>
+            <p className="mt-2 text-sm text-gray-500">Active regions</p>
+          </CardContent>
         </Card>
-      </Grid>
+      </div>
 
-      {/* Submission Trends Chart */}
+      {/* Submission Trends Chart - Simple Bar Visualization */}
       <Card>
-        <Title>Submissions Over Time</Title>
-        <Text>Daily submissions for the last 30 days</Text>
-        <AreaChart
-          className="mt-4 h-72"
-          data={trends}
-          index="date"
-          categories={["submissions"]}
-          colors={["blue"]}
-          valueFormatter={(value) => value.toString()}
-          showLegend={false}
-          showAnimation={true}
-        />
+        <CardHeader>
+          <CardTitle>Submissions Over Time</CardTitle>
+          <p className="text-sm text-gray-500">Daily submissions for the last 30 days</p>
+        </CardHeader>
+        <CardContent>
+          <div className="h-48 flex items-end gap-1">
+            {trends.map((item, index) => (
+              <div
+                key={index}
+                className="flex-1 bg-blue-500 rounded-t hover:bg-blue-600 transition-colors"
+                style={{ height: `${(item.submissions / maxTrend) * 100}%`, minHeight: item.submissions > 0 ? '4px' : '0' }}
+                title={`${item.date}: ${item.submissions} submissions`}
+              />
+            ))}
+          </div>
+          <div className="flex justify-between mt-2 text-xs text-gray-400">
+            <span>{trends[0]?.date || ''}</span>
+            <span>{trends[trends.length - 1]?.date || ''}</span>
+          </div>
+        </CardContent>
       </Card>
 
       {/* Two column layout for region data and top submitters */}
-      <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Submissions by Region */}
         <Card>
-          <Title>Submissions by Region</Title>
-          <Text>Total submissions per region</Text>
-          <div className="mt-4 space-y-4">
-            {regionData.map((item) => (
-              <div key={item.region}>
-                <Flex>
-                  <Text>{item.region}</Text>
-                  <Text>{item.submissions.toLocaleString()}</Text>
-                </Flex>
-                <ProgressBar
-                  value={(item.submissions / maxSubmissions) * 100}
-                  color="blue"
-                  className="mt-1"
-                />
-              </div>
-            ))}
-            {regionData.length === 0 && (
-              <Text className="text-gray-500">No submissions yet</Text>
-            )}
-          </div>
+          <CardHeader>
+            <CardTitle>Submissions by Region</CardTitle>
+            <p className="text-sm text-gray-500">Total submissions per region</p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {regionData.map((item) => (
+                <div key={item.region}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>{item.region}</span>
+                    <span>{item.submissions.toLocaleString()}</span>
+                  </div>
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-500 rounded-full transition-all"
+                      style={{ width: `${(item.submissions / maxSubmissions) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+              {regionData.length === 0 && (
+                <p className="text-gray-500">No submissions yet</p>
+              )}
+            </div>
+          </CardContent>
         </Card>
 
         {/* Top Submitters */}
         <Card>
-          <Title>Top Submitters</Title>
-          <Text>Users with most submissions</Text>
-          <Table className="mt-4">
-            <TableHead>
-              <TableRow>
-                <TableHeaderCell>Rank</TableHeaderCell>
-                <TableHeaderCell>Name</TableHeaderCell>
-                <TableHeaderCell className="text-right">
-                  Submissions
-                </TableHeaderCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {topSubmitters.map((user) => (
-                <TableRow key={user.email}>
-                  <TableCell>
-                    <Badge
-                      color={
-                        user.rank === 1
-                          ? "amber"
-                          : user.rank === 2
-                          ? "gray"
-                          : user.rank === 3
-                          ? "orange"
-                          : "blue"
-                      }
-                    >
-                      #{user.rank}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Text className="font-medium">{user.name}</Text>
-                    <Text className="text-xs text-gray-500">{user.email}</Text>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Text className="font-semibold">{user.submissions}</Text>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {topSubmitters.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={3}>
-                    <Text className="text-gray-500 text-center">
+          <CardHeader>
+            <CardTitle>Top Submitters</CardTitle>
+            <p className="text-sm text-gray-500">Users with most submissions</p>
+          </CardHeader>
+          <CardContent>
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 text-sm font-medium text-gray-500">Rank</th>
+                  <th className="text-left py-2 text-sm font-medium text-gray-500">Name</th>
+                  <th className="text-right py-2 text-sm font-medium text-gray-500">Submissions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topSubmitters.map((user) => (
+                  <tr key={user.email} className="border-b last:border-0">
+                    <td className="py-3">
+                      <Badge
+                        variant={user.rank <= 3 ? "default" : "secondary"}
+                        className={
+                          user.rank === 1
+                            ? "bg-amber-500"
+                            : user.rank === 2
+                            ? "bg-gray-400"
+                            : user.rank === 3
+                            ? "bg-orange-400"
+                            : ""
+                        }
+                      >
+                        #{user.rank}
+                      </Badge>
+                    </td>
+                    <td className="py-3">
+                      <p className="font-medium">{user.name}</p>
+                      <p className="text-xs text-gray-500">{user.email}</p>
+                    </td>
+                    <td className="py-3 text-right font-semibold">{user.submissions}</td>
+                  </tr>
+                ))}
+                {topSubmitters.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="py-4 text-center text-gray-500">
                       No submissions yet
-                    </Text>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </CardContent>
         </Card>
-      </Grid>
+      </div>
 
       {/* Monthly Stats */}
       <Card>
-        <Title>Monthly Overview</Title>
-        <Grid numItemsSm={2} className="gap-6 mt-4">
-          <div>
-            <Text>This Month</Text>
-            <Metric>{monthlyComparison.thisMonth.toLocaleString()}</Metric>
-            <Text className="text-sm text-gray-500">submissions</Text>
+        <CardHeader>
+          <CardTitle>Monthly Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <p className="text-sm text-gray-500">This Month</p>
+              <p className="text-3xl font-bold">{monthlyComparison.thisMonth.toLocaleString()}</p>
+              <p className="text-sm text-gray-500">submissions</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Last Month</p>
+              <p className="text-3xl font-bold">{monthlyComparison.lastMonth.toLocaleString()}</p>
+              <p className="text-sm text-gray-500">submissions</p>
+            </div>
           </div>
-          <div>
-            <Text>Last Month</Text>
-            <Metric>{monthlyComparison.lastMonth.toLocaleString()}</Metric>
-            <Text className="text-sm text-gray-500">submissions</Text>
-          </div>
-        </Grid>
+        </CardContent>
       </Card>
     </div>
   );
