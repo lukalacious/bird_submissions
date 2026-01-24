@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -175,9 +176,14 @@ export function BirdSubmissionForm({
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-purple-600">
+                    <motion.div 
+                      key={selectedBirds.size}
+                      initial={{ scale: 1.2, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="text-3xl font-bold text-purple-600"
+                    >
                       {selectedBirds.size}
-                    </div>
+                    </motion.div>
                     <div className="text-sm text-gray-500">of {maxBirds}</div>
                   </div>
                   {limitReached && (
@@ -205,31 +211,45 @@ export function BirdSubmissionForm({
                   </Button>
                 </div>
               </div>
-              {selectedBirds.size > 0 && (
-                <div className="flex flex-wrap gap-2 pt-3 mt-3 border-t border-gray-100">
-                  {Array.from(selectedBirds)
-                    .sort((a, b) => a.localeCompare(b))
-                    .map((fullName) => (
-                      <span
-                        key={fullName}
-                        className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-sm text-purple-800"
-                      >
-                        {fullName}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleBird(fullName);
-                          }}
-                          className="rounded-full p-0.5 hover:bg-purple-200"
-                          aria-label={`Remove ${fullName}`}
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </span>
-                    ))}
-                </div>
-              )}
+              <AnimatePresence>
+                {selectedBirds.size > 0 && (
+                  <motion.div 
+                    className="flex flex-wrap gap-2 pt-3 mt-3 border-t border-gray-100"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                  >
+                    <AnimatePresence mode="popLayout">
+                      {Array.from(selectedBirds)
+                        .sort((a, b) => a.localeCompare(b))
+                        .map((fullName) => (
+                          <motion.span
+                            key={fullName}
+                            layout
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-sm text-purple-800"
+                          >
+                            {fullName}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleBird(fullName);
+                              }}
+                              className="rounded-full p-0.5 hover:bg-purple-200"
+                              aria-label={`Remove ${fullName}`}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </motion.span>
+                        ))}
+                    </AnimatePresence>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </CardContent>
           </Card>
 
@@ -245,55 +265,79 @@ export function BirdSubmissionForm({
           </div>
 
           {/* Bird Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <motion.div 
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: { staggerChildren: 0.03 },
+              },
+            }}
+          >
             {filteredBirds.map((bird) => {
               const isSelected = selectedBirds.has(bird.fullName);
               const isLimitDisabled = !isSelected && !canSelectMore;
 
               return (
-                <Card
+                <motion.div
                   key={bird.id}
-                  className={`relative cursor-pointer transition-all ${
-                    bird.isDisabled
-                      ? "opacity-50 bg-gray-50 cursor-not-allowed"
-                      : isSelected
-                      ? "ring-2 ring-purple-500 bg-purple-50"
-                      : isLimitDisabled
-                      ? "opacity-60 cursor-not-allowed"
-                      : "hover:border-purple-300 hover:shadow-md"
-                  }`}
-                  onClick={() => {
-                    if (!bird.isDisabled && !isLimitDisabled) {
-                      toggleBird(bird.fullName);
-                    }
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0 },
                   }}
+                  whileTap={{ scale: bird.isDisabled || isLimitDisabled ? 1 : 0.98 }}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <Checkbox
-                        checked={isSelected}
-                        disabled={bird.isDisabled || isLimitDisabled}
-                        className="mt-1 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 truncate">
-                          {bird.fullName}
-                        </p>
-                        <p className="text-sm text-gray-500 italic truncate">
-                          {bird.scientificName}
-                        </p>
-                        {bird.isDisabled && (
-                          <Badge variant="secondary" className="mt-2 bg-amber-100 text-amber-800">
-                            Already Submitted
-                          </Badge>
-                        )}
+                  <Card
+                    className={`relative cursor-pointer transition-all ${
+                      bird.isDisabled
+                        ? "opacity-50 bg-gray-50 cursor-not-allowed"
+                        : isSelected
+                        ? "ring-2 ring-purple-500 bg-purple-50"
+                        : isLimitDisabled
+                        ? "opacity-60 cursor-not-allowed"
+                        : "hover:border-purple-300 hover:shadow-md"
+                    }`}
+                    onClick={() => {
+                      if (!bird.isDisabled && !isLimitDisabled) {
+                        toggleBird(bird.fullName);
+                      }
+                    }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <motion.div
+                          animate={isSelected ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            disabled={bird.isDisabled || isLimitDisabled}
+                            className="mt-1 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                          />
+                        </motion.div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 truncate">
+                            {bird.fullName}
+                          </p>
+                          <p className="text-sm text-gray-500 italic truncate">
+                            {bird.scientificName}
+                          </p>
+                          {bird.isDisabled && (
+                            <Badge variant="secondary" className="mt-2 bg-amber-100 text-amber-800">
+                              Already Submitted
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
 
           {filteredBirds.length === 0 && (
             <Card className="text-center py-12">

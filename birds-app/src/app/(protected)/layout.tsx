@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, Settings, Bird } from "lucide-react";
 import Link from "next/link";
+import { AnimatedPage } from "@/components/ui/animated-page";
 
 export default async function ProtectedLayout({
   children,
@@ -106,7 +107,9 @@ export default async function ProtectedLayout({
       </header>
 
       {/* Main Content */}
-      <main>{children}</main>
+      <main>
+        <AnimatedPage>{children}</AnimatedPage>
+      </main>
     </div>
   );
 }
