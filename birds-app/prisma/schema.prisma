@@ -1,0 +1,126 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model - stores authenticated users (invite-only)
+model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  name          String?
+  image         String?
+  role          Role         @default(USER)
+  invitedBy     User?        @relation("Invites", fields: [invitedById], references: [id])
+  invitedById   String?
+  invitedUsers  User[]       @relation("Invites")
+  submissions   Submission[]
+  accounts      Account[]
+  sessions      Session[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+// NextAuth Account model
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+// NextAuth Session model
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// NextAuth VerificationToken model
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Region model - stores available regions (e.g., South Africa, Northeast Europe)
+model Region {
+  id          String       @id @default(cuid())
+  name        String       @unique // "south_africa" - used as identifier
+  label       String       // "South Africa" - display name
+  birds       Bird[]
+  submissions Submission[]
+  createdAt   DateTime     @default(now())
+}
+
+// Bird model - stores bird species per region
+model Bird {
+  id               String   @id @default(cuid())
+  alphabeticalName String   // "Albatross, Amsterdam"
+  fullName         String   // "Amsterdam Albatross"
+  scientificName   String   // "Diomedea amsterdamensis"
+  region           Region   @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  regionId         String
+  createdAt        DateTime @default(now())
+
+  @@unique([fullName, regionId])
+  @@index([regionId])
+}
+
+// Submission model - stores individual bird submissions
+// Each row = one bird submitted by one user for one region in one year
+model Submission {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  region    Region   @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  regionId  String
+  birdName  String   // The full name of the bird submitted
+  year      Int      // Year of submission (for yearly greying logic)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, regionId, birdName, year]) // Prevent duplicate submissions
+  @@index([userId, regionId, year])
+}
+
+// Settings model - stores app-wide configuration
+model Settings {
+  id                    String      @id @default("default")
+  maxBirdsPerSubmission Int         @default(31)
+  resetPeriod           ResetPeriod @default(YEARLY)
+  currentYear           Int         @default(2026)
+  updatedAt             DateTime    @updatedAt
+}
+
+enum ResetPeriod {
+  MONTHLY
+  YEARLY
+  NEVER
+}

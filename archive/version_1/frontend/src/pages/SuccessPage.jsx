@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useBirds } from '../contexts/BirdContext';
+import { formatRegionLabel } from '../utils/region';
 import './SuccessPage.css';
 
 function SuccessPage() {
@@ -43,7 +44,7 @@ function SuccessPage() {
         <h1>Submission Successful!</h1>
         <p className="success-message">
           You've successfully submitted <strong>{submissionCount} bird(s)</strong> for{' '}
-          <strong>{region}</strong>.
+          <strong>{region ? formatRegionLabel(region) : region}</strong>.
         </p>
 
         <div className="info-box">

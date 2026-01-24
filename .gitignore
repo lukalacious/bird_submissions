@@ -1,60 +1,10 @@
-# Dependencies
-node_modules/
-.pnp
-.pnp.js
+# OS
+.DS_Store
 
-# Environment variables
+# Env
 .env
-.env.local
-.env.production
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Build outputs
-/frontend/build
-/backend/dist
-build/
-dist/
+.env.*
 
 # Logs
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-
-# OS files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Testing
-coverage/
-.nyc_output
-
-# Misc
-.cache/
-.temp/
-.tmp/
-
-# Environment variable files (contain secrets)
-RENDER_ENV_COMPLETE.txt
-RENDER_ENV_VARIABLES.txt
-
-# Service account credentials
-*.json
-!package.json
-!package-lock.json
-!tsconfig.json

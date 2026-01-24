@@ -4,6 +4,7 @@ import { useBirds } from '../contexts/BirdContext';
 import { useAuth } from '../contexts/AuthContext';
 import { birdService } from '../services/birdService';
 import BirdList from '../components/BirdList/BirdList';
+import { formatRegionLabel } from '../utils/region';
 import './BirdSubmissionPage.css';
 
 function BirdSubmissionPage() {
@@ -114,7 +115,7 @@ function BirdSubmissionPage() {
       <div className="submission-container">
         <header className="submission-header">
           <div>
-            <h1>Select Birds - {region}</h1>
+            <h1>Select Birds - {formatRegionLabel(region)}</h1>
             <p className="user-greeting">Logged in as {user?.name}</p>
           </div>
           <button className="back-btn" onClick={handleBack}>

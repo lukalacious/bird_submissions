@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useBirds } from '../contexts/BirdContext';
 import { useAuth } from '../contexts/AuthContext';
 import { birdService } from '../services/birdService';
+import { formatRegionLabel } from '../utils/region';
 import './RegionSelectionPage.css';
 
 function RegionSelectionPage() {
@@ -34,13 +35,6 @@ function RegionSelectionPage() {
   const handleRegionSelect = (regionName) => {
     setRegion(regionName);
     navigate('/submit');
-  };
-
-  const formatRegionName = (regionName) => {
-    return regionName
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
   };
 
   const handleLogout = () => {
@@ -89,7 +83,7 @@ function RegionSelectionPage() {
               className="region-card"
               onClick={() => handleRegionSelect(regionName)}
             >
-              <h3>{formatRegionName(regionName)}</h3>
+              <h3>{formatRegionLabel(regionName)}</h3>
               <button className="select-btn">Select Region</button>
             </div>
           ))}
