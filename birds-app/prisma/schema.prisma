@@ -10,10 +10,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model - stores authenticated users (invite-only)
+// User model - stores authenticated users
 model User {
   id            String       @id @default(cuid())
   email         String       @unique
+  emailVerified DateTime?    // Required by NextAuth for new user registration
   name          String?
   image         String?
   role          Role         @default(USER)
