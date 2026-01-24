@@ -8,4 +8,17 @@
 # Logs
 *.log
 npm-debug.log*
+
+# Vercel
 .vercel
+
+# Dependencies - NEVER commit these
+node_modules/
+bootstrap*/
+package-lock.json
+
+# Build outputs
+.next/
+out/
+build/
+dist/
