@@ -52,11 +52,11 @@ export function HamburgerMenu({ user, onSignOut }: HamburgerMenuProps) {
 
   return (
     <>
-      {/* Hamburger button - positioned for right side via parent flex */}
+      {/* Hamburger button - visible on mobile only */}
       <Button
         variant="ghost"
         size="icon"
-        className="md:hidden h-10 w-10 btn-tactile"
+        className="md:hidden h-10 w-10 text-foreground"
         onClick={() => setIsOpen(true)}
         aria-label="Open menu"
       >
@@ -96,7 +96,7 @@ export function HamburgerMenu({ user, onSignOut }: HamburgerMenuProps) {
                     size="icon"
                     onClick={() => setIsOpen(false)}
                     aria-label="Close menu"
-                    className="btn-tactile"
+                    className="text-foreground"
                   >
                     <X className="h-5 w-5" />
                   </Button>
