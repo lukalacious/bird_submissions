@@ -31,7 +31,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Bird Submission Tracker",
+  title: "Twitch",
   description: "Track the birds you've spotted across different regions",
 };
 

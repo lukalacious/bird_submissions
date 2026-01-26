@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { getSettings, updateSettings, updateMonthlySettings, resetMonthlySettings } from "@/app/actions/admin-actions";
-import { getYearlyMonthlySettings } from "@/lib/settings-utils";
-import { Settings, Save, Calendar, Bird, RefreshCw, MessageSquare, Shield, RotateCcw } from "lucide-react";
+import { getSettings, updateSettings, updateMonthlySettings, resetMonthlySettings, getYearlyMonthlySettings } from "@/app/actions/admin-actions";
+import { Settings, Save, Calendar, Bird, RefreshCw, Shield, RotateCcw, ClipboardList } from "lucide-react";
 
 type ResetPeriod = "MONTHLY" | "YEARLY" | "NEVER";
 
@@ -30,30 +29,38 @@ export default function SettingsPage() {
   const [maxBirds, setMaxBirds] = useState(31);
   const [resetPeriod, setResetPeriod] = useState<ResetPeriod>("YEARLY");
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  const [feedbackFormEmbedUrl, setFeedbackFormEmbedUrl] = useState("");
+  const [monthlyFormEmbedUrl, setMonthlyFormEmbedUrl] = useState("");
   const [eliminationThreshold, setEliminationThreshold] = useState(30);
   const [monthlySettings, setMonthlySettings] = useState<MonthSetting[]>([]);
   const [editingMonth, setEditingMonth] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isMonthPending, startMonthTransition] = useTransition();
 
   useEffect(() => {
     async function loadSettings() {
-      const [settings, monthly] = await Promise.all([
-        getSettings(),
-        getYearlyMonthlySettings(new Date().getFullYear()),
-      ]);
-      if (settings) {
-        setMaxBirds(settings.maxBirdsPerPeriod);
-        setResetPeriod(settings.resetPeriod);
-        setCurrentYear(settings.currentYear);
-        setFeedbackFormEmbedUrl(settings.feedbackFormEmbedUrl ?? "");
-        setEliminationThreshold(settings.eliminationThreshold);
+      try {
+        const [settings, monthly] = await Promise.all([
+          getSettings(),
+          getYearlyMonthlySettings(new Date().getFullYear()),
+        ]);
+        if (settings) {
+          setMaxBirds(settings.maxBirdsPerPeriod);
+          setResetPeriod(settings.resetPeriod);
+          setCurrentYear(settings.currentYear);
+          setMonthlyFormEmbedUrl(settings.monthlyFormEmbedUrl ?? "");
+          setEliminationThreshold(settings.eliminationThreshold);
+        }
+        setMonthlySettings(monthly);
+        setLoadError(null);
+      } catch (error) {
+        console.error("Failed to load settings:", error);
+        setLoadError("Failed to load settings. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
-      setMonthlySettings(monthly);
-      setIsLoading(false);
     }
     loadSettings();
   }, []);
@@ -73,7 +80,7 @@ export default function SettingsPage() {
         maxBirdsPerPeriod: maxBirds,
         resetPeriod,
         currentYear,
-        feedbackFormEmbedUrl: feedbackFormEmbedUrl.trim() || null,
+        monthlyFormEmbedUrl: monthlyFormEmbedUrl.trim() || null,
         eliminationThreshold,
       });
 
@@ -140,6 +147,32 @@ export default function SettingsPage() {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="max-w-4xl space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">App Settings</h1>
+          <p className="text-gray-600">Configure submission rules and periods</p>
+        </div>
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="py-8">
+            <div className="flex flex-col items-center text-center">
+              <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                <Settings className="h-6 w-6 text-red-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Unable to Load Settings</h3>
+              <p className="text-gray-600 mb-4">{loadError}</p>
+              <Button onClick={() => window.location.reload()}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Retry
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -353,25 +386,25 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Feedback Form */}
+      {/* Google Form */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Feedback Form
+            <ClipboardList className="h-5 w-5" />
+            Google Form
           </CardTitle>
           <CardDescription>
-            Google Form embed URL for the Feedback page. Leave empty to hide the form.
+            Google Form embed URL that users can access from the Google Form page.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          <Label htmlFor="feedbackFormEmbedUrl">Google Form embed URL</Label>
+          <Label htmlFor="monthlyFormEmbedUrl">Google Form embed URL</Label>
           <Input
-            id="feedbackFormEmbedUrl"
+            id="monthlyFormEmbedUrl"
             type="url"
             placeholder="https://docs.google.com/forms/d/e/XXXX/viewform?embedded=true"
-            value={feedbackFormEmbedUrl}
-            onChange={(e) => setFeedbackFormEmbedUrl(e.target.value)}
+            value={monthlyFormEmbedUrl}
+            onChange={(e) => setMonthlyFormEmbedUrl(e.target.value)}
           />
           <p className="text-sm text-gray-500">
             Paste the embed URL from Google Forms (Share → Embed HTML, or use …/viewform?embedded=true).
@@ -382,7 +415,7 @@ export default function SettingsPage() {
             disabled={isPending}
             className="w-full mt-4"
           >
-            {isPending ? "Saving..." : "Save Feedback URL"}
+            {isPending ? "Saving..." : "Save Google Form URL"}
           </Button>
         </CardContent>
       </Card>

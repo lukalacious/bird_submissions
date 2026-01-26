@@ -127,7 +127,7 @@ model Settings {
   maxBirdsPerPeriod     Int         @default(31)
   resetPeriod           ResetPeriod @default(YEARLY)
   currentYear           Int         @default(2026)
-  feedbackFormEmbedUrl  String?     @db.Text
+  monthlyFormEmbedUrl   String?     @db.Text  // Google Form embed URL
   eliminationThreshold  Int         @default(30)  // Min birds required to avoid elimination
   updatedAt             DateTime    @updatedAt
 }

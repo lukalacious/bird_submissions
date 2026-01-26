@@ -11,7 +11,7 @@ import {
   PlusCircle,
   Users,
   FileText,
-  MessageSquare,
+  ClipboardList,
   Settings,
   User,
   LogOut,
@@ -36,7 +36,7 @@ const navItems = [
   { href: "/activity", label: "Activity", icon: Users },
   { href: "/submissions", label: "My Submissions", icon: FileText },
   { href: "/community", label: "Community", icon: Users },
-  { href: "/feedback", label: "Feedback", icon: MessageSquare },
+  { href: "/monthly-form", label: "Google Form", icon: ClipboardList },
 ];
 
 export function HamburgerMenu({ user, onSignOut }: HamburgerMenuProps) {
@@ -64,11 +64,12 @@ export function HamburgerMenu({ user, onSignOut }: HamburgerMenuProps) {
       </Button>
 
       {/* Overlay and slide-out menu from RIGHT */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {isOpen && (
           <>
             {/* Backdrop */}
             <motion.div
+              key="hamburger-backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -79,6 +80,7 @@ export function HamburgerMenu({ user, onSignOut }: HamburgerMenuProps) {
 
             {/* Slide-out menu from RIGHT side */}
             <motion.div
+              key="hamburger-menu"
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
@@ -88,7 +90,7 @@ export function HamburgerMenu({ user, onSignOut }: HamburgerMenuProps) {
               <div className="h-full flex flex-col">
                 {/* Header */}
                 <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border">
-                  <span className="font-bold text-lg text-foreground">Bird Tracker</span>
+                  <span className="font-bold text-lg text-foreground">Twitch</span>
                   <Button
                     variant="ghost"
                     size="icon"

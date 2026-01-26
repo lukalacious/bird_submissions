@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, Bird, MessageSquare, User } from "lucide-react";
+import { LogOut, Settings, Bird, ClipboardList, User } from "lucide-react";
 import Link from "next/link";
 import { AnimatedPage } from "@/components/ui/animated-page";
 import { BottomNav } from "@/components/ui/bottom-nav";
@@ -49,9 +49,9 @@ export default async function ProtectedLayout({
           <div className="flex justify-between items-center h-16">
             {/* Logo and Nav - Left side */}
             <div className="flex items-center gap-8">
-              <Link href="/dashboard" className="flex items-center gap-2.5 group">
+              <Link href="/dashboard" className="flex items-center gap-2 group">
                 <Bird className="h-8 w-8 text-primary transition-transform group-hover:scale-105" />
-                <span className="font-semibold text-xl text-foreground hidden sm:inline tracking-tight">Bird Tracker</span>
+                <span className="font-semibold text-xl text-foreground tracking-tight">Twitch</span>
               </Link>
               <nav className="hidden md:flex items-center gap-8">
                 <Link
@@ -71,6 +71,12 @@ export default async function ProtectedLayout({
                   className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
                 >
                   Activity
+                </Link>
+                <Link
+                  href="/monthly-form"
+                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Google Form
                 </Link>
               </nav>
             </div>
@@ -125,9 +131,9 @@ export default async function ProtectedLayout({
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem asChild>
-                  <Link href="/feedback" className="cursor-pointer">
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    Feedback
+                  <Link href="/monthly-form" className="cursor-pointer">
+                    <ClipboardList className="mr-2 h-4 w-4" />
+                    Google Form
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

@@ -129,13 +129,13 @@ export async function updateSettings(input: {
   maxBirdsPerPeriod: number;
   resetPeriod: ResetPeriod;
   currentYear: number;
-  feedbackFormEmbedUrl?: string | null;
+  monthlyFormEmbedUrl?: string | null;
   eliminationThreshold?: number;
 }) {
   try {
     await requireAdmin();
 
-    const feedbackUrl = (input.feedbackFormEmbedUrl?.trim() || null) ?? null;
+    const monthlyFormUrl = (input.monthlyFormEmbedUrl?.trim() || null) ?? null;
 
     await prisma.settings.upsert({
       where: { id: "default" },
@@ -143,7 +143,7 @@ export async function updateSettings(input: {
         maxBirdsPerPeriod: input.maxBirdsPerPeriod,
         resetPeriod: input.resetPeriod,
         currentYear: input.currentYear,
-        feedbackFormEmbedUrl: feedbackUrl,
+        monthlyFormEmbedUrl: monthlyFormUrl,
         ...(input.eliminationThreshold !== undefined && {
           eliminationThreshold: input.eliminationThreshold,
         }),
@@ -153,7 +153,7 @@ export async function updateSettings(input: {
         maxBirdsPerPeriod: input.maxBirdsPerPeriod,
         resetPeriod: input.resetPeriod,
         currentYear: input.currentYear,
-        feedbackFormEmbedUrl: feedbackUrl,
+        monthlyFormEmbedUrl: monthlyFormUrl,
         eliminationThreshold: input.eliminationThreshold ?? 30,
       },
     });
@@ -161,7 +161,7 @@ export async function updateSettings(input: {
     revalidatePath("/admin/settings");
     revalidatePath("/dashboard");
     revalidatePath("/submit");
-    revalidatePath("/feedback");
+    revalidatePath("/monthly-form");
     revalidatePath("/admin/elimination");
     return { success: true };
   } catch (error) {
@@ -232,5 +232,54 @@ export async function resetMonthlySettings(year: number, month: number) {
   } catch (error) {
     console.error("Failed to reset monthly settings:", error);
     return { success: false, error: "Failed to reset monthly settings" };
+  }
+}
+
+// Helper function to get days in a month
+function getDaysInMonth(year: number, month: number): number {
+  return new Date(year, month, 0).getDate();
+}
+
+// Get all monthly settings for a given year (server action version for client components)
+export async function getYearlyMonthlySettings(year: number) {
+  try {
+    const [monthlySettings, globalSettings] = await Promise.all([
+      prisma.monthlySettings.findMany({
+        where: { year },
+        orderBy: { month: "asc" },
+      }),
+      prisma.settings.findUnique({
+        where: { id: "default" },
+      }),
+    ]);
+
+    const globalMax = globalSettings?.maxBirdsPerPeriod ?? 31;
+    const globalThreshold = globalSettings?.eliminationThreshold ?? 30;
+
+    // Create a map for quick lookup
+    const settingsMap = new Map(
+      monthlySettings.map((s) => [s.month, s])
+    );
+
+    // Build array for all 12 months
+    const months = [];
+    for (let month = 1; month <= 12; month++) {
+      const custom = settingsMap.get(month);
+      const daysInMonth = getDaysInMonth(year, month);
+
+      months.push({
+        month,
+        year,
+        daysInMonth,
+        maxBirdsPerPeriod: custom?.maxBirdsPerPeriod ?? globalMax,
+        eliminationThreshold: custom?.eliminationThreshold ?? globalThreshold,
+        isCustom: !!custom,
+      });
+    }
+
+    return months;
+  } catch (error) {
+    console.error("Failed to get yearly monthly settings:", error);
+    return [];
   }
 }
