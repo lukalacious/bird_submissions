@@ -90,7 +90,7 @@ export default async function SubmissionsPage({
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
         <p className="text-gray-600">Region not found.</p>
-        <Link href="/submissions" className="text-purple-600 hover:underline mt-2 inline-block">
+        <Link href="/submissions" className="text-purple-600 hover:underline mt-2 inline-block py-2 min-h-[44px]">
           ← Back to My Submissions
         </Link>
       </div>
@@ -126,7 +126,7 @@ export default async function SubmissionsPage({
         </div>
         <Link
           href="/submissions"
-          className="text-purple-600 hover:underline text-sm flex items-center gap-1"
+          className="text-purple-600 hover:underline text-sm flex items-center gap-1 py-2 min-h-[44px]"
         >
           ← Change region
         </Link>
@@ -138,7 +138,7 @@ export default async function SubmissionsPage({
             <p className="text-gray-600">No submissions yet for {region.label}.</p>
             <Link
               href={`/submit?region=${encodeURIComponent(region.name)}`}
-              className="text-purple-600 hover:underline mt-2 inline-block"
+              className="text-purple-600 hover:underline mt-2 inline-block py-2 min-h-[44px]"
             >
               Submit birds →
             </Link>

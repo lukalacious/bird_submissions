@@ -2,12 +2,13 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Bird, Users, UserPlus, Settings, ArrowLeft } from "lucide-react";
+import { Bird, Users, UserPlus, Settings, ArrowLeft, Shield } from "lucide-react";
 
 const adminNavItems = [
   { href: "/admin", label: "Dashboard", icon: Bird },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/add-user", label: "Add User", icon: UserPlus },
+  { href: "/admin/elimination", label: "Elimination", icon: Shield },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
@@ -25,7 +26,7 @@ export default async function AdminLayout({
 
   // Redirect if not admin
   if (session.user.role !== "ADMIN") {
-    redirect("/region");
+    redirect("/dashboard");
   }
 
   return (
@@ -35,7 +36,7 @@ export default async function AdminLayout({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-4">
-              <Link href="/region" className="flex items-center gap-2 text-purple-200 hover:text-white">
+              <Link href="/dashboard" className="flex items-center gap-2 text-purple-200 hover:text-white">
                 <ArrowLeft className="h-4 w-4" />
                 <span className="text-sm">Back to App</span>
               </Link>
@@ -92,7 +93,7 @@ export default async function AdminLayout({
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

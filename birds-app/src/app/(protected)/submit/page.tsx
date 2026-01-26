@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { BirdSubmissionForm } from "@/components/bird-submission-form";
+import { getMonthlySettings } from "@/lib/settings-utils";
 import type { ResetPeriod } from "@prisma/client";
 
 interface SubmitPageProps {
@@ -51,10 +52,24 @@ async function getSettings() {
 export default async function SubmitPage({ searchParams }: SubmitPageProps) {
   const session = await auth();
   const params = await searchParams;
-  const regionName = params.region;
+  let regionName = params.region;
 
+  // If no region specified, try to use user's default region
   if (!regionName) {
-    redirect("/region");
+    const user = await prisma.user.findUnique({
+      where: { id: session!.user.id! },
+      select: {
+        defaultRegion: {
+          select: { name: true },
+        },
+      },
+    });
+
+    if (user?.defaultRegion?.name) {
+      redirect(`/submit?region=${user.defaultRegion.name}`);
+    } else {
+      redirect("/dashboard");
+    }
   }
 
   const [region, settings] = await Promise.all([
@@ -63,13 +78,16 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
   ]);
 
   if (!region) {
-    redirect("/region");
+    redirect("/dashboard");
   }
 
   const currentYear = settings?.currentYear ?? new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
-  const maxBirdsPerPeriod = settings?.maxBirdsPerPeriod ?? 31;
   const resetPeriod = settings?.resetPeriod ?? "YEARLY";
+
+  // Get monthly-specific settings (falls back to global if no monthly override)
+  const monthlySettings = await getMonthlySettings(currentYear, currentMonth);
+  const maxBirdsPerPeriod = monthlySettings.maxBirdsPerPeriod;
 
   const [submittedBirds, currentMonthCount] = await Promise.all([
     getSubmittedBirds(

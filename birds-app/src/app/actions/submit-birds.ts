@@ -3,6 +3,8 @@
 import prisma from "@/lib/prisma";
 import { syncToGoogleSheets } from "@/lib/google-sheets";
 import { revalidatePath } from "next/cache";
+import { recalculateJokers } from "./joker-actions";
+import { getMonthlySettings } from "@/lib/settings-utils";
 
 interface SubmitBirdsInput {
   userId: string;
@@ -10,6 +12,7 @@ interface SubmitBirdsInput {
   birdNames: string[];
   year: number;
   month: number;
+  customBirds?: string[]; // Birds not in the predefined list
 }
 
 interface SubmitBirdsResult {
@@ -19,24 +22,27 @@ interface SubmitBirdsResult {
 }
 
 export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsResult> {
-  const { userId, regionId, birdNames, year, month } = input;
+  const { userId, regionId, birdNames, year, month, customBirds = [] } = input;
 
   try {
+    // Combine regular and custom birds
+    const allBirdNames = [...birdNames, ...customBirds];
+
     // Validate input
-    if (!birdNames || birdNames.length === 0) {
+    if (allBirdNames.length === 0) {
       return { success: false, error: "No birds selected" };
     }
 
-    // Get settings to check max birds per period (month)
-    const settings = await prisma.settings.findUnique({ where: { id: "default" } });
-    const maxBirdsPerPeriod = settings?.maxBirdsPerPeriod ?? 31;
+    // Get monthly settings to check max birds per period
+    const monthlySettings = await getMonthlySettings(year, month);
+    const maxBirdsPerPeriod = monthlySettings.maxBirdsPerPeriod;
 
     // Cap: count existing submissions for (userId, regionId, year, month)
     const currentCount = await prisma.submission.count({
       where: { userId, regionId, year, month },
     });
 
-    if (currentCount + birdNames.length > maxBirdsPerPeriod) {
+    if (currentCount + allBirdNames.length > maxBirdsPerPeriod) {
       const remaining = Math.max(0, maxBirdsPerPeriod - currentCount);
       return {
         success: false,
@@ -51,7 +57,7 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
         regionId,
         year,
         month,
-        birdName: { in: birdNames },
+        birdName: { in: allBirdNames },
       },
       select: { birdName: true },
     });
@@ -64,7 +70,7 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
       };
     }
 
-    // Verify birds exist in the region
+    // Verify regular birds exist in the region (skip validation for custom birds)
     const region = await prisma.region.findUnique({
       where: { id: regionId },
       include: {
@@ -89,15 +95,27 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
       };
     }
 
-    // Create submissions in database
+    // Create submissions in database (regular birds + custom birds)
+    const regularSubmissions = birdNames.map((birdName) => ({
+      userId,
+      regionId,
+      birdName,
+      year,
+      month,
+      isCustomBird: false,
+    }));
+
+    const customSubmissions = customBirds.map((birdName) => ({
+      userId,
+      regionId,
+      birdName: birdName.trim(),
+      year,
+      month,
+      isCustomBird: true,
+    }));
+
     const submissions = await prisma.submission.createMany({
-      data: birdNames.map((birdName) => ({
-        userId,
-        regionId,
-        birdName,
-        year,
-        month,
-      })),
+      data: [...regularSubmissions, ...customSubmissions],
     });
 
     // Get user info for Google Sheets sync
@@ -113,7 +131,7 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
         email: user?.email || "",
         userName: user?.name || "",
         regionName: region.name,
-        birdNames,
+        birdNames: allBirdNames,
         timestamp: new Date().toISOString(),
       });
     } catch (sheetError) {
@@ -121,8 +139,16 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
       // Don't fail the submission if sheet sync fails
     }
 
+    // Recalculate jokers based on group submissions
+    try {
+      await recalculateJokers(userId, year, month);
+    } catch (jokerError) {
+      console.error("Failed to recalculate jokers:", jokerError);
+      // Don't fail the submission if joker calc fails
+    }
+
     // Revalidate paths
-    revalidatePath("/region");
+    revalidatePath("/dashboard");
     revalidatePath("/submit");
     revalidatePath("/submissions");
 
@@ -157,8 +183,15 @@ export async function deleteSubmission(input: {
       return { success: false, error: "Submission not found" };
     }
 
+    // Recalculate jokers after deletion
+    try {
+      await recalculateJokers(userId, year, month);
+    } catch (jokerError) {
+      console.error("Failed to recalculate jokers:", jokerError);
+    }
+
     // Revalidate paths
-    revalidatePath("/region");
+    revalidatePath("/dashboard");
     revalidatePath("/submit");
     revalidatePath("/submissions");
 

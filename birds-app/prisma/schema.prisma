@@ -12,20 +12,25 @@ datasource db {
 
 // User model - stores authenticated users
 model User {
-  id            String       @id @default(cuid())
-  email         String       @unique
-  emailVerified DateTime?    // Required by NextAuth for new user registration
-  name          String?
-  image         String?
-  role          Role         @default(USER)
-  invitedBy     User?        @relation("Invites", fields: [invitedById], references: [id])
-  invitedById   String?
-  invitedUsers  User[]       @relation("Invites")
-  submissions   Submission[]
-  accounts      Account[]
-  sessions      Session[]
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id               String                @id @default(cuid())
+  email            String                @unique
+  emailVerified    DateTime?             // Required by NextAuth for new user registration
+  name             String?
+  username         String?               @unique // Custom display name separate from OAuth
+  image            String?
+  role             Role                  @default(USER)
+  defaultRegionId  String?               // User's preferred region for submissions
+  defaultRegion    Region?               @relation("DefaultRegion", fields: [defaultRegionId], references: [id])
+  invitedBy        User?                 @relation("Invites", fields: [invitedById], references: [id])
+  invitedById      String?
+  invitedUsers     User[]                @relation("Invites")
+  submissions      Submission[]
+  accounts         Account[]
+  sessions         Session[]
+  jokers           UserJoker[]
+  challengeStatus  UserChallengeStatus[]
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
 }
 
 enum Role {
@@ -73,12 +78,13 @@ model VerificationToken {
 
 // Region model - stores available regions (e.g., South Africa, Northeast Europe)
 model Region {
-  id          String       @id @default(cuid())
-  name        String       @unique // "south_africa" - used as identifier
-  label       String       // "South Africa" - display name
-  birds       Bird[]
-  submissions Submission[]
-  createdAt   DateTime     @default(now())
+  id            String       @id @default(cuid())
+  name          String       @unique // "south_africa" - used as identifier
+  label         String       // "South Africa" - display name
+  birds         Bird[]
+  submissions   Submission[]
+  usersDefault  User[]       @relation("DefaultRegion") // Users who have this as default
+  createdAt     DateTime     @default(now())
 }
 
 // Bird model - stores bird species per region
@@ -87,26 +93,29 @@ model Bird {
   alphabeticalName String   // "Albatross, Amsterdam"
   fullName         String   // "Amsterdam Albatross"
   scientificName   String   // "Diomedea amsterdamensis"
+  groupName        String?  // Bird group for joker calculation (from "Group Name" column)
   region           Region   @relation(fields: [regionId], references: [id], onDelete: Cascade)
   regionId         String
   createdAt        DateTime @default(now())
 
   @@unique([fullName, regionId])
   @@index([regionId])
+  @@index([groupName])
 }
 
 // Submission model - stores individual bird submissions
 // Each row = one bird submitted by one user for one region in one year and month
 model Submission {
-  id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  region    Region   @relation(fields: [regionId], references: [id], onDelete: Cascade)
-  regionId  String
-  birdName  String   // The full name of the bird submitted
-  year      Int      // Year of submission
-  month     Int      @default(1) // Month (1-12) for per-month cap and greying
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  region       Region   @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  regionId     String
+  birdName     String   // The full name of the bird submitted
+  year         Int      // Year of submission
+  month        Int      @default(1) // Month (1-12) for per-month cap and greying
+  isCustomBird Boolean  @default(false) // True if bird was not in predefined list
+  createdAt    DateTime @default(now())
 
   @@unique([userId, regionId, birdName, year, month])
   @@index([userId, regionId, year, month])
@@ -114,15 +123,59 @@ model Submission {
 
 // Settings model - stores app-wide configuration
 model Settings {
-  id                 String      @id @default("default")
-  maxBirdsPerPeriod  Int         @default(31)
-  resetPeriod        ResetPeriod @default(YEARLY)
-  currentYear        Int         @default(2026)
-  updatedAt          DateTime    @updatedAt
+  id                    String      @id @default("default")
+  maxBirdsPerPeriod     Int         @default(31)
+  resetPeriod           ResetPeriod @default(YEARLY)
+  currentYear           Int         @default(2026)
+  feedbackFormEmbedUrl  String?     @db.Text
+  eliminationThreshold  Int         @default(30)  // Min birds required to avoid elimination
+  updatedAt             DateTime    @updatedAt
 }
 
 enum ResetPeriod {
   MONTHLY
   YEARLY
   NEVER
+}
+
+// MonthlySettings model - stores per-month submission requirements
+model MonthlySettings {
+  id                   String @id @default(cuid())
+  year                 Int
+  month                Int    // 1-12
+  maxBirdsPerPeriod    Int    // Required submissions for this month
+  eliminationThreshold Int?   // Optional: override elimination threshold for this month
+
+  @@unique([year, month])
+  @@index([year])
+}
+
+// UserJoker model - tracks jokers earned from same-group submissions
+model UserJoker {
+  id         String @id @default(cuid())
+  userId     String
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  year       Int
+  month      Int
+  jokers     Float  @default(0)     // Total jokers earned
+  usedJokers Float  @default(0)     // Jokers used for immunity
+
+  @@unique([userId, year, month])
+  @@index([userId])
+}
+
+// UserChallengeStatus model - tracks elimination status per user per year
+model UserChallengeStatus {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  year             Int
+  isEliminated     Boolean   @default(false)
+  eliminatedAt     DateTime?
+  eliminationMonth Int?      // Month when user was eliminated
+  joinedMonth      Int       @default(1) // Month when user joined the challenge (for mid-year joins)
+
+  @@unique([userId, year])
+  @@index([userId])
+  @@index([year, isEliminated])
 }

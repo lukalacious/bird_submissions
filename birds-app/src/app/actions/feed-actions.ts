@@ -114,6 +114,7 @@ export async function getCommunityFeed(limit = 20): Promise<FeedEntry[]> {
         select: {
           id: true,
           name: true,
+          username: true,
           image: true,
         },
       },
@@ -167,7 +168,7 @@ export async function getCommunityFeed(limit = 20): Promise<FeedEntry[]> {
       // Start new group
       currentGroup = {
         userId: submission.userId,
-        userName: submission.user.name,
+        userName: submission.user.username || submission.user.name,
         userImage: submission.user.image,
         regionLabel: submission.region.label,
         birdNames: [submission.birdName],
@@ -235,6 +236,7 @@ export async function getLeaderboard(
     select: {
       id: true,
       name: true,
+      username: true,
       image: true,
     },
   });
@@ -250,7 +252,7 @@ export async function getLeaderboard(
     return {
       rank: index + 1,
       userId: uc.userId,
-      userName: user?.name || null,
+      userName: user?.username || user?.name || null,
       userImage: user?.image || null,
       level: userLevelMap.get(uc.userId)?.level || 1,
       submissionCount: uc._count._all,

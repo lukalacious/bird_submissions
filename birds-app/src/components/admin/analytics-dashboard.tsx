@@ -150,7 +150,8 @@ export function AnalyticsDashboard({
           <p className="text-sm text-gray-500">Daily submissions for the last 30 days</p>
         </CardHeader>
         <CardContent>
-          <div className="h-48 flex items-end gap-1">
+          <div className="overflow-x-auto">
+            <div className="h-48 flex items-end gap-1 min-w-[280px]">
             {trends.map((item, index) => (
               <div
                 key={index}
@@ -159,6 +160,7 @@ export function AnalyticsDashboard({
                 title={`${item.date}: ${item.submissions} submissions`}
               />
             ))}
+            </div>
           </div>
           <div className="flex justify-between mt-2 text-xs text-gray-400">
             <span>{trends[0]?.date || ''}</span>
@@ -205,7 +207,8 @@ export function AnalyticsDashboard({
             <p className="text-sm text-gray-500">Users with most submissions</p>
           </CardHeader>
           <CardContent>
-            <table className="w-full">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[260px]">
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-2 text-sm font-medium text-gray-500">Rank</th>
@@ -248,6 +251,7 @@ export function AnalyticsDashboard({
                 )}
               </tbody>
             </table>
+            </div>
           </CardContent>
         </Card>
       </div>

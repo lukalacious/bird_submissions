@@ -129,9 +129,13 @@ export async function updateSettings(input: {
   maxBirdsPerPeriod: number;
   resetPeriod: ResetPeriod;
   currentYear: number;
+  feedbackFormEmbedUrl?: string | null;
+  eliminationThreshold?: number;
 }) {
   try {
     await requireAdmin();
+
+    const feedbackUrl = (input.feedbackFormEmbedUrl?.trim() || null) ?? null;
 
     await prisma.settings.upsert({
       where: { id: "default" },
@@ -139,21 +143,94 @@ export async function updateSettings(input: {
         maxBirdsPerPeriod: input.maxBirdsPerPeriod,
         resetPeriod: input.resetPeriod,
         currentYear: input.currentYear,
+        feedbackFormEmbedUrl: feedbackUrl,
+        ...(input.eliminationThreshold !== undefined && {
+          eliminationThreshold: input.eliminationThreshold,
+        }),
       },
       create: {
         id: "default",
         maxBirdsPerPeriod: input.maxBirdsPerPeriod,
         resetPeriod: input.resetPeriod,
         currentYear: input.currentYear,
+        feedbackFormEmbedUrl: feedbackUrl,
+        eliminationThreshold: input.eliminationThreshold ?? 30,
       },
     });
 
     revalidatePath("/admin/settings");
-    revalidatePath("/region");
+    revalidatePath("/dashboard");
     revalidatePath("/submit");
+    revalidatePath("/feedback");
+    revalidatePath("/admin/elimination");
     return { success: true };
   } catch (error) {
     console.error("Failed to update settings:", error);
     return { success: false, error: "Failed to update settings" };
+  }
+}
+
+// Update monthly settings for a specific month
+export async function updateMonthlySettings(input: {
+  year: number;
+  month: number;
+  maxBirdsPerPeriod: number;
+  eliminationThreshold?: number | null;
+}) {
+  try {
+    await requireAdmin();
+
+    // Validate month
+    if (input.month < 1 || input.month > 12) {
+      return { success: false, error: "Invalid month" };
+    }
+
+    // Validate maxBirdsPerPeriod
+    if (input.maxBirdsPerPeriod < 1 || input.maxBirdsPerPeriod > 100) {
+      return { success: false, error: "Max birds must be between 1 and 100" };
+    }
+
+    await prisma.monthlySettings.upsert({
+      where: {
+        year_month: { year: input.year, month: input.month },
+      },
+      update: {
+        maxBirdsPerPeriod: input.maxBirdsPerPeriod,
+        eliminationThreshold: input.eliminationThreshold,
+      },
+      create: {
+        year: input.year,
+        month: input.month,
+        maxBirdsPerPeriod: input.maxBirdsPerPeriod,
+        eliminationThreshold: input.eliminationThreshold,
+      },
+    });
+
+    revalidatePath("/admin/settings");
+    revalidatePath("/dashboard");
+    revalidatePath("/submit");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update monthly settings:", error);
+    return { success: false, error: "Failed to update monthly settings" };
+  }
+}
+
+// Reset monthly settings to use global defaults
+export async function resetMonthlySettings(year: number, month: number) {
+  try {
+    await requireAdmin();
+
+    await prisma.monthlySettings.deleteMany({
+      where: { year, month },
+    });
+
+    revalidatePath("/admin/settings");
+    revalidatePath("/dashboard");
+    revalidatePath("/submit");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to reset monthly settings:", error);
+    return { success: false, error: "Failed to reset monthly settings" };
   }
 }

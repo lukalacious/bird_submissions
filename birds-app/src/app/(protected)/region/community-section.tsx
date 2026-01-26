@@ -27,7 +27,7 @@ export function CommunitySection({
       <div className="flex bg-gray-100 rounded-lg p-1 w-fit">
         <button
           onClick={() => setActiveTab("feed")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-md text-sm font-medium transition-all ${
             activeTab === "feed"
               ? "bg-white text-purple-700 shadow-sm"
               : "text-gray-600 hover:text-gray-900"
@@ -38,7 +38,7 @@ export function CommunitySection({
         </button>
         <button
           onClick={() => setActiveTab("leaderboard")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-md text-sm font-medium transition-all ${
             activeTab === "leaderboard"
               ? "bg-white text-purple-700 shadow-sm"
               : "text-gray-600 hover:text-gray-900"

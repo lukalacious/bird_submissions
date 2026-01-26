@@ -8,9 +8,9 @@ import { Bird, MapPin, CheckCircle, Globe } from "lucide-react";
 export default async function LoginPage() {
   const session = await auth();
 
-  // If already logged in, redirect to region selection
+  // If already logged in, redirect to dashboard
   if (session?.user) {
-    redirect("/region");
+    redirect("/dashboard");
   }
 
   return (
@@ -56,7 +56,7 @@ export default async function LoginPage() {
             <form
               action={async () => {
                 "use server";
-                await signIn("google", { redirectTo: "/region" });
+                await signIn("google", { redirectTo: "/dashboard" });
               }}
             >
               <Button

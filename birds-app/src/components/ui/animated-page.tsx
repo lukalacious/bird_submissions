@@ -11,10 +11,10 @@ interface AnimatedPageProps {
 export function AnimatedPage({ children, className }: AnimatedPageProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+      exit={{ opacity: 0, y: -4 }}
+      transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
       className={className}
     >
       {children}
@@ -70,12 +70,12 @@ interface StaggerItemProps {
 
 export function StaggerItem({ children, className }: StaggerItemProps) {
   return (
-    <motion.div 
+    <motion.div
       variants={{
-        hidden: { opacity: 0, y: 20 },
+        hidden: { opacity: 0, y: 12 },
         visible: { opacity: 1, y: 0 },
       }}
-      transition={{ type: "spring", stiffness: 300, damping: 24 }}
+      transition={{ type: "spring", stiffness: 400, damping: 30 }}
       className={className}
     >
       {children}

@@ -1,18 +1,34 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Fraunces, Source_Sans_3, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { SessionProvider } from "@/components/providers/session-provider";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Display font: Fraunces - characterful serif for headings
+const fraunces = Fraunces({
+  variable: "--font-display",
   subsets: ["latin"],
+  display: "swap",
 });
 
+// Body font: Source Sans 3 - excellent readability
+const sourceSans = Source_Sans_3({
+  variable: "--font-body",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+// Mono font: Keep Geist Mono for code
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: "Bird Submission Tracker",
@@ -27,7 +43,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${fraunces.variable} ${sourceSans.variable} ${geistMono.variable} font-body antialiased`}
       >
         <SessionProvider>
           {children}

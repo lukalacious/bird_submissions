@@ -54,15 +54,15 @@ async function SuccessContent({ searchParams }: SuccessPageProps) {
 
             <div className="flex flex-col gap-3 pt-4">
               {region && (
-                <Button asChild className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700">
+                <Button asChild className="w-full min-h-[44px] bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700">
                   <Link href={`/submit?region=${region}`}>
                     Submit More Birds
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
               )}
-              <Button variant="outline" asChild className="w-full">
-                <Link href="/region">Choose Another Region</Link>
+              <Button variant="outline" asChild className="w-full min-h-[44px]">
+                <Link href="/dashboard">Choose Another Region</Link>
               </Button>
             </div>
           </CardContent>

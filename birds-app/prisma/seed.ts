@@ -9,6 +9,7 @@ interface BirdRow {
   "Full  Name "?: string; // Note: has extra space in original Excel
   "Full Name"?: string;
   "Scientific Name"?: string;
+  "Group Name"?: string; // Bird group for joker calculation
 }
 
 function formatRegionLabel(sheetName: string): string {
@@ -28,7 +29,20 @@ const LABEL_OVERRIDES: Record<string, string> = {
 };
 
 async function main() {
+  // Safety check: prevent accidental production data deletion
+  const databaseUrl = process.env.DATABASE_URL || "";
+  const isProduction = process.env.NODE_ENV === "production" ||
+    databaseUrl.includes("ep-holy-brook"); // Production branch identifier
+
+  if (isProduction) {
+    console.error("❌ SAFETY CHECK FAILED: Cannot seed production database!");
+    console.error("   This would delete all existing submissions.");
+    console.error("   If you really need to do this, remove this check temporarily.");
+    process.exit(1);
+  }
+
   console.log("🌱 Starting database seed...");
+  console.log("   Environment: development");
 
   // Clear existing data
   console.log("🗑️  Clearing existing data...");
@@ -72,6 +86,7 @@ async function main() {
         const fullName = (row["Full  Name "] || row["Full Name"] || "").toString().trim();
         const alphabeticalName = (row["Alphabetical Name"] || "").toString().trim();
         const scientificName = (row["Scientific Name"] || "").toString().trim();
+        const groupName = (row["Group Name"] || "").toString().trim() || null;
 
         if (!fullName) return null;
 
@@ -79,6 +94,7 @@ async function main() {
           alphabeticalName,
           fullName,
           scientificName,
+          groupName,
           regionId: region.id,
         };
       })

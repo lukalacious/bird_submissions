@@ -9,8 +9,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      // Allow linking OAuth accounts to existing users with same email
-      allowDangerousEmailAccountLinking: true,
     }),
   ],
   pages: {
@@ -18,20 +16,33 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     error: "/auth/error",
   },
   callbacks: {
-    // JWT: store id and role in the token at sign-in
-    async jwt({ token, user }) {
-      if (user && "id" in user && "role" in user) {
+    // JWT: store id, role, and username in the token at sign-in
+    async jwt({ token, user, trigger }) {
+      if (user && "id" in user) {
         token.id = user.id as string;
-        token.role = user.role as string;
+        token.role = (user as { role?: string }).role ?? "USER";
+        token.username = (user as { username?: string | null }).username ?? null;
+      }
+      // Refresh role/username from DB when session is updated OR if role is missing
+      if (typeof token.id === "string" && (trigger === "update" || !token.role)) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id },
+          select: { username: true, role: true },
+        });
+        if (dbUser) {
+          token.username = dbUser.username;
+          token.role = dbUser.role;
+        }
       }
       return token;
     },
 
-    // Session: copy id and role from token (no DB read on every request)
+    // Session: copy id, role, and username from token (no DB read on every request)
     async session({ session, token }) {
       if (session.user) {
         if (typeof token.id === "string") session.user.id = token.id;
         if (token.role === "USER" || token.role === "ADMIN") session.user.role = token.role;
+        session.user.username = typeof token.username === "string" ? token.username : null;
       }
       return session;
     },

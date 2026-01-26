@@ -60,13 +60,13 @@ export function OpenMonthBirds({ birds, userId, year, month }: OpenMonthBirdsPro
           <button
             onClick={() => handleDelete(bird.name)}
             disabled={isPending}
-            className="ml-1 p-0.5 rounded-full hover:bg-purple-200 transition-colors disabled:opacity-50"
+            className="ml-1 p-1 rounded-full hover:bg-purple-200 transition-colors disabled:opacity-50 flex items-center justify-center"
             title={`Remove ${bird.name}`}
           >
             {deletingBird === bird.name ? (
-              <span className="inline-block w-3.5 h-3.5 animate-spin text-purple-600">⏳</span>
+              <span className="inline-block w-4 h-4 animate-spin text-purple-600">⏳</span>
             ) : (
-              <X className="w-3.5 h-3.5 text-purple-600 hover:text-purple-800" />
+              <X className="w-4 h-4 text-purple-600 hover:text-purple-800" />
             )}
           </button>
         </span>
