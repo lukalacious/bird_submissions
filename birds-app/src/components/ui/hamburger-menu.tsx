@@ -119,10 +119,13 @@ export function HamburgerMenu({ user, onSignOut }: HamburgerMenuProps) {
             aria-modal="true"
             aria-label="Navigation menu"
             className="absolute top-0 right-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-2xl flex flex-col"
-            style={{ backgroundColor: "#ffffff" }}
+            style={{
+              backgroundColor: "#ffffff",
+              paddingBottom: "env(safe-area-inset-bottom, 0px)"
+            }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 bg-white">
+            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
               <span className="font-bold text-lg text-gray-900">Twitch</span>
               <button
                 onClick={closeMenu}
@@ -134,9 +137,9 @@ export function HamburgerMenu({ user, onSignOut }: HamburgerMenuProps) {
             </div>
 
             {/* User info section */}
-            <div className="px-4 py-4 border-b border-gray-200 bg-gray-50">
+            <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 bg-gray-50">
               <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12">
+                <Avatar className="h-10 w-10">
                   <AvatarImage src={user.image || undefined} alt={user.name || "User"} />
                   <AvatarFallback className="bg-blue-600 text-white font-medium">
                     {initials}
@@ -150,7 +153,7 @@ export function HamburgerMenu({ user, onSignOut }: HamburgerMenuProps) {
             </div>
 
             {/* Navigation links - scrollable */}
-            <nav className="flex-1 overflow-y-auto py-2 bg-white">
+            <nav className="flex-1 min-h-0 overflow-y-auto py-2 pb-4 bg-white">
               {navItems.map(({ href, label, icon: Icon }) => {
                 const isActive = pathname === href || pathname.startsWith(href + "/");
                 return (
@@ -205,11 +208,11 @@ export function HamburgerMenu({ user, onSignOut }: HamburgerMenuProps) {
             </nav>
 
             {/* Sign out button - fixed at bottom */}
-            <div className="px-4 py-4 border-t border-gray-200 bg-white">
+            <div className="flex-shrink-0 px-4 py-3 border-t border-gray-200 bg-white">
               <form action={onSignOut}>
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
                 >
                   <LogOut className="h-5 w-5" />
                   Sign out
