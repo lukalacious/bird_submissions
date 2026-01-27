@@ -15,9 +15,7 @@ import {
   User,
   LogOut,
 } from "lucide-react";
-import { Button } from "./button";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
-import { Separator } from "./separator";
 
 interface HamburgerMenuProps {
   user: {
@@ -79,137 +77,148 @@ export function HamburgerMenu({ user, onSignOut }: HamburgerMenuProps) {
   const openMenu = () => setIsOpen(true);
   const closeMenu = () => setIsOpen(false);
 
+  // Don't render anything on the server to avoid hydration mismatch
+  if (typeof window === "undefined") {
+    return (
+      <button
+        className="md:hidden h-10 w-10 inline-flex items-center justify-center rounded-md hover:bg-gray-100"
+        aria-label="Open menu"
+      >
+        <Menu className="h-6 w-6" />
+      </button>
+    );
+  }
+
   return (
     <>
       {/* Hamburger button - visible on mobile only */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="md:hidden h-10 w-10"
+      <button
+        className="md:hidden h-10 w-10 inline-flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors"
         onClick={openMenu}
         aria-label="Open menu"
         aria-expanded={isOpen}
         aria-controls="mobile-menu"
       >
-        <Menu className="h-6 w-6" />
-      </Button>
+        <Menu className="h-6 w-6 text-gray-700" />
+      </button>
 
-      {/* Backdrop */}
-      <div
-        className={`fixed inset-0 z-50 bg-black/50 md:hidden transition-opacity duration-300 ${
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-        onClick={closeMenu}
-        aria-hidden="true"
-      />
+      {/* Portal-style overlay - rendered when open */}
+      {isOpen && (
+        <div className="fixed inset-0 z-[9999] md:hidden">
+          {/* Dark backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={closeMenu}
+            aria-hidden="true"
+          />
 
-      {/* Slide-out menu from RIGHT side */}
-      <div
-        id="mobile-menu"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Navigation menu"
-        className={`fixed top-0 right-0 bottom-0 z-50 w-72 bg-card shadow-xl md:hidden transform transition-transform duration-300 ease-out ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        <div className="h-full flex flex-col">
-          {/* Header */}
-          <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border">
-            <span className="font-bold text-lg">Twitch</span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={closeMenu}
-              aria-label="Close menu"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
+          {/* Slide-out menu panel */}
+          <div
+            id="mobile-menu"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
+            className="absolute top-0 right-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-2xl flex flex-col"
+            style={{ backgroundColor: "#ffffff" }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 bg-white">
+              <span className="font-bold text-lg text-gray-900">Twitch</span>
+              <button
+                onClick={closeMenu}
+                aria-label="Close menu"
+                className="h-10 w-10 inline-flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-600" />
+              </button>
+            </div>
 
-          {/* User info */}
-          <div className="flex-shrink-0 p-4 border-b border-border bg-muted/50">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={user.image || undefined} alt={user.name || "User"} />
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{user.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+            {/* User info section */}
+            <div className="px-4 py-4 border-b border-gray-200 bg-gray-50">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={user.image || undefined} alt={user.name || "User"} />
+                  <AvatarFallback className="bg-blue-600 text-white font-medium">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 truncate">{user.name}</p>
+                  <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Navigation - scrollable area */}
-          <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-            {navItems.map(({ href, label, icon: Icon }) => {
-              const isActive = pathname === href || pathname.startsWith(href + "/");
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={closeMenu}
-                  className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
-                    isActive
-                      ? "bg-secondary text-primary"
-                      : "text-foreground hover:bg-muted"
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span className="font-medium">{label}</span>
-                </Link>
-              );
-            })}
+            {/* Navigation links - scrollable */}
+            <nav className="flex-1 overflow-y-auto py-2 bg-white">
+              {navItems.map(({ href, label, icon: Icon }) => {
+                const isActive = pathname === href || pathname.startsWith(href + "/");
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={closeMenu}
+                    className={`flex items-center gap-3 mx-2 px-4 py-3 rounded-lg transition-colors ${
+                      isActive
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    <span className="font-medium">{label}</span>
+                  </Link>
+                );
+              })}
 
-            <Separator className="my-3" />
+              {/* Divider */}
+              <div className="my-2 mx-4 border-t border-gray-200" />
 
-            <Link
-              href="/profile"
-              onClick={closeMenu}
-              className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
-                pathname === "/profile"
-                  ? "bg-secondary text-primary"
-                  : "text-foreground hover:bg-muted"
-              }`}
-            >
-              <User className="h-5 w-5" />
-              <span className="font-medium">Profile</span>
-            </Link>
-
-            {user.role === "ADMIN" && (
+              {/* Profile link */}
               <Link
-                href="/admin"
+                href="/profile"
                 onClick={closeMenu}
-                className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
-                  pathname.startsWith("/admin")
-                    ? "bg-secondary text-primary"
-                    : "text-foreground hover:bg-muted"
+                className={`flex items-center gap-3 mx-2 px-4 py-3 rounded-lg transition-colors ${
+                  pathname === "/profile"
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
-                <Settings className="h-5 w-5" />
-                <span className="font-medium">Admin Panel</span>
+                <User className="h-5 w-5 flex-shrink-0" />
+                <span className="font-medium">Profile</span>
               </Link>
-            )}
-          </nav>
 
-          {/* Sign out - fixed at bottom */}
-          <div className="flex-shrink-0 p-4 border-t border-border bg-card">
-            <form action={onSignOut}>
-              <Button
-                type="submit"
-                variant="outline"
-                className="w-full justify-start gap-3"
-              >
-                <LogOut className="h-5 w-5" />
-                Sign out
-              </Button>
-            </form>
+              {/* Admin link - only for admins */}
+              {user.role === "ADMIN" && (
+                <Link
+                  href="/admin"
+                  onClick={closeMenu}
+                  className={`flex items-center gap-3 mx-2 px-4 py-3 rounded-lg transition-colors ${
+                    pathname.startsWith("/admin")
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <Settings className="h-5 w-5 flex-shrink-0" />
+                  <span className="font-medium">Admin Panel</span>
+                </Link>
+              )}
+            </nav>
+
+            {/* Sign out button - fixed at bottom */}
+            <div className="px-4 py-4 border-t border-gray-200 bg-white">
+              <form action={onSignOut}>
+                <button
+                  type="submit"
+                  className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                >
+                  <LogOut className="h-5 w-5" />
+                  Sign out
+                </button>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
