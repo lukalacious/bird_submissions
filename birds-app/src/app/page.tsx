@@ -24,7 +24,7 @@ export default async function LoginPage() {
               <h1 className="text-4xl font-bold text-white tracking-tight">Twitch</h1>
             </div>
             <p className="text-slate-400 text-sm">
-              Bird tracking for the dedicated birder
+              Bird tracking
             </p>
           </div>
 
