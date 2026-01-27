@@ -23,19 +23,19 @@ const drawerVariants = {
   hidden: { x: "100%" },
   visible: {
     x: 0,
-    transition: { type: "spring" as const, stiffness: 300, damping: 30 },
+    transition: { type: "spring", stiffness: 300, damping: 30 },
   },
   exit: {
     x: "100%",
-    transition: { type: "tween" as const, duration: 0.25, ease: [0.32, 0.72, 0, 1] },
+    transition: { type: "tween", duration: 0.25, ease: "easeOut" },
   },
-};
+} as const;
 
 const backdropVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.2 } },
   exit: { opacity: 0, transition: { duration: 0.2 } },
-};
+} as const;
 
 interface HamburgerMenuProps {
   user: {
