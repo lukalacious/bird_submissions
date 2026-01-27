@@ -74,7 +74,7 @@ export default async function ProfilePage() {
                 </Badge>
                 <Badge variant="secondary" className="gap-1">
                   <Bird className="h-3 w-3" />
-                  {profile._count.submissions} birds submitted
+                  {profile._count.submissions} birds twitched
                 </Badge>
               </div>
             </div>

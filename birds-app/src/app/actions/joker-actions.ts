@@ -221,3 +221,104 @@ export async function getYearlyJokerSummary(userId?: string, year?: number) {
     available: j.jokers - j.usedJokers,
   }));
 }
+
+// Use a joker for immunity (creates a submission that counts towards monthly goal)
+export async function useJokerForImmunity(
+  regionId: string,
+  year?: number,
+  month?: number
+): Promise<{ success: boolean; error?: string; remaining?: number }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const userId = session.user.id;
+  const settings = await prisma.settings.findFirst();
+  const targetYear = year || settings?.currentYear || new Date().getFullYear();
+  const targetMonth = month || new Date().getMonth() + 1;
+
+  try {
+    // Check if user has available jokers
+    const jokerInfo = await getUserJokerInfo(userId, targetYear, targetMonth);
+    if (!jokerInfo || jokerInfo.availableJokers < 1) {
+      return { success: false, error: "No jokers available" };
+    }
+
+    // Check if user already used a joker this month
+    const existingJokerSubmission = await prisma.submission.findFirst({
+      where: {
+        userId,
+        regionId,
+        year: targetYear,
+        month: targetMonth,
+        isJokerSubmission: true,
+      },
+    });
+
+    if (existingJokerSubmission) {
+      return { success: false, error: "Joker already used this month" };
+    }
+
+    // Create a special "joker submission" that counts towards monthly goal
+    await prisma.submission.create({
+      data: {
+        userId,
+        regionId,
+        birdName: "🃏 Joker Used",
+        year: targetYear,
+        month: targetMonth,
+        isCustomBird: false,
+        isJokerSubmission: true,
+      },
+    });
+
+    // Increment usedJokers count
+    await prisma.userJoker.update({
+      where: {
+        userId_year_month: { userId, year: targetYear, month: targetMonth },
+      },
+      data: {
+        usedJokers: { increment: 1 },
+      },
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/twitch");
+    revalidatePath("/submissions");
+
+    const remaining = jokerInfo.availableJokers - 1;
+    return { success: true, remaining };
+  } catch (error) {
+    console.error("Failed to use joker:", error);
+    return { success: false, error: "Failed to use joker" };
+  }
+}
+
+// Get joker history for entire year with group breakdowns
+export async function getJokerHistory(userId?: string, year?: number) {
+  const session = await auth();
+  if (!session?.user?.id) return [];
+
+  const targetUserId = userId || session.user.id;
+  const settings = await prisma.settings.findFirst();
+  const targetYear = year || settings?.currentYear || new Date().getFullYear();
+
+  // Get all months 1-12 for the year
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+  const history = await Promise.all(
+    months.map(async (month) => {
+      const jokerInfo = await getUserJokerInfo(targetUserId, targetYear, month);
+      return {
+        month,
+        year: targetYear,
+        ...jokerInfo,
+        hasData: jokerInfo && jokerInfo.totalJokers > 0
+      };
+    })
+  );
+
+  // Filter out months with no data
+  return history.filter(h => h.hasData);
+}

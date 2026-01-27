@@ -131,6 +131,7 @@ export async function updateSettings(input: {
   currentYear: number;
   monthlyFormEmbedUrl?: string | null;
   eliminationThreshold?: number;
+  rules?: string | null;
 }) {
   try {
     await requireAdmin();
@@ -147,6 +148,9 @@ export async function updateSettings(input: {
         ...(input.eliminationThreshold !== undefined && {
           eliminationThreshold: input.eliminationThreshold,
         }),
+        ...(input.rules !== undefined && {
+          rules: input.rules,
+        }),
       },
       create: {
         id: "default",
@@ -155,12 +159,13 @@ export async function updateSettings(input: {
         currentYear: input.currentYear,
         monthlyFormEmbedUrl: monthlyFormUrl,
         eliminationThreshold: input.eliminationThreshold ?? 30,
+        rules: input.rules ?? null,
       },
     });
 
     revalidatePath("/admin/settings");
     revalidatePath("/dashboard");
-    revalidatePath("/submit");
+    revalidatePath("/twitch");
     revalidatePath("/monthly-form");
     revalidatePath("/admin/elimination");
     return { success: true };
@@ -208,7 +213,7 @@ export async function updateMonthlySettings(input: {
 
     revalidatePath("/admin/settings");
     revalidatePath("/dashboard");
-    revalidatePath("/submit");
+    revalidatePath("/twitch");
     return { success: true };
   } catch (error) {
     console.error("Failed to update monthly settings:", error);
@@ -227,7 +232,7 @@ export async function resetMonthlySettings(year: number, month: number) {
 
     revalidatePath("/admin/settings");
     revalidatePath("/dashboard");
-    revalidatePath("/submit");
+    revalidatePath("/twitch");
     return { success: true };
   } catch (error) {
     console.error("Failed to reset monthly settings:", error);

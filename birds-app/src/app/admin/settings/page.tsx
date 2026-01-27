@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { getSettings, updateSettings, updateMonthlySettings, resetMonthlySettings, getYearlyMonthlySettings } from "@/app/actions/admin-actions";
-import { Settings, Save, Calendar, Bird, RefreshCw, Shield, RotateCcw, ClipboardList } from "lucide-react";
+import { Settings, Save, Calendar, Bird, RefreshCw, Shield, RotateCcw, ClipboardList, BookOpen } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 type ResetPeriod = "MONTHLY" | "YEARLY" | "NEVER";
 
@@ -31,6 +32,7 @@ export default function SettingsPage() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [monthlyFormEmbedUrl, setMonthlyFormEmbedUrl] = useState("");
   const [eliminationThreshold, setEliminationThreshold] = useState(30);
+  const [rules, setRules] = useState("");
   const [monthlySettings, setMonthlySettings] = useState<MonthSetting[]>([]);
   const [editingMonth, setEditingMonth] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -52,6 +54,7 @@ export default function SettingsPage() {
           setCurrentYear(settings.currentYear);
           setMonthlyFormEmbedUrl(settings.monthlyFormEmbedUrl ?? "");
           setEliminationThreshold(settings.eliminationThreshold);
+          setRules(settings.rules ?? "");
         }
         setMonthlySettings(monthly);
         setLoadError(null);
@@ -82,6 +85,7 @@ export default function SettingsPage() {
         currentYear,
         monthlyFormEmbedUrl: monthlyFormEmbedUrl.trim() || null,
         eliminationThreshold,
+        rules: rules.trim() || null,
       });
 
       if (result.success) {
@@ -91,6 +95,75 @@ export default function SettingsPage() {
         setMonthlySettings(monthly);
       } else {
         toast.error(result.error || "Failed to update settings");
+      }
+    });
+  };
+
+  const handleSaveRules = async () => {
+    startTransition(async () => {
+      try {
+        console.log("Saving rules:", rules);
+
+        // First get current settings to preserve them
+        const currentSettings = await getSettings();
+        if (!currentSettings) {
+          console.error("No current settings found");
+          toast.error("Failed to load current settings");
+          return;
+        }
+
+        console.log("Current settings loaded:", currentSettings);
+
+        const trimmedRules = rules.trim() || null;
+        console.log("Trimmed rules:", trimmedRules);
+
+        // Update only the rules field, keep everything else the same
+        const result = await updateSettings({
+          maxBirdsPerPeriod: currentSettings.maxBirdsPerPeriod,
+          resetPeriod: currentSettings.resetPeriod,
+          currentYear: currentSettings.currentYear,
+          monthlyFormEmbedUrl: currentSettings.monthlyFormEmbedUrl,
+          eliminationThreshold: currentSettings.eliminationThreshold,
+          rules: trimmedRules,
+        });
+
+        console.log("Update result:", result);
+
+        if (result.success) {
+          toast.success("Game rules saved successfully");
+        } else {
+          console.error("Update failed:", result.error);
+          toast.error(result.error || "Failed to save game rules");
+        }
+      } catch (error) {
+        console.error("Error saving rules:", error);
+        toast.error(`An error occurred: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    });
+  };
+
+  const handleSaveForm = async () => {
+    startTransition(async () => {
+      try {
+        const result = await updateSettings({
+          maxBirdsPerPeriod: maxBirds,
+          resetPeriod,
+          currentYear,
+          monthlyFormEmbedUrl: monthlyFormEmbedUrl.trim() || null,
+          eliminationThreshold,
+          rules: rules.trim() || null,
+        });
+
+        if (result.success) {
+          toast.success("Settings updated successfully");
+          const monthly = await getYearlyMonthlySettings(currentYear);
+          setMonthlySettings(monthly);
+        } else {
+          toast.error(result.error || "Failed to update settings");
+        }
+      } catch (error) {
+        console.error("Error updating settings:", error);
+        toast.error("An error occurred while saving");
       }
     });
   };
@@ -153,10 +226,10 @@ export default function SettingsPage() {
 
   if (loadError) {
     return (
-      <div className="max-w-4xl space-y-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">App Settings</h1>
-          <p className="text-gray-600">Configure submission rules and periods</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">App Settings</h1>
+          <p className="text-sm sm:text-base text-gray-600">Configure submission rules and periods</p>
         </div>
         <Card className="border-red-200 bg-red-50">
           <CardContent className="py-8">
@@ -178,10 +251,10 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">App Settings</h1>
-        <p className="text-gray-600">Configure submission rules and periods</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">App Settings</h1>
+        <p className="text-sm sm:text-base text-gray-600">Configure submission rules and periods</p>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -210,7 +283,7 @@ export default function SettingsPage() {
                 value={maxBirds}
                 onChange={(e) => setMaxBirds(parseInt(e.target.value) || 31)}
               />
-              <p className="text-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500">
                 Default limit used when no monthly override is set
               </p>
             </div>
@@ -236,8 +309,8 @@ export default function SettingsPage() {
                   </Button>
                 ))}
               </div>
-              <p className="text-sm text-gray-500">
-                How often submitted birds become available again
+              <p className="text-xs sm:text-sm text-gray-500">
+                How often twitched birds become available again
               </p>
             </div>
 
@@ -255,7 +328,7 @@ export default function SettingsPage() {
                 value={currentYear}
                 onChange={(e) => setCurrentYear(parseInt(e.target.value) || new Date().getFullYear())}
               />
-              <p className="text-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500">
                 The year used for tracking submissions
               </p>
             </div>
@@ -274,7 +347,7 @@ export default function SettingsPage() {
                 value={eliminationThreshold}
                 onChange={(e) => setEliminationThreshold(parseInt(e.target.value) || 30)}
               />
-              <p className="text-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500">
                 Minimum birds per month to avoid elimination
               </p>
             </div>
@@ -308,11 +381,11 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
             {monthlySettings.map((setting) => (
               <div
                 key={setting.month}
-                className={`relative p-3 rounded-lg border ${
+                className={`relative p-3 sm:p-4 rounded-lg border ${
                   setting.isCustom
                     ? "border-purple-300 bg-purple-50"
                     : "border-gray-200 bg-gray-50"
@@ -406,16 +479,51 @@ export default function SettingsPage() {
             value={monthlyFormEmbedUrl}
             onChange={(e) => setMonthlyFormEmbedUrl(e.target.value)}
           />
-          <p className="text-sm text-gray-500">
+          <p className="text-xs sm:text-sm text-gray-500">
             Paste the embed URL from Google Forms (Share → Embed HTML, or use …/viewform?embedded=true).
           </p>
           <Button
             type="button"
-            onClick={handleSubmit}
+            onClick={handleSaveForm}
             disabled={isPending}
             className="w-full mt-4"
           >
             {isPending ? "Saving..." : "Save Google Form URL"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Game Rules */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5" />
+            Game Rules
+          </CardTitle>
+          <CardDescription>
+            Edit the game rules displayed on the dashboard. Use ** for bold headings (e.g., **Heading:**).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Label htmlFor="rules">Game Rules</Label>
+          <Textarea
+            id="rules"
+            placeholder="Enter game rules here..."
+            value={rules}
+            onChange={(e) => setRules(e.target.value)}
+            rows={8}
+            className="font-mono text-xs sm:text-sm"
+          />
+          <p className="text-xs sm:text-sm text-gray-500">
+            Format: Use **Bold:** for headings. Each line will be displayed separately. Leave empty to show default rules.
+          </p>
+          <Button
+            type="button"
+            onClick={handleSaveRules}
+            disabled={isPending}
+            className="w-full mt-4"
+          >
+            {isPending ? "Saving..." : "Save Game Rules"}
           </Button>
         </CardContent>
       </Card>

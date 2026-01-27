@@ -100,7 +100,7 @@ export default async function SubmissionsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{totalBirds}</p>
-                <p className="text-sm text-muted-foreground">Total birds submitted</p>
+                <p className="text-sm text-muted-foreground">Total birds twitched</p>
               </div>
             </div>
             <div className="text-right">
@@ -118,10 +118,10 @@ export default async function SubmissionsPage() {
             <Bird className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground mb-2">No submissions yet.</p>
             <Link
-              href="/submit"
+              href="/twitch"
               className="text-primary hover:underline inline-block py-2"
             >
-              Submit your first bird →
+              Twitch your first bird →
             </Link>
           </CardContent>
         </Card>
@@ -139,7 +139,7 @@ export default async function SubmissionsPage() {
                       <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                       {formatDate(g.date)}
                       {isToday && (
-                        <span className="text-[10px] font-normal text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                        <span className="text-xs font-normal text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
                           Today
                         </span>
                       )}

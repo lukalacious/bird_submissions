@@ -311,7 +311,7 @@ export async function getMonthlyProgress(userId: string): Promise<MonthlyChallen
   challenges.push({
     id: "reach_limit",
     title: "Complete the month",
-    description: "Submit 31 bird sightings this month",
+    description: "Twitch 31 bird sightings this month",
     current: currentMonthCount,
     target: 31,
     completed: currentMonthCount >= 31,
@@ -323,7 +323,7 @@ export async function getMonthlyProgress(userId: string): Promise<MonthlyChallen
     challenges.push({
       id: "new_region",
       title: "Explore a new region",
-      description: "Submit to a region you haven't visited before",
+      description: "Twitch in a region you haven't visited before",
       current: regionsThisMonth > 0 ? 1 : 0,
       target: 1,
       completed: regionsThisMonth > 0,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,13 +11,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { submitBirds } from "@/app/actions/submit-birds";
-import { MapPin, Search, AlertTriangle, Check, X, ChevronLeft, Plus, HelpCircle } from "lucide-react";
+import { MapPin, Search, AlertTriangle, Check, X, ChevronLeft, Plus, HelpCircle, ChevronRight, ChevronUp, ChevronDown, Shield } from "lucide-react";
+import { JokerPreviewCard } from "@/components/joker-preview-card";
+import { calculateJokerPreview } from "@/lib/joker-preview";
+import { UseJokerButton } from "@/components/use-joker-button";
 
 interface Bird {
   id: string;
   fullName: string;
   scientificName: string;
   alphabeticalName: string;
+  groupName?: string | null;
   isDisabled: boolean;
 }
 
@@ -34,6 +38,8 @@ interface BirdSubmissionFormProps {
   currentYear: number;
   currentMonth: number;
   userId: string;
+  availableJokers: number;
+  regionId: string;
 }
 
 export function BirdSubmissionForm({
@@ -43,6 +49,8 @@ export function BirdSubmissionForm({
   currentYear,
   currentMonth,
   userId,
+  availableJokers,
+  regionId,
 }: BirdSubmissionFormProps) {
   const [selectedBirds, setSelectedBirds] = useState<Set<string>>(new Set());
   const [customBirds, setCustomBirds] = useState<string[]>([]);
@@ -51,6 +59,7 @@ export function BirdSubmissionForm({
   const [searchQuery, setSearchQuery] = useState("");
   const [step, setStep] = useState<"select" | "review">("select");
   const [isPending, startTransition] = useTransition();
+  const [isBirdListExpanded, setIsBirdListExpanded] = useState(false);
   const router = useRouter();
 
   // Guard: if in review with no selection, go back to select
@@ -63,6 +72,34 @@ export function BirdSubmissionForm({
   const totalSelected = selectedBirds.size + customBirds.length;
   const canSelectMore = totalSelected < maxBirds;
   const limitReached = totalSelected >= maxBirds;
+
+  // Expandable bird list logic
+  const shouldShowToggle = totalSelected >= 5;
+  const maxCollapsedHeight = 120; // ~3 rows of pills
+
+  // Calculate joker preview for review step
+  const jokerPreview = useMemo(() => {
+    if (step !== "review" || selectedBirds.size === 0) {
+      return { totalJokers: 0, groupBreakdown: [] };
+    }
+    return calculateJokerPreview(Array.from(selectedBirds), birds);
+  }, [step, selectedBirds, birds]);
+
+  // Calculate which groups have 3+ birds (qualify for jokers)
+  const jokerEligibleGroups = useMemo(() => {
+    const groupCounts = new Map<string, number>();
+    birds.forEach((bird) => {
+      if (bird.groupName) {
+        groupCounts.set(bird.groupName, (groupCounts.get(bird.groupName) || 0) + 1);
+      }
+    });
+    // Return set of group names with 3+ birds
+    return new Set(
+      Array.from(groupCounts.entries())
+        .filter(([_, count]) => count >= 3)
+        .map(([groupName]) => groupName)
+    );
+  }, [birds]);
 
   const filteredBirds = birds.filter(
     (bird) =>
@@ -124,9 +161,10 @@ export function BirdSubmissionForm({
       });
 
       if (result.success) {
-        router.push(`/success?count=${result.count}&region=${region.name}`);
+        const jokersParam = result.jokersEarned ? `&jokers=${result.jokersEarned}` : '';
+        router.push(`/success?count=${result.count}&region=${region.name}${jokersParam}`);
       } else {
-        toast.error(result.error || "Failed to submit birds");
+        toast.error(result.error || "Failed to twitch birds");
       }
     });
   };
@@ -134,30 +172,42 @@ export function BirdSubmissionForm({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-            <MapPin className="h-4 w-4" />
-            <span>{region.label}</span>
-            <span>•</span>
-            <span>{currentYear}</span>
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
+          {step === "review" ? "Review Your Selection" : "Select Birds to Twitch"}
+        </h1>
+
+        {/* Action buttons row - Joker button and Region selector */}
+        <div className="flex gap-3 justify-between items-center">
+          {availableJokers > 0 && (
+            <div className="flex-1 max-w-xs">
+              <UseJokerButton
+                availableJokers={availableJokers}
+                regionId={regionId}
+                year={currentYear}
+                month={currentMonth}
+              />
+            </div>
+          )}
+          <div className="flex-shrink-0">
+            <Button variant="outline" asChild>
+              <Link href="/dashboard" className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                {region.label}
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </Button>
           </div>
-          <h1 className="heading-display text-2xl sm:text-3xl text-foreground">
-            {step === "review" ? "Review your selection" : "Select Your Birds"}
-          </h1>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/dashboard">Change Region</Link>
-        </Button>
       </div>
 
       {step === "review" ? (
         /* Review card */
         <Card>
           <CardContent className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">Review your selection</h2>
+            <h2 className="text-lg font-semibold text-foreground">Review Your Selection</h2>
             <p className="text-sm text-muted-foreground">
-              You&apos;re about to submit {totalSelected} bird
+              You're about to twitch {totalSelected} bird
               {totalSelected !== 1 ? "s" : ""} for {region.label} in {currentYear}.
             </p>
             <ul className="space-y-2 max-h-60 overflow-y-auto pr-2">
@@ -176,17 +226,24 @@ export function BirdSubmissionForm({
               {/* Custom birds */}
               {customBirds.sort((a, b) => a.localeCompare(b)).map((birdName) => (
                 <li key={`custom-${birdName}`} className="text-sm flex items-center gap-2">
-                  <Badge variant="copper" className="text-xs">
+                  <Badge className="text-xs bg-purple-100 text-purple-700 border-purple-200">
                     Custom
                   </Badge>
                   <span className="font-medium text-foreground">{birdName}</span>
                 </li>
               ))}
             </ul>
+
+            {/* Joker Preview */}
+            <JokerPreviewCard
+              jokersToEarn={jokerPreview.totalJokers}
+              groupBreakdown={jokerPreview.groupBreakdown}
+            />
+
             <div className="flex gap-2 pt-2">
               <Button variant="outline" onClick={() => setStep("select")} disabled={isPending}>
                 <ChevronLeft className="h-4 w-4 mr-2" />
-                Edit selection
+                Edit Selection
               </Button>
               <Button onClick={handleSubmit} disabled={isPending}>
                 {isPending ? (
@@ -197,7 +254,7 @@ export function BirdSubmissionForm({
                 ) : (
                   <>
                     <Check className="h-4 w-4 mr-2" />
-                    Confirm and submit
+                    Confirm and Twitch
                   </>
                 )}
               </Button>
@@ -208,8 +265,8 @@ export function BirdSubmissionForm({
         <>
           {/* Counter and Actions */}
           <Card>
-            <CardContent className="p-5">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <CardContent className="pt-1.5 px-5 pb-5">
+              <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="text-center">
                     <motion.div
@@ -243,7 +300,7 @@ export function BirdSubmissionForm({
                     disabled={totalSelected === 0 || isPending}
                   >
                     <Check className="h-4 w-4 mr-2" />
-                    Submit {totalSelected} Bird{totalSelected !== 1 ? "s" : ""}
+                    Twitch {totalSelected} Bird{totalSelected !== 1 ? "s" : ""}
                   </Button>
                 </div>
               </div>
@@ -252,8 +309,14 @@ export function BirdSubmissionForm({
                   <motion.div
                     className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-border"
                     initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
+                    animate={{
+                      opacity: 1,
+                      height: shouldShowToggle && !isBirdListExpanded ? maxCollapsedHeight : "auto"
+                    }}
                     exit={{ opacity: 0, height: 0 }}
+                    style={{
+                      overflow: shouldShowToggle && !isBirdListExpanded ? "hidden" : "visible"
+                    }}
                   >
                     <AnimatePresence mode="popLayout">
                       {/* Regular selected birds */}
@@ -294,7 +357,7 @@ export function BirdSubmissionForm({
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.8 }}
                             transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-sm text-accent"
+                            className="inline-flex items-center gap-1.5 rounded-full bg-purple-100 px-3 py-1 text-sm text-purple-700"
                           >
                             <HelpCircle className="h-3 w-3" />
                             {birdName}
@@ -304,7 +367,7 @@ export function BirdSubmissionForm({
                                 e.stopPropagation();
                                 removeCustomBird(birdName);
                               }}
-                              className="rounded-full p-0.5 hover:bg-accent/30 transition-colors"
+                              className="rounded-full p-0.5 hover:bg-purple-200 transition-colors"
                               aria-label={`Remove ${birdName}`}
                             >
                               <X className="h-3 w-3" />
@@ -315,6 +378,20 @@ export function BirdSubmissionForm({
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* Toggle button for collapsing/expanding bird list */}
+              {totalSelected > 0 && shouldShowToggle && (
+                <button
+                  type="button"
+                  onClick={() => setIsBirdListExpanded(!isBirdListExpanded)}
+                  className="text-sm text-primary hover:text-primary/80 transition-colors flex items-center gap-1 mt-2"
+                >
+                  <span>
+                    {isBirdListExpanded ? "Show less" : `Show all ${totalSelected} birds`}
+                  </span>
+                  {isBirdListExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+              )}
             </CardContent>
           </Card>
 
@@ -337,14 +414,14 @@ export function BirdSubmissionForm({
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
               >
-                <Card className="border-accent/30 bg-accent/5">
+                <Card className="border-indigo-200/60 bg-gradient-to-br from-indigo-50/20 to-purple-50/20">
                   <CardContent className="p-5">
                     <div className="flex items-start gap-3 mb-4">
-                      <HelpCircle className="h-5 w-5 text-accent mt-0.5" />
+                      <HelpCircle className="h-5 w-5 text-purple-600 mt-0.5" />
                       <div>
-                        <p className="font-medium text-foreground">Add unlisted bird</p>
+                        <p className="font-medium text-foreground">Add Unlisted Bird</p>
                         <p className="text-sm text-muted-foreground">
-                          Can&apos;t find your bird? Enter its name below. Custom entries will be reviewed.
+                          Can't find your bird? Enter its name below. Custom entries will be reviewed.
                         </p>
                       </div>
                     </div>
@@ -363,9 +440,9 @@ export function BirdSubmissionForm({
                         disabled={!canSelectMore}
                       />
                       <Button
-                        variant="accent"
                         onClick={addCustomBird}
                         disabled={!customBirdInput.trim() || !canSelectMore}
+                        className="bg-purple-600 hover:bg-purple-700 text-white"
                       >
                         <Plus className="h-4 w-4 mr-1" />
                         Add
@@ -389,13 +466,12 @@ export function BirdSubmissionForm({
                 animate={{ opacity: 1 }}
               >
                 <Button
-                  variant="outline"
                   onClick={() => setShowCustomInput(true)}
                   disabled={!canSelectMore}
-                  className="w-full border-dashed gap-2"
+                  className="w-full gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold shadow-md"
                 >
-                  <HelpCircle className="h-4 w-4" />
-                  Bird not listed? Add custom entry
+                  <Plus className="h-5 w-5" />
+                  Bird Not Listed? Add Custom Entry
                 </Button>
               </motion.div>
             )}
@@ -403,7 +479,7 @@ export function BirdSubmissionForm({
 
           {/* Bird Grid */}
           <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+            className="grid grid-cols-2 gap-2"
             initial="hidden"
             animate="visible"
             variants={{
@@ -417,6 +493,7 @@ export function BirdSubmissionForm({
             {filteredBirds.map((bird) => {
               const isSelected = selectedBirds.has(bird.fullName);
               const isLimitDisabled = !isSelected && !canSelectMore;
+              const isJokerEligible = bird.groupName && jokerEligibleGroups.has(bird.groupName);
 
               return (
                 <motion.div
@@ -443,8 +520,8 @@ export function BirdSubmissionForm({
                       }
                     }}
                   >
-                    <CardContent className="p-5">
-                      <div className="flex items-start gap-3 min-h-[44px]">
+                    <CardContent className="p-1">
+                      <div className="flex items-center gap-1 min-h-[40px]">
                         <motion.div
                           animate={isSelected ? { scale: [1, 1.2, 1] } : { scale: 1 }}
                           transition={{ duration: 0.2 }}
@@ -452,23 +529,28 @@ export function BirdSubmissionForm({
                           <Checkbox
                             checked={isSelected}
                             disabled={bird.isDisabled || isLimitDisabled}
-                            className="mt-1 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                           />
                         </motion.div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground truncate">
+                        <div className="flex-1 min-w-0 text-center">
+                          <p className="text-sm font-medium text-foreground truncate">
                             {bird.fullName}
                           </p>
-                          <p className="text-sm text-muted-foreground italic truncate">
+                          <p className="text-xs text-muted-foreground italic truncate">
                             {bird.scientificName}
                           </p>
                           {bird.isDisabled && (
-                            <Badge variant="stone" className="mt-2">
-                              Already Submitted
+                            <Badge variant="stone" className="mt-1 text-xs">
+                              Already Twitched
                             </Badge>
                           )}
                         </div>
                       </div>
+                      {isJokerEligible && (
+                        <div className="absolute bottom-1.5 right-1.5 text-amber-600 opacity-60">
+                          <Shield className="h-7 w-7" />
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -480,8 +562,8 @@ export function BirdSubmissionForm({
             <Card className="text-center py-12">
               <CardContent>
                 <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">No birds found</h3>
-                <p className="text-muted-foreground">Try adjusting your search query</p>
+                <h3 className="text-lg font-medium text-foreground mb-2">No Birds Found</h3>
+                <p className="text-muted-foreground">Try adjusting your search query.</p>
               </CardContent>
             </Card>
           )}
@@ -503,7 +585,7 @@ export function BirdSubmissionForm({
                   disabled={totalSelected === 0 || isPending}
                   className="flex-1"
                 >
-                  Submit ({totalSelected})
+                  Twitch ({totalSelected})
                 </Button>
               </div>
             </CardContent>

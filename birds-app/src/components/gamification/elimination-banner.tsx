@@ -36,7 +36,7 @@ export function EliminationBanner({
               <p className="font-medium text-red-800">You&apos;ve been eliminated</p>
               <p className="text-sm text-red-600">
                 Eliminated in {eliminationMonth ? MONTH_NAMES[eliminationMonth - 1] : "a previous month"}.
-                You can still submit birds but won&apos;t be eligible for the challenge.
+                You can still twitch birds but won&apos;t be eligible for the challenge.
               </p>
             </div>
           </div>
@@ -60,7 +60,7 @@ export function EliminationBanner({
             <div className="flex-1">
               <p className="font-medium text-green-800">You&apos;re safe this month!</p>
               <p className="text-sm text-green-600">
-                You&apos;ve submitted {currentSubmissions} birds, meeting the {threshold} bird threshold.
+                You&apos;ve twitched {currentSubmissions} birds, meeting the {threshold} bird threshold.
               </p>
             </div>
             {jokersAvailable > 0 && (
@@ -87,7 +87,7 @@ export function EliminationBanner({
               {birdsNeeded} more bird{birdsNeeded !== 1 ? "s" : ""} needed
             </p>
             <p className="text-sm text-amber-600">
-              Submit {birdsNeeded} more to avoid elimination ({currentSubmissions}/{threshold}).
+              Twitch {birdsNeeded} more to avoid elimination ({currentSubmissions}/{threshold}).
               {jokersAvailable > 0 && ` You have ${jokersAvailable} joker${jokersAvailable !== 1 ? "s" : ""} as backup.`}
             </p>
           </div>

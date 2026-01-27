@@ -115,7 +115,7 @@ export function ProfileForm({
           </SelectContent>
         </Select>
         <p className="text-xs text-gray-500">
-          This region will be pre-selected when you submit birds.
+          This region will be pre-selected when you twitch birds.
         </p>
       </div>
       <Button type="submit" disabled={isPending || !hasChanges}>

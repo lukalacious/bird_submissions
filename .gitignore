@@ -22,3 +22,11 @@ package-lock.json
 out/
 build/
 dist/
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+*.crdownload
+*.tmp

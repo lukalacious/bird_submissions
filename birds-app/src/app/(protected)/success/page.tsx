@@ -4,15 +4,34 @@ import { Button } from "@/components/ui/button";
 import { Bird, ArrowRight } from "lucide-react";
 import { Suspense } from "react";
 import { SuccessAnimation } from "./success-animation";
+import { JokerSuccessDisplay } from "@/components/joker-success-display";
+import { getUserJokerInfo } from "@/app/actions/joker-actions";
+import { auth } from "@/lib/auth";
+import prisma from "@/lib/prisma";
 
 interface SuccessPageProps {
-  searchParams: Promise<{ count?: string; region?: string }>;
+  searchParams: Promise<{ count?: string; region?: string; jokers?: string }>;
 }
 
 async function SuccessContent({ searchParams }: SuccessPageProps) {
   const params = await searchParams;
   const count = parseInt(params.count || "0", 10);
   const region = params.region || "";
+  const jokersEarned = parseFloat(params.jokers || "0");
+
+  // Get user session and joker info
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  // Get current year and month from settings
+  const settings = await prisma.settings.findFirst();
+  const currentYear = settings?.currentYear || new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+
+  // Fetch joker information for this month (for breakdown display)
+  const jokerInfo = userId && jokersEarned > 0
+    ? await getUserJokerInfo(userId, currentYear, currentMonth)
+    : null;
 
   return (
     <div className="max-w-md mx-auto px-4 py-16">
@@ -35,7 +54,7 @@ async function SuccessContent({ searchParams }: SuccessPageProps) {
               </svg>
             </div>
             <CardTitle className="text-2xl bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-              Submission Successful!
+              Twitch Successful!
             </CardTitle>
             <CardDescription className="text-base">
               Your bird sightings have been recorded
@@ -49,14 +68,22 @@ async function SuccessContent({ searchParams }: SuccessPageProps) {
               </div>
             </div>
             <p className="text-gray-600 text-lg">
-              {count === 1 ? "bird" : "birds"} submitted successfully
+              {count === 1 ? "Bird" : "Birds"} twitched successfully
             </p>
+
+            {/* Joker notification */}
+            {jokersEarned > 0 && jokerInfo && (
+              <JokerSuccessDisplay
+                jokersEarned={jokersEarned}
+                groupBreakdown={jokerInfo.groupBreakdown}
+              />
+            )}
 
             <div className="flex flex-col gap-3 pt-4">
               {region && (
                 <Button asChild className="w-full min-h-[44px] bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700">
-                  <Link href={`/submit?region=${region}`}>
-                    Submit More Birds
+                  <Link href={`/twitch?region=${region}`}>
+                    Twitch More Birds
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>

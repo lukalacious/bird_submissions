@@ -3,7 +3,7 @@
 import prisma from "@/lib/prisma";
 import { syncToGoogleSheets } from "@/lib/google-sheets";
 import { revalidatePath } from "next/cache";
-import { recalculateJokers } from "./joker-actions";
+import { recalculateJokers, getUserJokerInfo } from "./joker-actions";
 import { getMonthlySettings } from "@/lib/settings-utils";
 
 interface SubmitBirdsInput {
@@ -18,6 +18,7 @@ interface SubmitBirdsInput {
 interface SubmitBirdsResult {
   success: boolean;
   count?: number;
+  jokersEarned?: number;
   error?: string;
 }
 
@@ -46,7 +47,7 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
       const remaining = Math.max(0, maxBirdsPerPeriod - currentCount);
       return {
         success: false,
-        error: `You can submit at most ${remaining} more birds this month`,
+        error: `You can twitch at most ${remaining} more birds this month`,
       };
     }
 
@@ -63,10 +64,10 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
     });
 
     if (existingSubmissions.length > 0) {
-      const alreadySubmitted = existingSubmissions.map((s) => s.birdName);
+      const alreadyTwitched = existingSubmissions.map((s) => s.birdName);
       return {
         success: false,
-        error: `Already submitted: ${alreadySubmitted.join(", ")}`,
+        error: `Already twitched: ${alreadyTwitched.join(", ")}`,
       };
     }
 
@@ -114,6 +115,10 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
       isCustomBird: true,
     }));
 
+    // Get joker count BEFORE submission
+    const jokersBefore = await getUserJokerInfo(userId, year, month);
+    const jokerCountBefore = jokersBefore?.totalJokers || 0;
+
     const submissions = await prisma.submission.createMany({
       data: [...regularSubmissions, ...customSubmissions],
     });
@@ -139,9 +144,17 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
       // Don't fail the submission if sheet sync fails
     }
 
-    // Recalculate jokers based on group submissions
+    // Recalculate jokers based on group submissions and get the new count
+    let jokersEarned = 0;
     try {
       await recalculateJokers(userId, year, month);
+
+      // Get joker count AFTER submission
+      const jokersAfter = await getUserJokerInfo(userId, year, month);
+      const jokerCountAfter = jokersAfter?.totalJokers || 0;
+
+      // Calculate jokers earned from THIS submission only
+      jokersEarned = jokerCountAfter - jokerCountBefore;
     } catch (jokerError) {
       console.error("Failed to recalculate jokers:", jokerError);
       // Don't fail the submission if joker calc fails
@@ -149,13 +162,13 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
 
     // Revalidate paths
     revalidatePath("/dashboard");
-    revalidatePath("/submit");
+    revalidatePath("/twitch");
     revalidatePath("/submissions");
 
-    return { success: true, count: submissions.count };
+    return { success: true, count: submissions.count, jokersEarned };
   } catch (error) {
-    console.error("Failed to submit birds:", error);
-    return { success: false, error: "Failed to submit birds. Please try again." };
+    console.error("Failed to twitch birds:", error);
+    return { success: false, error: "Failed to twitch birds. Please try again." };
   }
 }
 
@@ -192,7 +205,7 @@ export async function deleteSubmission(input: {
 
     // Revalidate paths
     revalidatePath("/dashboard");
-    revalidatePath("/submit");
+    revalidatePath("/twitch");
     revalidatePath("/submissions");
 
     return { success: true };

@@ -95,7 +95,7 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
       >
         <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
         <p className="text-lg font-medium">No activity yet</p>
-        <p className="text-sm mt-1">Be the first to submit a bird sighting!</p>
+        <p className="text-sm mt-1">Be the first to twitch a bird!</p>
       </motion.div>
     );
   }

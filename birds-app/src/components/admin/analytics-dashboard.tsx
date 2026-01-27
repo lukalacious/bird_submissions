@@ -124,7 +124,7 @@ export function AnalyticsDashboard({
               <Bird className="h-8 w-8 text-amber-500" />
             </div>
             <p className="mt-2 text-sm text-gray-500">
-              Submitted this year
+              Twitched this year
             </p>
           </CardContent>
         </Card>
@@ -200,11 +200,11 @@ export function AnalyticsDashboard({
           </CardContent>
         </Card>
 
-        {/* Top Submitters */}
+        {/* Top Twitchers */}
         <Card>
           <CardHeader>
-            <CardTitle>Top Submitters</CardTitle>
-            <p className="text-sm text-gray-500">Users with most submissions</p>
+            <CardTitle>Top Twitchers</CardTitle>
+            <p className="text-sm text-gray-500">Users with most twitches</p>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">

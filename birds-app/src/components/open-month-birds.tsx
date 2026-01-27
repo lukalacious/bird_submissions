@@ -44,7 +44,7 @@ export function OpenMonthBirds({ birds, userId, year, month }: OpenMonthBirdsPro
 
   if (localBirds.length === 0) {
     return (
-      <p className="text-sm text-gray-500 italic">No birds submitted yet this month</p>
+      <p className="text-sm text-gray-500 italic">No birds twitched yet this month</p>
     );
   }
 

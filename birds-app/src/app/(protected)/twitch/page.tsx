@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { BirdSubmissionForm } from "@/components/bird-submission-form";
 import { getMonthlySettings } from "@/lib/settings-utils";
+import { getUserJokerInfo } from "@/app/actions/joker-actions";
 import type { ResetPeriod } from "@prisma/client";
 
 interface SubmitPageProps {
@@ -89,7 +90,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
   const monthlySettings = await getMonthlySettings(currentYear, currentMonth);
   const maxBirdsPerPeriod = monthlySettings.maxBirdsPerPeriod;
 
-  const [submittedBirds, currentMonthCount] = await Promise.all([
+  const [submittedBirds, currentMonthCount, jokerInfo] = await Promise.all([
     getSubmittedBirds(
       session!.user.id!,
       region.id,
@@ -105,7 +106,15 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
         month: currentMonth,
       },
     }),
+    getUserJokerInfo(session!.user.id!, currentYear, currentMonth),
   ]);
+
+  const jokerData = jokerInfo || {
+    totalJokers: 0,
+    usedJokers: 0,
+    availableJokers: 0,
+    groupBreakdown: []
+  };
 
   const maxBirds = Math.max(0, maxBirdsPerPeriod - currentMonthCount);
 
@@ -116,7 +125,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
   }));
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-4 py-4">
       <BirdSubmissionForm
         region={region}
         birds={birdsWithStatus}
@@ -124,6 +133,8 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
         currentYear={currentYear}
         currentMonth={currentMonth}
         userId={session!.user.id!}
+        availableJokers={jokerData.availableJokers}
+        regionId={region.id}
       />
     </div>
   );

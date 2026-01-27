@@ -65,7 +65,7 @@ export function JokerDisplay({ jokerInfo, compact = false }: JokerDisplayProps) 
         <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
           <Info className="h-4 w-4 text-blue-600 mt-0.5" />
           <p className="text-sm text-blue-700">
-            Earn jokers by submitting multiple birds from the same group.
+            Earn jokers by twitching multiple birds from the same group.
             3 birds = 1 joker, +0.5 for each additional bird.
           </p>
         </div>
@@ -98,7 +98,7 @@ export function JokerDisplay({ jokerInfo, compact = false }: JokerDisplayProps) 
 
         {jokerInfo.groupBreakdown.length === 0 && (
           <p className="text-sm text-gray-500 text-center py-2">
-            Submit 3+ birds from the same group to earn jokers
+            Twitch 3+ birds from the same group to earn jokers
           </p>
         )}
       </CardContent>

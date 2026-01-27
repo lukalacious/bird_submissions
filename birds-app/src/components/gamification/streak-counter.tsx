@@ -65,7 +65,7 @@ export function StreakCounter({ streak }: StreakCounterProps) {
             <p className="text-sm text-gray-600">
               {streak.currentStreak === 1 ? "month" : "months"} streak
               {!streak.isActiveThisMonth && streak.currentStreak > 0 && (
-                <span className="text-orange-500 ml-1">(submit to keep it!)</span>
+                <span className="text-orange-500 ml-1">(twitch to keep it!)</span>
               )}
             </p>
           </div>
@@ -91,7 +91,7 @@ export function StreakCounter({ streak }: StreakCounterProps) {
           transition={{ delay: 0.3 }}
           className="mt-3 text-sm text-gray-500 text-center"
         >
-          Submit this month to start a streak!
+          Twitch this month to start a streak!
         </motion.p>
       )}
 

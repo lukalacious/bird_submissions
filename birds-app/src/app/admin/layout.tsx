@@ -53,6 +53,26 @@ export default async function AdminLayout({
         </div>
       </header>
 
+      {/* Mobile Navigation */}
+      <div className="md:hidden w-full bg-white border-b border-gray-200">
+        <div className="flex gap-2 overflow-x-auto px-4 py-2 scrollbar-hide">
+          {adminNavItems.map((item) => (
+            <Button
+              key={item.href}
+              variant="outline"
+              size="sm"
+              asChild
+              className="flex-shrink-0"
+            >
+              <Link href={item.href} className="flex items-center gap-1.5">
+                <item.icon className="h-3.5 w-3.5" />
+                <span className="text-xs whitespace-nowrap">{item.label}</span>
+              </Link>
+            </Button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex">
         {/* Sidebar */}
         <aside className="w-64 min-h-[calc(100vh-4rem)] bg-white border-r border-gray-200 hidden md:block">
@@ -73,27 +93,8 @@ export default async function AdminLayout({
           </nav>
         </aside>
 
-        {/* Mobile Navigation */}
-        <div className="md:hidden w-full bg-white border-b border-gray-200 px-4 py-2">
-          <div className="flex gap-2 overflow-x-auto">
-            {adminNavItems.map((item) => (
-              <Button
-                key={item.href}
-                variant="outline"
-                size="sm"
-                asChild
-              >
-                <Link href={item.href}>
-                  <item.icon className="mr-1 h-3 w-3" />
-                  {item.label}
-                </Link>
-              </Button>
-            ))}
-          </div>
-        </div>
-
         {/* Main Content */}
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="flex-1 overflow-x-hidden">{children}</main>
       </div>
     </div>
   );

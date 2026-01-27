@@ -166,7 +166,7 @@ export async function updateUserProfile(data: { name?: string; username?: string
     revalidatePath("/activity");
     revalidatePath("/community");
     revalidatePath("/dashboard");
-    revalidatePath("/submit");
+    revalidatePath("/twitch");
 
     return { success: true };
   } catch (error) {

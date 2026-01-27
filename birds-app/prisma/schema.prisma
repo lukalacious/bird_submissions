@@ -111,11 +111,12 @@ model Submission {
   userId       String
   region       Region   @relation(fields: [regionId], references: [id], onDelete: Cascade)
   regionId     String
-  birdName     String   // The full name of the bird submitted
-  year         Int      // Year of submission
-  month        Int      @default(1) // Month (1-12) for per-month cap and greying
-  isCustomBird Boolean  @default(false) // True if bird was not in predefined list
-  createdAt    DateTime @default(now())
+  birdName          String   // The full name of the bird submitted
+  year              Int      // Year of submission
+  month             Int      @default(1) // Month (1-12) for per-month cap and greying
+  isCustomBird      Boolean  @default(false) // True if bird was not in predefined list
+  isJokerSubmission Boolean  @default(false) // True if this is a joker immunity submission
+  createdAt         DateTime @default(now())
 
   @@unique([userId, regionId, birdName, year, month])
   @@index([userId, regionId, year, month])
@@ -129,6 +130,7 @@ model Settings {
   currentYear           Int         @default(2026)
   monthlyFormEmbedUrl   String?     @db.Text  // Google Form embed URL
   eliminationThreshold  Int         @default(30)  // Min birds required to avoid elimination
+  rules                 String?     @db.Text  // Game rules displayed on dashboard
   updatedAt             DateTime    @updatedAt
 }
 

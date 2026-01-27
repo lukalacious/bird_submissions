@@ -10,6 +10,7 @@ interface BirdRow {
   "Full Name"?: string;
   "Scientific Name"?: string;
   "Group Name"?: string; // Bird group for joker calculation
+  "Family Name"?: string; // Alternative column name for bird families (from Google Sheets)
 }
 
 function formatRegionLabel(sheetName: string): string {
@@ -86,7 +87,8 @@ async function main() {
         const fullName = (row["Full  Name "] || row["Full Name"] || "").toString().trim();
         const alphabeticalName = (row["Alphabetical Name"] || "").toString().trim();
         const scientificName = (row["Scientific Name"] || "").toString().trim();
-        const groupName = (row["Group Name"] || "").toString().trim() || null;
+        // Try "Group Name" first, then fall back to "Family Name" for Google Sheets exports
+        const groupName = (row["Group Name"] || row["Family Name"] || "").toString().trim() || null;
 
         if (!fullName) return null;
 
