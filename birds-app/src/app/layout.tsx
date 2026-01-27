@@ -31,8 +31,20 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Twitch",
+  title: {
+    default: "Twitch",
+    template: "%s | Twitch"
+  },
   description: "Track the birds you've spotted across different regions",
+  applicationName: "Twitch",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Twitch",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export default function RootLayout({
