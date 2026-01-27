@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Menu,
   X,
@@ -16,6 +17,25 @@ import {
   LogOut,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
+
+// Animation variants for smooth drawer slide
+const drawerVariants = {
+  hidden: { x: "100%" },
+  visible: {
+    x: 0,
+    transition: { type: "spring", stiffness: 300, damping: 30 },
+  },
+  exit: {
+    x: "100%",
+    transition: { type: "tween", duration: 0.25, ease: [0.32, 0.72, 0, 1] },
+  },
+};
+
+const backdropVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.2 } },
+  exit: { opacity: 0, transition: { duration: 0.2 } },
+};
 
 interface HamburgerMenuProps {
   user: {
@@ -103,27 +123,33 @@ export function HamburgerMenu({ user, onSignOut }: HamburgerMenuProps) {
       </button>
 
       {/* Portal-style overlay - rendered when open */}
-      {isOpen && (
-        <div className="fixed inset-0 z-[9999] md:hidden">
-          {/* Dark backdrop */}
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={closeMenu}
-            aria-hidden="true"
-          />
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 z-[9999] md:hidden">
+            {/* Dark backdrop with fade animation */}
+            <motion.div
+              variants={backdropVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="absolute inset-0 bg-black/60"
+              onClick={closeMenu}
+              aria-hidden="true"
+            />
 
-          {/* Slide-out menu panel */}
-          <div
-            id="mobile-menu"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Navigation menu"
-            className="absolute top-0 right-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-2xl flex flex-col"
-            style={{
-              backgroundColor: "#ffffff",
-              paddingBottom: "env(safe-area-inset-bottom, 0px)"
-            }}
-          >
+            {/* Slide-out menu panel with slide animation */}
+            <motion.div
+              id="mobile-menu"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation menu"
+              variants={drawerVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="absolute top-0 right-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-2xl flex flex-col"
+              style={{ backgroundColor: "#ffffff" }}
+            >
             {/* Header */}
             <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
               <span className="font-bold text-lg text-gray-900">Twitch</span>
@@ -207,8 +233,13 @@ export function HamburgerMenu({ user, onSignOut }: HamburgerMenuProps) {
               )}
             </nav>
 
-            {/* Sign out button - fixed at bottom */}
-            <div className="flex-shrink-0 px-4 py-3 border-t border-gray-200 bg-white">
+            {/* Sign out button - fixed at bottom with padding for bottom nav */}
+            <div
+              className="flex-shrink-0 px-4 py-3 border-t border-gray-200 bg-white"
+              style={{
+                paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 56px + 12px)",
+              }}
+            >
               <form action={onSignOut}>
                 <button
                   type="submit"
@@ -219,9 +250,10 @@ export function HamburgerMenu({ user, onSignOut }: HamburgerMenuProps) {
                 </button>
               </form>
             </div>
-          </div>
+          </motion.div>
         </div>
-      )}
+        )}
+      </AnimatePresence>
     </>
   );
 }
