@@ -9,6 +9,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { submitBirds } from "@/app/actions/submit-birds";
 import { MapPin, Search, AlertTriangle, Check, X, ChevronLeft, Plus, HelpCircle, ChevronRight, ChevronUp, ChevronDown, Shield } from "lucide-react";
@@ -40,6 +46,7 @@ interface BirdSubmissionFormProps {
   userId: string;
   availableJokers: number;
   regionId: string;
+  allRegions: Region[];
 }
 
 export function BirdSubmissionForm({
@@ -51,6 +58,7 @@ export function BirdSubmissionForm({
   userId,
   availableJokers,
   regionId,
+  allRegions,
 }: BirdSubmissionFormProps) {
   const [selectedBirds, setSelectedBirds] = useState<Set<string>>(new Set());
   const [customBirds, setCustomBirds] = useState<string[]>([]);
@@ -190,13 +198,31 @@ export function BirdSubmissionForm({
             </div>
           )}
           <div className="flex-shrink-0">
-            <Button variant="outline" asChild>
-              <Link href="/dashboard" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                {region.label}
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  {region.label}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {allRegions.map((r) => (
+                  <DropdownMenuItem
+                    key={r.id}
+                    className={r.id === region.id ? "bg-accent" : ""}
+                    onClick={() => {
+                      if (r.id !== region.id) {
+                        router.push(`/twitch?region=${r.name}`);
+                      }
+                    }}
+                  >
+                    {r.label}
+                    {r.id === region.id && <Check className="ml-2 h-4 w-4" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

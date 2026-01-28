@@ -34,15 +34,47 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
       return { success: false, error: "No birds selected" };
     }
 
-    // Get monthly settings to check max birds per period
-    const monthlySettings = await getMonthlySettings(year, month);
+    // OPTIMIZATION: Run all validation queries in parallel
+    const [monthlySettings, currentCount, existingSubmissions, region, user, jokersBefore] = await Promise.all([
+      // Get monthly settings to check max birds per period
+      getMonthlySettings(year, month),
+      // Cap: count existing submissions for (userId, regionId, year, month)
+      prisma.submission.count({
+        where: { userId, regionId, year, month },
+      }),
+      // Duplicates: check for already submitted birds
+      prisma.submission.findMany({
+        where: {
+          userId,
+          regionId,
+          year,
+          month,
+          birdName: { in: allBirdNames },
+        },
+        select: { birdName: true },
+      }),
+      // Verify regular birds exist in the region
+      prisma.region.findUnique({
+        where: { id: regionId },
+        include: {
+          birds: {
+            where: { fullName: { in: birdNames } },
+            select: { fullName: true },
+          },
+        },
+      }),
+      // Get user info for Google Sheets sync (fetch early)
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, name: true },
+      }),
+      // Get joker count BEFORE submission
+      getUserJokerInfo(userId, year, month),
+    ]);
+
     const maxBirdsPerPeriod = monthlySettings.maxBirdsPerPeriod;
 
-    // Cap: count existing submissions for (userId, regionId, year, month)
-    const currentCount = await prisma.submission.count({
-      where: { userId, regionId, year, month },
-    });
-
+    // Validate: check submission cap
     if (currentCount + allBirdNames.length > maxBirdsPerPeriod) {
       const remaining = Math.max(0, maxBirdsPerPeriod - currentCount);
       return {
@@ -51,18 +83,7 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
       };
     }
 
-    // Duplicates: check for already submitted birds in this (userId, regionId, year, month)
-    const existingSubmissions = await prisma.submission.findMany({
-      where: {
-        userId,
-        regionId,
-        year,
-        month,
-        birdName: { in: allBirdNames },
-      },
-      select: { birdName: true },
-    });
-
+    // Validate: check for duplicates
     if (existingSubmissions.length > 0) {
       const alreadyTwitched = existingSubmissions.map((s) => s.birdName);
       return {
@@ -71,21 +92,12 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
       };
     }
 
-    // Verify regular birds exist in the region (skip validation for custom birds)
-    const region = await prisma.region.findUnique({
-      where: { id: regionId },
-      include: {
-        birds: {
-          where: { fullName: { in: birdNames } },
-          select: { fullName: true },
-        },
-      },
-    });
-
+    // Validate: region exists
     if (!region) {
       return { success: false, error: "Invalid region" };
     }
 
+    // Validate: birds exist in region
     const validBirdNames = region.birds.map((b) => b.fullName);
     const invalidBirds = birdNames.filter((name) => !validBirdNames.includes(name));
 
@@ -115,34 +127,23 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
       isCustomBird: true,
     }));
 
-    // Get joker count BEFORE submission
-    const jokersBefore = await getUserJokerInfo(userId, year, month);
     const jokerCountBefore = jokersBefore?.totalJokers || 0;
 
     const submissions = await prisma.submission.createMany({
       data: [...regularSubmissions, ...customSubmissions],
     });
 
-    // Get user info for Google Sheets sync
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { email: true, name: true },
-    });
-
-    // Sync to Google Sheets (non-blocking, don't fail if it errors)
-    try {
-      await syncToGoogleSheets({
-        userId,
-        email: user?.email || "",
-        userName: user?.name || "",
-        regionName: region.name,
-        birdNames: allBirdNames,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (sheetError) {
+    // OPTIMIZATION: Fire-and-forget Google Sheets sync (truly non-blocking)
+    syncToGoogleSheets({
+      userId,
+      email: user?.email || "",
+      userName: user?.name || "",
+      regionName: region.name,
+      birdNames: allBirdNames,
+      timestamp: new Date().toISOString(),
+    }).catch((sheetError) => {
       console.error("Failed to sync to Google Sheets:", sheetError);
-      // Don't fail the submission if sheet sync fails
-    }
+    });
 
     // Recalculate jokers based on group submissions and get the new count
     let jokersEarned = 0;

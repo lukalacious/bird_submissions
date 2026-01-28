@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, Bird, ClipboardList, User } from "lucide-react";
+import { LogOut, Settings, Bird, ClipboardList, User, Plus, ChevronDown, Trophy, Activity } from "lucide-react";
 import Link from "next/link";
 import { AnimatedPage } from "@/components/ui/animated-page";
 import { BottomNav } from "@/components/ui/bottom-nav";
@@ -53,25 +53,40 @@ export default async function ProtectedLayout({
                 <Bird className="h-8 w-8 text-primary transition-transform group-hover:scale-105" />
                 <span className="font-semibold text-xl text-foreground tracking-tight">Twitch</span>
               </Link>
-              <nav className="hidden md:flex items-center gap-8">
+              <nav className="hidden md:flex items-center gap-6">
+                <Link
+                  href="/twitch"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  Twitch
+                </Link>
                 <Link
                   href="/submissions"
                   className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
                 >
                   Submissions
                 </Link>
-                <Link
-                  href="/community"
-                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Community
-                </Link>
-                <Link
-                  href="/activity"
-                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Activity
-                </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                    Community
+                    <ChevronDown className="h-4 w-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem asChild>
+                      <Link href="/community" className="cursor-pointer">
+                        <Trophy className="mr-2 h-4 w-4" />
+                        Leaderboard
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/activity" className="cursor-pointer">
+                        <Activity className="mr-2 h-4 w-4" />
+                        Activity Feed
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Link
                   href="/monthly-form"
                   className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"

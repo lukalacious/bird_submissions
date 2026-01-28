@@ -84,9 +84,13 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
     }
   }
 
-  const [region, settings] = await Promise.all([
+  const [region, settings, allRegions] = await Promise.all([
     getRegionData(regionName),
     getSettings(),
+    prisma.region.findMany({
+      select: { id: true, name: true, label: true },
+      orderBy: { label: "asc" },
+    }),
   ]);
 
   if (!region) {
@@ -146,6 +150,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
         userId={session!.user.id!}
         availableJokers={jokerData.availableJokers}
         regionId={region.id}
+        allRegions={allRegions}
       />
     </div>
   );
