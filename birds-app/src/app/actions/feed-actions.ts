@@ -23,6 +23,7 @@ export interface LeaderboardEntry {
   level: number;
   submissionCount: number;
   isCurrentUser: boolean;
+  isEliminated: boolean;
 }
 
 /**
@@ -203,22 +204,33 @@ export async function getCommunityFeed(limit = 20): Promise<FeedEntry[]> {
 
 /**
  * Get leaderboard for a given period
+ * @param period - "month" for current month, "alltime" for all time
+ * @param challengeFilter - "all", "active" (non-eliminated), or "eliminated"
  */
 export async function getLeaderboard(
-  period: "month" | "alltime"
+  period: "month" | "alltime",
+  challengeFilter: "all" | "active" | "eliminated" = "all"
 ): Promise<LeaderboardEntry[]> {
   const session = await auth();
   const currentUserId = session?.user?.id;
 
   // Build the where clause for time filtering
   const now = new Date();
+  const currentYear = now.getFullYear();
   const whereClause =
     period === "month"
       ? {
-          year: now.getFullYear(),
+          year: currentYear,
           month: now.getMonth() + 1,
         }
       : {};
+
+  // Get eliminated user IDs for filtering
+  const eliminatedStatuses = await prisma.userChallengeStatus.findMany({
+    where: { year: currentYear, isEliminated: true },
+    select: { userId: true },
+  });
+  const eliminatedUserIds = new Set(eliminatedStatuses.map((s) => s.userId));
 
   // Get submission counts grouped by user
   const userCounts = await prisma.submission.groupBy({
@@ -226,11 +238,22 @@ export async function getLeaderboard(
     where: whereClause,
     _count: { _all: true },
     orderBy: { _count: { birdName: "desc" } },
-    take: 10,
+    take: 50, // Get more to account for filtering
   });
 
+  // Filter based on challenge filter
+  let filteredCounts = userCounts;
+  if (challengeFilter === "active") {
+    filteredCounts = userCounts.filter((uc) => !eliminatedUserIds.has(uc.userId));
+  } else if (challengeFilter === "eliminated") {
+    filteredCounts = userCounts.filter((uc) => eliminatedUserIds.has(uc.userId));
+  }
+
+  // Take top 10 after filtering
+  filteredCounts = filteredCounts.slice(0, 10);
+
   // Get user details
-  const userIds = userCounts.map((uc) => uc.userId);
+  const userIds = filteredCounts.map((uc) => uc.userId);
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
     select: {
@@ -246,7 +269,7 @@ export async function getLeaderboard(
   // Get user levels based on quartile ranking
   const userLevelMap = await calculateUserLevels();
 
-  return userCounts.map((uc, index) => {
+  return filteredCounts.map((uc, index) => {
     const user = userMap.get(uc.userId);
 
     return {
@@ -257,6 +280,7 @@ export async function getLeaderboard(
       level: userLevelMap.get(uc.userId)?.level || 1,
       submissionCount: uc._count._all,
       isCurrentUser: uc.userId === currentUserId,
+      isEliminated: eliminatedUserIds.has(uc.userId),
     };
   });
 }

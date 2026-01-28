@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, Medal, Crown, TrendingUp, Calendar } from "lucide-react";
+import { Trophy, Medal, Crown, TrendingUp, Calendar, AlertTriangle } from "lucide-react";
 import { LEVELS } from "@/lib/gamification-constants";
 import type { LeaderboardEntry } from "@/app/actions/feed-actions";
 
@@ -84,12 +84,24 @@ function LeaderboardItem({
       {/* Name and Level */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className={`font-medium truncate ${entry.isCurrentUser ? "text-purple-700" : "text-gray-900"}`}>
+          <span className={`font-medium truncate ${
+            entry.isEliminated
+              ? "text-gray-500"
+              : entry.isCurrentUser
+                ? "text-purple-700"
+                : "text-gray-900"
+          }`}>
             {entry.userName || "Anonymous"}
             {entry.isCurrentUser && (
               <span className="text-xs text-purple-500 ml-1">(you)</span>
             )}
           </span>
+          {entry.isEliminated && (
+            <span className="flex items-center gap-0.5 text-xs text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
+              <AlertTriangle className="h-3 w-3" />
+              Eliminated
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1 text-xs text-gray-500">
           <span>{levelInfo.icon}</span>

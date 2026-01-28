@@ -5,13 +5,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Bird, Calendar, Target } from "lucide-react";
 import { getMonthlySettings } from "@/lib/settings-utils";
 import { getUserJokerInfo, getJokerHistory } from "@/app/actions/joker-actions";
+import { getUserEliminationStatus } from "@/app/actions/elimination-actions";
 import { JokerCard } from "@/components/dashboard/joker-card";
 import { GameRules } from "@/components/dashboard/game-rules";
+import { EliminationBanner } from "@/components/gamification/elimination-banner";
 
 async function getUserSubmissionCounts(userId: string): Promise<{
   thisMonthCount: number;
   totalCount: number;
   maxBirdsPerPeriod: number;
+  eliminationThreshold: number;
 }> {
   const settings = await prisma.settings.findUnique({ where: { id: "default" } });
   const currentYear = settings?.currentYear ?? new Date().getFullYear();
@@ -20,6 +23,7 @@ async function getUserSubmissionCounts(userId: string): Promise<{
   // Get monthly-specific settings (falls back to global if no monthly override)
   const monthlySettings = await getMonthlySettings(currentYear, currentMonth);
   const maxBirdsPerPeriod = monthlySettings.maxBirdsPerPeriod;
+  const eliminationThreshold = monthlySettings.eliminationThreshold;
 
   const [thisMonthCount, totalCount] = await Promise.all([
     prisma.submission.count({
@@ -34,7 +38,7 @@ async function getUserSubmissionCounts(userId: string): Promise<{
     }),
   ]);
 
-  return { thisMonthCount, totalCount, maxBirdsPerPeriod };
+  return { thisMonthCount, totalCount, maxBirdsPerPeriod, eliminationThreshold };
 }
 
 export default async function DashboardPage() {
@@ -42,16 +46,17 @@ export default async function DashboardPage() {
   const userId = session!.user.id!;
   const userName = session!.user.name?.split(" ")[0] || "there";
 
-  const { thisMonthCount, totalCount, maxBirdsPerPeriod } = await getUserSubmissionCounts(userId);
+  const { thisMonthCount, totalCount, maxBirdsPerPeriod, eliminationThreshold } = await getUserSubmissionCounts(userId);
 
-  // Fetch joker data
+  // Fetch joker data and elimination status
   const settings = await prisma.settings.findUnique({ where: { id: "default" } });
   const currentYear = settings?.currentYear ?? new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
-  const [jokerInfo, jokerHistory] = await Promise.all([
+  const [jokerInfo, jokerHistory, eliminationStatus] = await Promise.all([
     getUserJokerInfo(userId, currentYear, currentMonth),
-    getJokerHistory(userId, currentYear)
+    getJokerHistory(userId, currentYear),
+    getUserEliminationStatus(userId, currentYear)
   ]);
 
   const jokerData = jokerInfo || {
@@ -63,6 +68,15 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 md:py-10 space-y-6">
+      {/* Elimination Status Banner */}
+      <EliminationBanner
+        isEliminated={eliminationStatus?.isEliminated ?? false}
+        eliminationMonth={eliminationStatus?.eliminationMonth ?? null}
+        jokersAvailable={eliminationStatus?.jokersAvailable ?? 0}
+        currentSubmissions={thisMonthCount}
+        threshold={eliminationThreshold}
+      />
+
       {/* Welcome header */}
       <div className="flex items-center justify-between">
         <div>

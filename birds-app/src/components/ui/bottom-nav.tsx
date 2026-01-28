@@ -6,15 +6,15 @@ import { LayoutDashboard, PlusCircle, Users, FileText } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/twitch", label: "Twitch", icon: PlusCircle },
   { href: "/community", label: "Community", icon: Users },
+  { href: "/twitch", label: "Twitch", icon: PlusCircle },
   { href: "/submissions", label: "My Twitches", icon: FileText },
 ];
 
 function isActive(href: string, label: string, pathname: string): boolean {
   if (label === "Twitch") return pathname.startsWith("/twitch");
   if (label === "My Twitches") return pathname.startsWith("/submissions");
-  if (label === "Community") return pathname.startsWith("/community") || pathname.startsWith("/activity");
+  if (label === "Community") return pathname.startsWith("/community");
   if (label === "Home") return pathname === "/dashboard";
   return pathname === href;
 }

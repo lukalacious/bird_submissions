@@ -16,7 +16,7 @@ import {
   Settings,
   User,
   LogOut,
-  Activity,
+  Info,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 
@@ -35,9 +35,9 @@ const navItems = [
   { href: "/twitch", label: "Twitch", icon: PlusCircle },
   { href: "/submissions", label: "My Twitches", icon: FileText },
   { href: "/community", label: "Community", icon: Users },
-  { href: "/activity", label: "Activity", icon: Activity },
   { href: "/monthly-form", label: "Google Form", icon: ClipboardList },
   { href: "/profile", label: "Profile", icon: User },
+  { href: "/about", label: "About", icon: Info },
 ];
 
 export function HamburgerMenu({ user, onSignOut }: SlideMenuProps) {

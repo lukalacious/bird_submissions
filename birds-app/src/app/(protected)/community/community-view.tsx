@@ -6,7 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Bird, Users, Calendar, MapPin, Filter, Search, X } from "lucide-react";
+import { Bird, Users, Calendar, MapPin, Filter, Search, X, Trophy, AlertTriangle, MessageSquare, TrendingUp } from "lucide-react";
+import { ActivityFeed } from "@/components/community/activity-feed";
+import { Leaderboard } from "@/components/gamification/leaderboard";
+import type { FeedEntry, LeaderboardEntry } from "@/app/actions/feed-actions";
 
 interface CommunitySubmission {
   birdName: string;
@@ -19,6 +22,9 @@ interface CommunitySubmission {
   }[];
 }
 
+type ChallengeFilter = "all" | "active" | "eliminated";
+type ViewMode = "birds" | "feed" | "leaderboard";
+
 interface CommunityViewProps {
   submissions: CommunitySubmission[];
   stats: {
@@ -27,11 +33,17 @@ interface CommunityViewProps {
     uniqueUsers: number;
   };
   regions: { id: string; label: string }[];
-  users: { id: string; name: string }[];
+  users: { id: string; name: string; isEliminated?: boolean }[];
   currentYear: number;
   currentMonth: number;
   selectedRegion?: string;
   selectedUser?: string;
+  challengeFilter: ChallengeFilter;
+  eliminatedUserIds: string[];
+  viewMode: ViewMode;
+  feedEntries: FeedEntry[];
+  monthlyLeaderboard: LeaderboardEntry[];
+  allTimeLeaderboard: LeaderboardEntry[];
 }
 
 const MONTH_NAMES = [
@@ -48,6 +60,12 @@ export function CommunityView({
   currentMonth,
   selectedRegion,
   selectedUser,
+  challengeFilter,
+  eliminatedUserIds,
+  viewMode,
+  feedEntries,
+  monthlyLeaderboard,
+  allTimeLeaderboard,
 }: CommunityViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -85,34 +103,118 @@ export function CommunityView({
     <div className="max-w-4xl mx-auto px-4 py-4 space-y-3">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Community Submissions</h1>
+          <h1 className="text-xl font-bold text-gray-900">Community</h1>
           <p className="text-sm text-gray-600">
-            See what birds everyone has spotted
+            Birds, activity feed, and leaderboards
           </p>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          type="text"
-          placeholder="Search birds, users, or usernames..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 pr-8 h-9 text-sm"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery("")}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
+      {/* View Mode Tabs */}
+      <div className="flex gap-1 p-1 bg-purple-50 rounded-lg">
+        <button
+          onClick={() => updateFilter("view", "birds")}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            viewMode === "birds"
+              ? "bg-white text-purple-700 shadow-sm"
+              : "text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          <Bird className="h-4 w-4" />
+          Birds
+        </button>
+        <button
+          onClick={() => updateFilter("view", "feed")}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            viewMode === "feed"
+              ? "bg-white text-purple-700 shadow-sm"
+              : "text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          <MessageSquare className="h-4 w-4" />
+          Activity
+        </button>
+        <button
+          onClick={() => updateFilter("view", "leaderboard")}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            viewMode === "leaderboard"
+              ? "bg-white text-purple-700 shadow-sm"
+              : "text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          <TrendingUp className="h-4 w-4" />
+          Leaderboard
+        </button>
       </div>
 
-      {/* Filters */}
+      {/* Search - only show for birds view */}
+      {viewMode === "birds" && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Search birds, users, or usernames..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 pr-8 h-9 text-sm"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Challenge Filter Tabs - show for birds and leaderboard */}
+      {(viewMode === "birds" || viewMode === "leaderboard") && (
+        <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
+          <button
+            onClick={() => updateFilter("challenge", "all")}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              challengeFilter === "all"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            All Players
+          </button>
+          <button
+            onClick={() => updateFilter("challenge", "active")}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              challengeFilter === "active"
+                ? "bg-white text-green-700 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <Trophy className="h-4 w-4" />
+            Main Challenge
+          </button>
+          <button
+            onClick={() => updateFilter("challenge", "eliminated")}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              challengeFilter === "eliminated"
+                ? "bg-white text-red-700 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <AlertTriangle className="h-4 w-4" />
+            Eliminated
+            {eliminatedUserIds.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 text-xs bg-red-100 text-red-700 rounded-full">
+                {eliminatedUserIds.length}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Filters - only for birds view */}
+      {viewMode === "birds" && (
       <div className="bg-gray-50/50 rounded-lg p-3">
         <div className="flex items-center gap-1.5 mb-2 text-xs text-gray-500">
           <Filter className="h-3.5 w-3.5" />
@@ -154,13 +256,17 @@ export function CommunityView({
           >
             <option value="">All users</option>
             {users.map((u) => (
-              <option key={u.id} value={u.id}>{u.name}</option>
+              <option key={u.id} value={u.id}>
+                {u.name} {u.isEliminated ? "❌" : ""}
+              </option>
             ))}
           </select>
         </div>
       </div>
+      )}
 
-      {/* Stats */}
+      {/* Stats - only for birds view */}
+      {viewMode === "birds" && (
       <div className="flex items-center justify-around py-2 px-3 bg-gray-50/50 rounded-lg text-sm">
         <div className="text-center">
           <span className="text-xl font-bold text-purple-600">{stats.totalSubmissions}</span>
@@ -177,8 +283,10 @@ export function CommunityView({
           <span className="text-xs text-gray-500 ml-1">users</span>
         </div>
       </div>
+      )}
 
-      {/* Month header + search results */}
+      {/* Month header + search results - only for birds view */}
+      {viewMode === "birds" && (
       <div className="flex items-center justify-between text-sm text-gray-600">
         <div className="flex items-center gap-1.5">
           <Calendar className="h-3.5 w-3.5" />
@@ -199,9 +307,10 @@ export function CommunityView({
           </span>
         )}
       </div>
+      )}
 
-      {/* Bird list */}
-      {filteredSubmissions.length > 0 ? (
+      {/* Bird list - only for birds view */}
+      {viewMode === "birds" && (filteredSubmissions.length > 0 ? (
         <div className="space-y-1.5">
           {filteredSubmissions.map((sub, index) => (
             <Card key={sub.birdName}>
@@ -259,6 +368,27 @@ export function CommunityView({
                 ? `No birds or users match "${searchQuery}"`
                 : "No birds have been twitched for this period."}
             </p>
+          </CardContent>
+        </Card>
+      ))}
+
+      {/* Activity Feed View */}
+      {viewMode === "feed" && (
+        <Card>
+          <CardContent className="p-4">
+            <ActivityFeed entries={feedEntries} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Leaderboard View */}
+      {viewMode === "leaderboard" && (
+        <Card>
+          <CardContent className="p-4">
+            <Leaderboard
+              monthlyEntries={monthlyLeaderboard}
+              allTimeEntries={allTimeLeaderboard}
+            />
           </CardContent>
         </Card>
       )}
