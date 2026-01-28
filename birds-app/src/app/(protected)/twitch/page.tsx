@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { BirdSubmissionForm } from "@/components/bird-submission-form";
+import { RegionSelector } from "@/components/region-selector";
 import { getMonthlySettings } from "@/lib/settings-utils";
 import { getUserJokerInfo } from "@/app/actions/joker-actions";
 import type { ResetPeriod } from "@prisma/client";
@@ -69,7 +70,17 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
     if (user?.defaultRegion?.name) {
       redirect(`/twitch?region=${user.defaultRegion.name}`);
     } else {
-      redirect("/dashboard");
+      // No default region - show region selector instead of redirecting
+      const regions = await prisma.region.findMany({
+        select: {
+          id: true,
+          name: true,
+          label: true,
+        },
+        orderBy: { label: "asc" },
+      });
+
+      return <RegionSelector regions={regions} />;
     }
   }
 
