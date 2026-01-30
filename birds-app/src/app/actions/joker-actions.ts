@@ -8,6 +8,8 @@ interface JokerInfo {
   totalJokers: number;
   usedJokers: number;
   availableJokers: number;
+  /** Jokers available for use this month (excludes jokers earned this month) */
+  availableJokersForUse: number;
   groupBreakdown: {
     groupName: string;
     birdCount: number;
@@ -21,6 +23,38 @@ function calculateJokersFromGroup(birdCount: number): number {
   if (birdCount < 3) return 0;
   // 3 birds = 1, 4 birds = 1.5, 5 birds = 2, etc.
   return 1 + (birdCount - 3) * 0.5;
+}
+
+// Get available jokers from PREVIOUS months only (jokers earned in month X can only be used in months > X)
+async function getAvailableJokersFromPreviousMonths(
+  userId: string,
+  year: number,
+  currentMonth: number
+): Promise<{ available: number; jokerRecords: { id: string; month: number; available: number }[] }> {
+  // Get all joker records from months BEFORE the current month
+  const jokerRecords = await prisma.userJoker.findMany({
+    where: {
+      userId,
+      year,
+      month: { lt: currentMonth }, // Only months before current
+    },
+    orderBy: { month: "asc" }, // Oldest first for FIFO usage
+  });
+
+  const recordsWithAvailable = jokerRecords
+    .map((j) => ({
+      id: j.id,
+      month: j.month,
+      available: j.jokers - j.usedJokers,
+    }))
+    .filter((r) => r.available > 0);
+
+  const totalAvailable = recordsWithAvailable.reduce((sum, r) => sum + r.available, 0);
+
+  return {
+    available: totalAvailable,
+    jokerRecords: recordsWithAvailable,
+  };
 }
 
 // Get joker info for a user for a specific month
@@ -94,7 +128,7 @@ export async function getUserJokerInfo(
     totalEarnedJokers += jokersEarned;
   }
 
-  // Get used jokers from database
+  // Get used jokers from database for this specific month
   const jokerRecord = await prisma.userJoker.findUnique({
     where: {
       userId_year_month: {
@@ -107,10 +141,18 @@ export async function getUserJokerInfo(
 
   const usedJokers = jokerRecord?.usedJokers || 0;
 
+  // Get available jokers from PREVIOUS months (for use this month)
+  const { available: availableFromPrevious } = await getAvailableJokersFromPreviousMonths(
+    targetUserId,
+    targetYear,
+    targetMonth
+  );
+
   return {
     totalJokers: totalEarnedJokers,
     usedJokers,
     availableJokers: Math.max(0, totalEarnedJokers - usedJokers),
+    availableJokersForUse: Math.floor(availableFromPrevious), // Only whole jokers can be used
     groupBreakdown: groupBreakdown.sort((a, b) => b.jokersEarned - a.jokersEarned),
   };
 }
@@ -151,6 +193,7 @@ export async function recalculateJokers(
 }
 
 // Use a joker (called during elimination check)
+// Uses jokers from PREVIOUS months only - jokers earned in month X can only be used in months > X
 export async function useJoker(
   userId: string,
   year: number,
@@ -161,35 +204,29 @@ export async function useJoker(
     return { success: false, remainingJokers: 0 };
   }
 
-  const jokerRecord = await prisma.userJoker.findUnique({
-    where: {
-      userId_year_month: { userId, year, month },
-    },
-  });
+  // Get available jokers from previous months only
+  const { available, jokerRecords } = await getAvailableJokersFromPreviousMonths(
+    userId,
+    year,
+    month
+  );
 
-  if (!jokerRecord) {
-    return { success: false, remainingJokers: 0 };
-  }
-
-  const available = jokerRecord.jokers - jokerRecord.usedJokers;
-  if (available < 1) {
+  if (available < 1 || jokerRecords.length === 0) {
     return { success: false, remainingJokers: 0 };
   }
 
   try {
-    const updated = await prisma.userJoker.update({
-      where: {
-        userId_year_month: { userId, year, month },
-      },
-      data: {
-        usedJokers: { increment: 1 },
-      },
+    // Use from the oldest month (FIFO)
+    const jokerToUse = jokerRecords[0];
+    await prisma.userJoker.update({
+      where: { id: jokerToUse.id },
+      data: { usedJokers: { increment: 1 } },
     });
 
     revalidatePath("/dashboard");
     return {
       success: true,
-      remainingJokers: updated.jokers - updated.usedJokers,
+      remainingJokers: Math.floor(available) - 1,
     };
   } catch (error) {
     console.error("Failed to use joker:", error);
@@ -223,6 +260,7 @@ export async function getYearlyJokerSummary(userId?: string, year?: number) {
 }
 
 // Use a joker for immunity (creates a submission that counts towards monthly goal)
+// Users can use multiple jokers per month - no limit on redemptions
 export async function useJokerForImmunity(
   regionId: string,
   year?: number,
@@ -239,14 +277,19 @@ export async function useJokerForImmunity(
   const targetMonth = month || new Date().getMonth() + 1;
 
   try {
-    // Check if user has available jokers
-    const jokerInfo = await getUserJokerInfo(userId, targetYear, targetMonth);
-    if (!jokerInfo || jokerInfo.availableJokers < 1) {
-      return { success: false, error: "No jokers available" };
+    // Get available jokers from PREVIOUS months only (can't use jokers earned this month)
+    const { available, jokerRecords } = await getAvailableJokersFromPreviousMonths(
+      userId,
+      targetYear,
+      targetMonth
+    );
+
+    if (available < 1) {
+      return { success: false, error: "No jokers available (jokers earned this month cannot be used until next month)" };
     }
 
-    // Check if user already used a joker this month
-    const existingJokerSubmission = await prisma.submission.findFirst({
+    // Count existing joker submissions to generate unique name
+    const existingJokerCount = await prisma.submission.count({
       where: {
         userId,
         regionId,
@@ -256,16 +299,16 @@ export async function useJokerForImmunity(
       },
     });
 
-    if (existingJokerSubmission) {
-      return { success: false, error: "Joker already used this month" };
-    }
+    // Create a unique joker submission name (e.g., "🃏 Joker #1", "🃏 Joker #2")
+    const jokerNumber = existingJokerCount + 1;
+    const jokerBirdName = `🃏 Joker #${jokerNumber}`;
 
     // Create a special "joker submission" that counts towards monthly goal
     await prisma.submission.create({
       data: {
         userId,
         regionId,
-        birdName: "🃏 Joker Used",
+        birdName: jokerBirdName,
         year: targetYear,
         month: targetMonth,
         isCustomBird: false,
@@ -273,21 +316,20 @@ export async function useJokerForImmunity(
       },
     });
 
-    // Increment usedJokers count
-    await prisma.userJoker.update({
-      where: {
-        userId_year_month: { userId, year: targetYear, month: targetMonth },
-      },
-      data: {
-        usedJokers: { increment: 1 },
-      },
-    });
+    // Deduct from the oldest month's joker record (FIFO)
+    const jokerToUse = jokerRecords[0];
+    if (jokerToUse) {
+      await prisma.userJoker.update({
+        where: { id: jokerToUse.id },
+        data: { usedJokers: { increment: 1 } },
+      });
+    }
 
     revalidatePath("/dashboard");
     revalidatePath("/twitch");
     revalidatePath("/submissions");
 
-    const remaining = jokerInfo.availableJokers - 1;
+    const remaining = Math.floor(available) - 1;
     return { success: true, remaining };
   } catch (error) {
     console.error("Failed to use joker:", error);
