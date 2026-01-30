@@ -177,16 +177,19 @@ async function runMonthlyEliminationCheck(): Promise<{
       continue;
     }
 
-    // User below threshold - check for jokers
-    const totalJokers = user.jokers.reduce((sum, j) => sum + j.jokers, 0);
-    const usedJokers = user.jokers.reduce((sum, j) => sum + j.usedJokers, 0);
+    // User below threshold - check for jokers from PREVIOUS months only
+    // (jokers earned in month X can only be used in months > X)
+    const jokersFromPreviousMonths = user.jokers.filter(j => j.month < checkMonth);
+    const totalJokers = jokersFromPreviousMonths.reduce((sum, j) => sum + j.jokers, 0);
+    const usedJokers = jokersFromPreviousMonths.reduce((sum, j) => sum + j.usedJokers, 0);
     const availableJokers = totalJokers - usedJokers;
 
     if (availableJokers >= 1) {
-      // Find a joker record to use
-      const jokerToUse = user.jokers.find(
-        (j) => j.jokers - j.usedJokers >= 1
-      );
+      // Find a joker record from a previous month to use (oldest first - FIFO)
+      const sortedJokers = jokersFromPreviousMonths
+        .filter((j) => j.jokers - j.usedJokers >= 1)
+        .sort((a, b) => a.month - b.month);
+      const jokerToUse = sortedJokers[0];
 
       if (jokerToUse) {
         await prisma.userJoker.update({

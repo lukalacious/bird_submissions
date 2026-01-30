@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { CommunityView } from "./community-view";
 import { getCommunityFeed, getLeaderboard } from "@/app/actions/feed-actions";
+import { getCommunityJokerActivity } from "@/app/actions/joker-actions";
 
 export default async function CommunityPage({
   searchParams,
@@ -27,7 +28,7 @@ export default async function CommunityPage({
   const regionId = params.region || undefined;
   const userId = params.user || undefined;
   const challengeFilter = (params.challenge as "all" | "active" | "eliminated") || "all";
-  const viewMode = (params.view as "birds" | "feed" | "leaderboard") || "birds";
+  const viewMode = (params.view as "birds" | "feed" | "leaderboard" | "jokers") || "birds";
 
   // Get all regions for filter
   const regions = await prisma.region.findMany({
@@ -145,11 +146,12 @@ export default async function CommunityPage({
     uniqueUsers: new Set(submissions.map((s) => s.userId)).size,
   };
 
-  // Fetch activity feed and leaderboard data
-  const [communityFeed, monthlyLeaderboard, allTimeLeaderboard] = await Promise.all([
+  // Fetch activity feed, leaderboard, and joker data
+  const [communityFeed, monthlyLeaderboard, allTimeLeaderboard, jokerActivity] = await Promise.all([
     getCommunityFeed(50),
     getLeaderboard("month", challengeFilter),
     getLeaderboard("alltime", challengeFilter),
+    getCommunityJokerActivity(year, month),
   ]);
 
   return (
@@ -168,6 +170,7 @@ export default async function CommunityPage({
       feedEntries={communityFeed}
       monthlyLeaderboard={monthlyLeaderboard}
       allTimeLeaderboard={allTimeLeaderboard}
+      jokerActivity={jokerActivity}
     />
   );
 }

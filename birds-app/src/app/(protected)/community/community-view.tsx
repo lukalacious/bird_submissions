@@ -6,10 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Bird, Users, Calendar, MapPin, Filter, Search, X, Trophy, AlertTriangle, MessageSquare, TrendingUp } from "lucide-react";
+import { Bird, Users, Calendar, MapPin, Filter, Search, X, Trophy, AlertTriangle, MessageSquare, TrendingUp, Sparkles } from "lucide-react";
 import { ActivityFeed } from "@/components/community/activity-feed";
 import { Leaderboard } from "@/components/gamification/leaderboard";
 import type { FeedEntry, LeaderboardEntry } from "@/app/actions/feed-actions";
+import type { CommunityJokerEntry } from "@/app/actions/joker-actions";
 
 interface CommunitySubmission {
   birdName: string;
@@ -23,7 +24,7 @@ interface CommunitySubmission {
 }
 
 type ChallengeFilter = "all" | "active" | "eliminated";
-type ViewMode = "birds" | "feed" | "leaderboard";
+type ViewMode = "birds" | "feed" | "leaderboard" | "jokers";
 
 interface CommunityViewProps {
   submissions: CommunitySubmission[];
@@ -44,6 +45,7 @@ interface CommunityViewProps {
   feedEntries: FeedEntry[];
   monthlyLeaderboard: LeaderboardEntry[];
   allTimeLeaderboard: LeaderboardEntry[];
+  jokerActivity: CommunityJokerEntry[];
 }
 
 const MONTH_NAMES = [
@@ -66,6 +68,7 @@ export function CommunityView({
   feedEntries,
   monthlyLeaderboard,
   allTimeLeaderboard,
+  jokerActivity,
 }: CommunityViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -144,6 +147,17 @@ export function CommunityView({
         >
           <TrendingUp className="h-4 w-4" />
           Leaderboard
+        </button>
+        <button
+          onClick={() => updateFilter("view", "jokers")}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            viewMode === "jokers"
+              ? "bg-white text-purple-700 shadow-sm"
+              : "text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          <Sparkles className="h-4 w-4" />
+          Jokers
         </button>
       </div>
 
@@ -391,6 +405,113 @@ export function CommunityView({
             />
           </CardContent>
         </Card>
+      )}
+
+      {/* Jokers View */}
+      {viewMode === "jokers" && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Calendar className="h-3.5 w-3.5" />
+            <span className="font-medium">
+              {MONTH_NAMES[currentMonth - 1]} {currentYear} Joker Activity
+            </span>
+          </div>
+
+          {jokerActivity.length > 0 ? (
+            <div className="space-y-2">
+              {jokerActivity.map((entry) => {
+                const initials = (entry.userName || "?")
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2);
+
+                return (
+                  <Card key={entry.userId}>
+                    <CardContent className="py-3 px-4">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={entry.userImage || undefined} />
+                          <AvatarFallback className="text-sm bg-purple-100 text-purple-700">
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className="font-medium text-gray-900">
+                              {entry.userName || "Anonymous"}
+                            </p>
+                            <Badge variant="secondary" className="text-xs">
+                              <Sparkles className="h-3 w-3 mr-1" />
+                              {entry.totalEarned} earned
+                            </Badge>
+                          </div>
+
+                          {/* Group breakdown */}
+                          {entry.groupBreakdown.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {entry.groupBreakdown.map((group) => (
+                                <div
+                                  key={group.groupName}
+                                  className="flex items-center justify-between text-xs text-gray-600 bg-gray-50 rounded px-2 py-1"
+                                >
+                                  <span>
+                                    {group.groupName} ({group.birdCount} birds)
+                                  </span>
+                                  <span className="font-medium text-green-600">
+                                    +{group.jokersEarned} joker{group.jokersEarned !== 1 ? "s" : ""}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Usage info */}
+                          <div className="mt-2 flex items-center gap-3 text-xs">
+                            {entry.totalUsed > 0 && (
+                              <span className="text-red-600">
+                                {entry.totalUsed} used
+                              </span>
+                            )}
+                            <span className="text-gray-500">
+                              {Math.floor(entry.available)} available next month
+                            </span>
+                          </div>
+
+                          {/* Joker submissions (when used) */}
+                          {entry.jokerSubmissions.length > 0 && (
+                            <div className="mt-2 text-xs text-gray-500">
+                              <span className="font-medium">Used: </span>
+                              {entry.jokerSubmissions.map((js, i) => (
+                                <span key={i}>
+                                  {js.birdName} ({new Date(js.createdAt).toLocaleDateString()})
+                                  {i < entry.jokerSubmissions.length - 1 ? ", " : ""}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <Card className="text-center py-8">
+              <CardContent>
+                <Sparkles className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                <h3 className="text-base font-medium text-gray-900 mb-1">
+                  No jokers earned yet
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Earn jokers by twitching 3+ birds from the same group in a month.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
     </div>
   );

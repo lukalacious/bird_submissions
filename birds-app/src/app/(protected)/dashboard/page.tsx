@@ -63,6 +63,7 @@ export default async function DashboardPage() {
     totalJokers: 0,
     usedJokers: 0,
     availableJokers: 0,
+    availableJokersForUse: 0,
     groupBreakdown: []
   };
 

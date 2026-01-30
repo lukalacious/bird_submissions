@@ -364,3 +364,132 @@ export async function getJokerHistory(userId?: string, year?: number) {
   // Filter out months with no data
   return history.filter(h => h.hasData);
 }
+
+// Community joker activity - shows all users' joker earnings and usage
+// This is public data for transparency
+export interface CommunityJokerEntry {
+  userId: string;
+  userName: string | null;
+  userImage: string | null;
+  totalEarned: number;
+  totalUsed: number;
+  available: number;
+  groupBreakdown: {
+    groupName: string;
+    birdCount: number;
+    jokersEarned: number;
+  }[];
+  jokerSubmissions: {
+    birdName: string;
+    createdAt: Date;
+  }[];
+}
+
+export async function getCommunityJokerActivity(
+  year: number,
+  month: number
+): Promise<CommunityJokerEntry[]> {
+  // Get all users who have joker records for this period
+  const jokerRecords = await prisma.userJoker.findMany({
+    where: {
+      year,
+      month,
+      jokers: { gt: 0 }, // Only users who earned jokers
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+        },
+      },
+    },
+  });
+
+  // Get all submissions for calculating group breakdowns
+  const userIds = jokerRecords.map((r) => r.userId);
+
+  const submissions = await prisma.submission.findMany({
+    where: {
+      userId: { in: userIds },
+      year,
+      month,
+    },
+    select: {
+      userId: true,
+      birdName: true,
+      isJokerSubmission: true,
+      createdAt: true,
+    },
+  });
+
+  // Get bird group data
+  const birdNames = [...new Set(submissions.filter(s => !s.isJokerSubmission).map((s) => s.birdName))];
+  const birds = await prisma.bird.findMany({
+    where: {
+      fullName: { in: birdNames },
+    },
+    select: {
+      fullName: true,
+      groupName: true,
+    },
+  });
+
+  const birdGroupMap = new Map<string, string>();
+  for (const bird of birds) {
+    if (bird.groupName) {
+      birdGroupMap.set(bird.fullName, bird.groupName);
+    }
+  }
+
+  // Build community joker entries
+  const entries: CommunityJokerEntry[] = jokerRecords.map((record) => {
+    // Get this user's submissions
+    const userSubmissions = submissions.filter((s) => s.userId === record.userId);
+
+    // Calculate group breakdown
+    const groupCounts = new Map<string, number>();
+    for (const sub of userSubmissions) {
+      if (!sub.isJokerSubmission) {
+        const group = birdGroupMap.get(sub.birdName);
+        if (group) {
+          groupCounts.set(group, (groupCounts.get(group) || 0) + 1);
+        }
+      }
+    }
+
+    const groupBreakdown: CommunityJokerEntry["groupBreakdown"] = [];
+    for (const [groupName, count] of groupCounts) {
+      if (count >= 3) {
+        groupBreakdown.push({
+          groupName,
+          birdCount: count,
+          jokersEarned: calculateJokersFromGroup(count),
+        });
+      }
+    }
+
+    // Get joker submissions (when they used jokers)
+    const jokerSubmissions = userSubmissions
+      .filter((s) => s.isJokerSubmission)
+      .map((s) => ({
+        birdName: s.birdName,
+        createdAt: s.createdAt,
+      }));
+
+    return {
+      userId: record.userId,
+      userName: record.user.name,
+      userImage: record.user.image,
+      totalEarned: record.jokers,
+      totalUsed: record.usedJokers,
+      available: record.jokers - record.usedJokers,
+      groupBreakdown: groupBreakdown.sort((a, b) => b.jokersEarned - a.jokersEarned),
+      jokerSubmissions,
+    };
+  });
+
+  // Sort by total earned (highest first)
+  return entries.sort((a, b) => b.totalEarned - a.totalEarned);
+}

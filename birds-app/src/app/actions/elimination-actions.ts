@@ -22,6 +22,7 @@ export async function getUserEliminationStatus(
   const targetUserId = userId || session.user.id;
   const settings = await prisma.settings.findFirst();
   const targetYear = year || settings?.currentYear || new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
 
   const status = await prisma.userChallengeStatus.findUnique({
     where: {
@@ -32,9 +33,14 @@ export async function getUserEliminationStatus(
     },
   });
 
-  // Get jokers for this user/year
+  // Get jokers for this user/year from PREVIOUS months only
+  // (jokers earned in month X can only be used in months > X)
   const jokerData = await prisma.userJoker.findMany({
-    where: { userId: targetUserId, year: targetYear },
+    where: {
+      userId: targetUserId,
+      year: targetYear,
+      month: { lt: currentMonth }, // Only previous months
+    },
   });
 
   const totalJokers = jokerData.reduce((sum, j) => sum + j.jokers, 0);
@@ -47,7 +53,7 @@ export async function getUserEliminationStatus(
       eliminatedAt: null,
       eliminationMonth: null,
       joinedMonth: 1,
-      jokersAvailable: totalJokers - usedJokers,
+      jokersAvailable: Math.floor(totalJokers - usedJokers),
     };
   }
 
@@ -56,7 +62,7 @@ export async function getUserEliminationStatus(
     eliminatedAt: status.eliminatedAt,
     eliminationMonth: status.eliminationMonth,
     joinedMonth: status.joinedMonth,
-    jokersAvailable: totalJokers - usedJokers,
+    jokersAvailable: Math.floor(totalJokers - usedJokers),
   };
 }
 
@@ -132,20 +138,32 @@ export async function checkAndUpdateElimination(
     return { eliminated: false, usedJoker: false };
   }
 
-  // Check if they have jokers available
-  const jokerData = await prisma.userJoker.findUnique({
-    where: { userId_year_month: { userId, year, month } },
+  // Check if they have jokers available from PREVIOUS months
+  // (jokers earned in month X can only be used in months > X)
+  const jokerRecords = await prisma.userJoker.findMany({
+    where: {
+      userId,
+      year,
+      month: { lt: month }, // Only previous months
+    },
+    orderBy: { month: "asc" }, // Oldest first for FIFO usage
   });
 
-  const availableJokers = (jokerData?.jokers || 0) - (jokerData?.usedJokers || 0);
+  const availableJokers = jokerRecords.reduce(
+    (sum, j) => sum + (j.jokers - j.usedJokers),
+    0
+  );
 
   if (availableJokers >= 1) {
-    // Use a joker
-    await prisma.userJoker.update({
-      where: { userId_year_month: { userId, year, month } },
-      data: { usedJokers: { increment: 1 } },
-    });
-    return { eliminated: false, usedJoker: true };
+    // Find the oldest joker record with available jokers (FIFO)
+    const jokerToUse = jokerRecords.find((j) => j.jokers - j.usedJokers >= 1);
+    if (jokerToUse) {
+      await prisma.userJoker.update({
+        where: { id: jokerToUse.id },
+        data: { usedJokers: { increment: 1 } },
+      });
+      return { eliminated: false, usedJoker: true };
+    }
   }
 
   // Eliminate the user

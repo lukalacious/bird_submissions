@@ -128,6 +128,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
     totalJokers: 0,
     usedJokers: 0,
     availableJokers: 0,
+    availableJokersForUse: 0,
     groupBreakdown: []
   };
 
@@ -148,7 +149,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
         currentYear={currentYear}
         currentMonth={currentMonth}
         userId={session!.user.id!}
-        availableJokers={jokerData.availableJokers}
+        availableJokers={jokerData.availableJokersForUse}
         regionId={region.id}
         allRegions={allRegions}
       />
