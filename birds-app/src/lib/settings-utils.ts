@@ -25,15 +25,18 @@ export async function getMonthlySettings(year: number, month: number) {
     const global = await prisma.settings.findUnique({
       where: { id: "default" },
     });
+    const maxBirds = global?.maxBirdsPerPeriod ?? 31;
     return {
-      maxBirdsPerPeriod: global?.maxBirdsPerPeriod ?? 31,
-      eliminationThreshold: global?.eliminationThreshold ?? 30,
+      maxBirdsPerPeriod: maxBirds,
+      // Default elimination threshold to maxBirdsPerPeriod (monthly goal = threshold)
+      eliminationThreshold: global?.eliminationThreshold ?? maxBirds,
     };
   }
 
   return {
     maxBirdsPerPeriod: monthly.maxBirdsPerPeriod,
-    eliminationThreshold: monthly.eliminationThreshold ?? 30,
+    // Default to maxBirdsPerPeriod if eliminationThreshold not explicitly set
+    eliminationThreshold: monthly.eliminationThreshold ?? monthly.maxBirdsPerPeriod,
   };
 }
 
@@ -71,7 +74,8 @@ export async function getYearlyMonthlySettings(year: number) {
       year,
       daysInMonth,
       maxBirdsPerPeriod: custom?.maxBirdsPerPeriod ?? globalMax,
-      eliminationThreshold: custom?.eliminationThreshold ?? globalThreshold,
+      // Default to maxBirdsPerPeriod if eliminationThreshold not explicitly set
+      eliminationThreshold: custom?.eliminationThreshold ?? custom?.maxBirdsPerPeriod ?? globalThreshold,
       isCustom: !!custom,
     });
   }
