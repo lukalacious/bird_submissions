@@ -25,15 +25,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     error: "/auth/error",
   },
   callbacks: {
-    // JWT: store id, role, and username in the token at sign-in
-    async jwt({ token, user, trigger }) {
+    // JWT: store id in the token at sign-in
+    async jwt({ token, user }) {
       if (user && "id" in user) {
         token.id = user.id as string;
-        token.role = (user as { role?: string }).role ?? "USER";
-        token.username = (user as { username?: string | null }).username ?? null;
       }
-      // Refresh role/username from DB when session is updated OR if role is missing
-      if (typeof token.id === "string" && (trigger === "update" || !token.role)) {
+      // Always refresh role/username from DB to ensure role changes take effect immediately
+      if (typeof token.id === "string") {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id },
           select: { username: true, role: true },
