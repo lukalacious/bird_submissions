@@ -109,17 +109,17 @@ function LeaderboardItem({
         </div>
       </div>
 
-      {/* Score */}
+      {/* Score - Jokers Earned */}
       <div className="flex-shrink-0 text-right">
         <motion.span
-          key={entry.submissionCount}
+          key={entry.totalJokersEarned}
           initial={{ scale: 1.2 }}
           animate={{ scale: 1 }}
           className="font-bold text-lg text-gray-900"
         >
-          {entry.submissionCount}
+          {entry.totalJokersEarned}
         </motion.span>
-        <p className="text-xs text-gray-500">birds</p>
+        <p className="text-xs text-gray-500">jokers</p>
       </div>
     </motion.div>
   );

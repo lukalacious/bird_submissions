@@ -22,6 +22,7 @@ export interface LeaderboardEntry {
   userImage: string | null;
   level: number;
   submissionCount: number;
+  totalJokersEarned: number;
   isCurrentUser: boolean;
   isEliminated: boolean;
 }
@@ -203,7 +204,7 @@ export async function getCommunityFeed(limit = 20): Promise<FeedEntry[]> {
 }
 
 /**
- * Get leaderboard for a given period
+ * Get leaderboard for a given period, sorted by total jokers earned
  * @param period - "month" for current month, "alltime" for all time
  * @param challengeFilter - "all", "active" (non-eliminated), or "eliminated"
  */
@@ -214,10 +215,19 @@ export async function getLeaderboard(
   const session = await auth();
   const currentUserId = session?.user?.id;
 
-  // Build the where clause for time filtering
   const now = new Date();
   const currentYear = now.getFullYear();
-  const whereClause =
+
+  // Build the where clause for time filtering
+  const jokerWhereClause =
+    period === "month"
+      ? {
+          year: currentYear,
+          month: now.getMonth() + 1,
+        }
+      : {};
+
+  const submissionWhereClause =
     period === "month"
       ? {
           year: currentYear,
@@ -232,28 +242,31 @@ export async function getLeaderboard(
   });
   const eliminatedUserIds = new Set(eliminatedStatuses.map((s) => s.userId));
 
-  // Get submission counts grouped by user
-  const userCounts = await prisma.submission.groupBy({
+  // Get total jokers earned per user (sorted by jokers descending)
+  const jokerTotals = await prisma.userJoker.groupBy({
     by: ["userId"],
-    where: whereClause,
-    _count: { _all: true },
-    orderBy: { _count: { birdName: "desc" } },
-    take: 50, // Get more to account for filtering
+    where: jokerWhereClause,
+    _sum: { jokers: true },
   });
 
+  // Sort by total jokers earned (descending)
+  const sortedByJokers = jokerTotals
+    .map((j) => ({ userId: j.userId, totalJokers: j._sum.jokers || 0 }))
+    .sort((a, b) => b.totalJokers - a.totalJokers);
+
   // Filter based on challenge filter
-  let filteredCounts = userCounts;
+  let filteredUsers = sortedByJokers;
   if (challengeFilter === "active") {
-    filteredCounts = userCounts.filter((uc) => !eliminatedUserIds.has(uc.userId));
+    filteredUsers = sortedByJokers.filter((u) => !eliminatedUserIds.has(u.userId));
   } else if (challengeFilter === "eliminated") {
-    filteredCounts = userCounts.filter((uc) => eliminatedUserIds.has(uc.userId));
+    filteredUsers = sortedByJokers.filter((u) => eliminatedUserIds.has(u.userId));
   }
 
   // Take top 10 after filtering
-  filteredCounts = filteredCounts.slice(0, 10);
+  filteredUsers = filteredUsers.slice(0, 10);
 
   // Get user details
-  const userIds = filteredCounts.map((uc) => uc.userId);
+  const userIds = filteredUsers.map((u) => u.userId);
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
     select: {
@@ -266,21 +279,33 @@ export async function getLeaderboard(
 
   const userMap = new Map(users.map((u) => [u.id, u]));
 
+  // Get submission counts for the users (for reference)
+  const submissionCounts = await prisma.submission.groupBy({
+    by: ["userId"],
+    where: {
+      ...submissionWhereClause,
+      userId: { in: userIds },
+    },
+    _count: { _all: true },
+  });
+  const submissionMap = new Map(submissionCounts.map((s) => [s.userId, s._count._all]));
+
   // Get user levels based on quartile ranking
   const userLevelMap = await calculateUserLevels();
 
-  return filteredCounts.map((uc, index) => {
-    const user = userMap.get(uc.userId);
+  return filteredUsers.map((u, index) => {
+    const user = userMap.get(u.userId);
 
     return {
       rank: index + 1,
-      userId: uc.userId,
+      userId: u.userId,
       userName: user?.username || user?.name || null,
       userImage: user?.image || null,
-      level: userLevelMap.get(uc.userId)?.level || 1,
-      submissionCount: uc._count._all,
-      isCurrentUser: uc.userId === currentUserId,
-      isEliminated: eliminatedUserIds.has(uc.userId),
+      level: userLevelMap.get(u.userId)?.level || 1,
+      submissionCount: submissionMap.get(u.userId) || 0,
+      totalJokersEarned: u.totalJokers,
+      isCurrentUser: u.userId === currentUserId,
+      isEliminated: eliminatedUserIds.has(u.userId),
     };
   });
 }

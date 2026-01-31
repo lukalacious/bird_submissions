@@ -27,7 +27,7 @@ export default async function CommunityPage({
   const month = params.month ? parseInt(params.month) : currentMonth;
   const regionId = params.region || undefined;
   const userId = params.user || undefined;
-  const challengeFilter = (params.challenge as "all" | "active" | "eliminated") || "all";
+  const challengeFilter = (params.challenge as "all" | "active" | "eliminated") || "active";
   const viewMode = (params.view as "birds" | "feed" | "leaderboard" | "jokers") || "birds";
 
   // Get all regions for filter
@@ -111,6 +111,44 @@ export default async function CommunityPage({
     orderBy: { birdName: "asc" },
   });
 
+  // Get all bird names and their group info
+  const birdNames = [...new Set(submissions.map((s) => s.birdName))];
+  const birdsWithGroups = await prisma.bird.findMany({
+    where: { fullName: { in: birdNames } },
+    select: { fullName: true, groupName: true },
+  });
+  const birdGroupMap = new Map(birdsWithGroups.map((b) => [b.fullName, b.groupName]));
+
+  // Calculate which users have completed which groups (3+ birds from same group)
+  // First, get all submissions for this period to calculate group completions per user
+  const allSubmissionsForPeriod = await prisma.submission.findMany({
+    where: { year, month },
+    select: { userId: true, birdName: true },
+  });
+
+  // Map user -> group -> bird count
+  const userGroupCounts = new Map<string, Map<string, number>>();
+  for (const sub of allSubmissionsForPeriod) {
+    const group = birdGroupMap.get(sub.birdName);
+    if (!group) continue;
+
+    if (!userGroupCounts.has(sub.userId)) {
+      userGroupCounts.set(sub.userId, new Map());
+    }
+    const groupCounts = userGroupCounts.get(sub.userId)!;
+    groupCounts.set(group, (groupCounts.get(group) || 0) + 1);
+  }
+
+  // For each group, count how many users completed it (3+ birds)
+  const groupCompletionCount = new Map<string, number>();
+  for (const [, groupCounts] of userGroupCounts) {
+    for (const [group, count] of groupCounts) {
+      if (count >= 3) {
+        groupCompletionCount.set(group, (groupCompletionCount.get(group) || 0) + 1);
+      }
+    }
+  }
+
   // Aggregate by bird name
   const birdMap = new Map<
     string,
@@ -118,11 +156,16 @@ export default async function CommunityPage({
       birdName: string;
       count: number;
       users: { id: string; name: string | null; username: string | null; image: string | null }[];
+      groupName: string | null;
+      jokerContribution: number;
     }
   >();
 
   for (const sub of submissions) {
     const existing = birdMap.get(sub.birdName);
+    const groupName = birdGroupMap.get(sub.birdName) || null;
+    const jokerContribution = groupName ? (groupCompletionCount.get(groupName) || 0) : 0;
+
     if (existing) {
       existing.count++;
       if (!existing.users.find((u) => u.id === sub.user.id)) {
@@ -133,6 +176,8 @@ export default async function CommunityPage({
         birdName: sub.birdName,
         count: 1,
         users: [sub.user],
+        groupName,
+        jokerContribution,
       });
     }
   }

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Bird, Users, Calendar, MapPin, Filter, Search, X, Trophy, AlertTriangle, MessageSquare, TrendingUp, Sparkles } from "lucide-react";
 import type { FeedEntry, LeaderboardEntry } from "@/app/actions/feed-actions";
 import type { CommunityJokerEntry } from "@/app/actions/joker-actions";
+import { BirdUsersModal } from "@/components/community/bird-users-modal";
 
 // Lazy load tab content - only loads when that tab is active
 const ActivityFeed = dynamic(
@@ -31,6 +32,8 @@ interface CommunitySubmission {
     username: string | null;
     image: string | null;
   }[];
+  groupName: string | null;
+  jokerContribution: number;
 }
 
 type ChallengeFilter = "all" | "active" | "eliminated";
@@ -83,6 +86,7 @@ export function CommunityView({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedBird, setSelectedBird] = useState<CommunitySubmission | null>(null);
 
   const filteredSubmissions = useMemo(() => {
     if (!searchQuery.trim()) return submissions;
@@ -197,17 +201,6 @@ export function CommunityView({
       {(viewMode === "birds" || viewMode === "leaderboard") && (
         <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
           <button
-            onClick={() => updateFilter("challenge", "all")}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              challengeFilter === "all"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            <Users className="h-4 w-4" />
-            All Players
-          </button>
-          <button
             onClick={() => updateFilter("challenge", "active")}
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
               challengeFilter === "active"
@@ -217,6 +210,17 @@ export function CommunityView({
           >
             <Trophy className="h-4 w-4" />
             Main Challenge
+          </button>
+          <button
+            onClick={() => updateFilter("challenge", "all")}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              challengeFilter === "all"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            All Players
           </button>
           <button
             onClick={() => updateFilter("challenge", "eliminated")}
@@ -338,43 +342,40 @@ export function CommunityView({
         <div className="space-y-1.5">
           {filteredSubmissions.map((sub, index) => (
             <Card key={sub.birdName}>
-              <CardContent className="py-2.5 px-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 text-purple-600 font-bold text-xs">
-                      {index + 1}
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">{sub.birdName}</p>
-                      <div className="flex items-center gap-0.5 mt-0.5">
-                        {sub.users.slice(0, 5).map((user) => {
-                          const initials = (user.username || user.name || "?")
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2);
-                          return (
-                            <Avatar key={user.id} className="h-5 w-5 border-2 border-white -ml-1 first:ml-0">
-                              <AvatarImage src={user.image || undefined} />
-                              <AvatarFallback className="text-[8px] bg-gray-200">
-                                {initials}
-                              </AvatarFallback>
-                            </Avatar>
-                          );
-                        })}
-                        {sub.users.length > 5 && (
-                          <span className="text-xs text-gray-500 ml-1">
-                            +{sub.users.length - 5}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+              <CardContent className="py-1.5 px-3">
+                <div className="flex items-center gap-2">
+                  {/* Compact index */}
+                  <div className="flex items-center justify-center w-5 h-5 rounded-full bg-purple-100 text-purple-600 font-bold text-[10px] flex-shrink-0">
+                    {index + 1}
                   </div>
-                  <Badge variant="secondary" className="gap-1 text-xs">
-                    <Users className="h-3 w-3" />
-                    {sub.count}
-                  </Badge>
+
+                  {/* Bird name - takes available space */}
+                  <span className="font-medium text-gray-900 text-sm truncate flex-1 min-w-0">
+                    {sub.birdName}
+                  </span>
+
+                  {/* Joker contribution badge */}
+                  {sub.jokerContribution > 0 && (
+                    <Badge variant="outline" className="gap-1 text-xs flex-shrink-0 border-amber-300 bg-amber-50 text-amber-700">
+                      <Sparkles className="h-3 w-3" />
+                      {sub.jokerContribution}
+                    </Badge>
+                  )}
+
+                  {/* Clickable user count badge */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedBird(sub);
+                    }}
+                    className="focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1 rounded-full flex-shrink-0"
+                    aria-label={`View ${sub.count} users who logged ${sub.birdName}`}
+                  >
+                    <Badge variant="secondary" className="gap-1 text-xs cursor-pointer hover:bg-gray-200 transition-colors">
+                      <Users className="h-3 w-3" />
+                      {sub.count}
+                    </Badge>
+                  </button>
                 </div>
               </CardContent>
             </Card>
@@ -522,6 +523,16 @@ export function CommunityView({
             </Card>
           )}
         </div>
+      )}
+
+      {/* Bird Users Modal */}
+      {selectedBird && (
+        <BirdUsersModal
+          open={!!selectedBird}
+          onClose={() => setSelectedBird(null)}
+          birdName={selectedBird.birdName}
+          users={selectedBird.users}
+        />
       )}
     </div>
   );
