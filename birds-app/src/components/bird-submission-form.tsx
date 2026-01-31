@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition, useEffect, useMemo } from "react";
+import { useState, useTransition, useEffect, useMemo, useCallback, useRef, memo } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -49,6 +50,70 @@ interface BirdSubmissionFormProps {
   allRegions: Region[];
 }
 
+// Memoized BirdCard component for virtualized grid
+interface BirdCardProps {
+  bird: Bird;
+  isSelected: boolean;
+  isLimitDisabled: boolean;
+  isJokerEligible: boolean;
+  onToggle: (birdName: string) => void;
+}
+
+const BirdCard = memo(function BirdCard({
+  bird,
+  isSelected,
+  isLimitDisabled,
+  isJokerEligible,
+  onToggle,
+}: BirdCardProps) {
+  return (
+    <Card
+      className={`relative cursor-pointer transition-all duration-200 ${
+        bird.isDisabled
+          ? "opacity-50 bg-muted cursor-not-allowed"
+          : isSelected
+          ? "ring-2 ring-primary bg-secondary"
+          : isLimitDisabled
+          ? "opacity-60 cursor-not-allowed"
+          : "hover:border-primary/40 hover:shadow-md"
+      }`}
+      onClick={() => {
+        if (!bird.isDisabled && !isLimitDisabled) {
+          onToggle(bird.fullName);
+        }
+      }}
+    >
+      <CardContent className="p-1">
+        <div className="flex items-center gap-1 min-h-[40px]">
+          <Checkbox
+            checked={isSelected}
+            disabled={bird.isDisabled || isLimitDisabled}
+            className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+          />
+          <div className="flex-1 min-w-0 text-center">
+            <p className="text-sm font-medium text-foreground truncate">
+              {bird.fullName}
+            </p>
+            <p className="text-xs text-muted-foreground italic truncate">
+              {bird.scientificName}
+            </p>
+            {bird.isDisabled && (
+              <Badge variant="stone" className="mt-1 text-xs">
+                Already Twitched
+              </Badge>
+            )}
+          </div>
+        </div>
+        {isJokerEligible && (
+          <div className="absolute bottom-1.5 right-1.5 text-amber-600 opacity-60">
+            <Shield className="h-7 w-7" />
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+});
+
 export function BirdSubmissionForm({
   region,
   birds,
@@ -69,6 +134,9 @@ export function BirdSubmissionForm({
   const [isPending, startTransition] = useTransition();
   const [isBirdListExpanded, setIsBirdListExpanded] = useState(false);
   const router = useRouter();
+
+  // Virtual scrolling ref for bird grid
+  const parentRef = useRef<HTMLDivElement>(null);
 
   // Guard: if in review with no selection, go back to select
   useEffect(() => {
@@ -109,13 +177,28 @@ export function BirdSubmissionForm({
     );
   }, [birds]);
 
-  const filteredBirds = birds.filter(
-    (bird) =>
-      bird.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      bird.scientificName.toLowerCase().includes(searchQuery.toLowerCase())
+  // Memoize filtered birds to avoid recalculating on every render
+  const filteredBirds = useMemo(
+    () =>
+      birds.filter(
+        (bird) =>
+          bird.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          bird.scientificName.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    [birds, searchQuery]
   );
 
-  const toggleBird = (birdName: string) => {
+  // Virtual scrolling for bird grid (2 columns)
+  const rowCount = Math.ceil(filteredBirds.length / 2);
+  const rowVirtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 72, // Estimated row height
+    overscan: 5,
+  });
+
+  // Memoize toggle handlers to prevent unnecessary re-renders
+  const toggleBird = useCallback((birdName: string) => {
     setSelectedBirds((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(birdName)) {
@@ -125,12 +208,12 @@ export function BirdSubmissionForm({
       }
       return newSet;
     });
-  };
+  }, [maxBirds]);
 
-  const clearSelection = () => {
+  const clearSelection = useCallback(() => {
     setSelectedBirds(new Set());
     setCustomBirds([]);
-  };
+  }, []);
 
   const addCustomBird = () => {
     const trimmed = customBirdInput.trim();
@@ -148,9 +231,9 @@ export function BirdSubmissionForm({
     setShowCustomInput(false);
   };
 
-  const removeCustomBird = (birdName: string) => {
-    setCustomBirds(customBirds.filter((b) => b !== birdName));
-  };
+  const removeCustomBird = useCallback((birdName: string) => {
+    setCustomBirds((prev) => prev.filter((b) => b !== birdName));
+  }, []);
 
   const handleSubmit = () => {
     if (selectedBirds.size === 0 && customBirds.length === 0) {
@@ -344,18 +427,17 @@ export function BirdSubmissionForm({
                       overflow: shouldShowToggle && !isBirdListExpanded ? "hidden" : "visible"
                     }}
                   >
-                    <AnimatePresence mode="popLayout">
+                    <AnimatePresence mode="sync">
                       {/* Regular selected birds */}
                       {Array.from(selectedBirds)
                         .sort((a, b) => a.localeCompare(b))
                         .map((fullName) => (
                           <motion.span
                             key={fullName}
-                            layout
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.8 }}
-                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 35 }}
                             className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-sm text-secondary-foreground"
                           >
                             {fullName}
@@ -378,11 +460,10 @@ export function BirdSubmissionForm({
                         .map((birdName) => (
                           <motion.span
                             key={`custom-${birdName}`}
-                            layout
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.8 }}
-                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 35 }}
                             className="inline-flex items-center gap-1.5 rounded-full bg-purple-100 px-3 py-1 text-sm text-purple-700"
                           >
                             <HelpCircle className="h-3 w-3" />
@@ -503,86 +584,59 @@ export function BirdSubmissionForm({
             )}
           </AnimatePresence>
 
-          {/* Bird Grid */}
-          <motion.div
-            className="grid grid-cols-2 gap-2"
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: { opacity: 0 },
-              visible: {
-                opacity: 1,
-                transition: { staggerChildren: 0.02 },
-              },
-            }}
+          {/* Bird Grid - Virtualized for performance */}
+          <div
+            ref={parentRef}
+            className="h-[60vh] overflow-auto rounded-lg border border-border"
           >
-            {filteredBirds.map((bird) => {
-              const isSelected = selectedBirds.has(bird.fullName);
-              const isLimitDisabled = !isSelected && !canSelectMore;
-              const isJokerEligible = bird.groupName && jokerEligibleGroups.has(bird.groupName);
+            <div
+              style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                width: "100%",
+                position: "relative",
+              }}
+            >
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const rowIndex = virtualRow.index;
+                const bird1 = filteredBirds[rowIndex * 2];
+                const bird2 = filteredBirds[rowIndex * 2 + 1];
 
-              return (
-                <motion.div
-                  key={bird.id}
-                  variants={{
-                    hidden: { opacity: 0, y: 12 },
-                    visible: { opacity: 1, y: 0 },
-                  }}
-                  whileTap={{ scale: bird.isDisabled || isLimitDisabled ? 1 : 0.98 }}
-                >
-                  <Card
-                    className={`relative cursor-pointer transition-all duration-200 ${
-                      bird.isDisabled
-                        ? "opacity-50 bg-muted cursor-not-allowed"
-                        : isSelected
-                        ? "ring-2 ring-primary bg-secondary"
-                        : isLimitDisabled
-                        ? "opacity-60 cursor-not-allowed"
-                        : "hover:border-primary/40 hover:shadow-md"
-                    }`}
-                    onClick={() => {
-                      if (!bird.isDisabled && !isLimitDisabled) {
-                        toggleBird(bird.fullName);
-                      }
+                return (
+                  <div
+                    key={virtualRow.key}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: `${virtualRow.size}px`,
+                      transform: `translateY(${virtualRow.start}px)`,
                     }}
+                    className="grid grid-cols-2 gap-2 px-1"
                   >
-                    <CardContent className="p-1">
-                      <div className="flex items-center gap-1 min-h-[40px]">
-                        <motion.div
-                          animate={isSelected ? { scale: [1, 1.2, 1] } : { scale: 1 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <Checkbox
-                            checked={isSelected}
-                            disabled={bird.isDisabled || isLimitDisabled}
-                            className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                          />
-                        </motion.div>
-                        <div className="flex-1 min-w-0 text-center">
-                          <p className="text-sm font-medium text-foreground truncate">
-                            {bird.fullName}
-                          </p>
-                          <p className="text-xs text-muted-foreground italic truncate">
-                            {bird.scientificName}
-                          </p>
-                          {bird.isDisabled && (
-                            <Badge variant="stone" className="mt-1 text-xs">
-                              Already Twitched
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      {isJokerEligible && (
-                        <div className="absolute bottom-1.5 right-1.5 text-amber-600 opacity-60">
-                          <Shield className="h-7 w-7" />
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </motion.div>
+                    {bird1 && (
+                      <BirdCard
+                        bird={bird1}
+                        isSelected={selectedBirds.has(bird1.fullName)}
+                        isLimitDisabled={!selectedBirds.has(bird1.fullName) && !canSelectMore}
+                        isJokerEligible={!!(bird1.groupName && jokerEligibleGroups.has(bird1.groupName))}
+                        onToggle={toggleBird}
+                      />
+                    )}
+                    {bird2 && (
+                      <BirdCard
+                        bird={bird2}
+                        isSelected={selectedBirds.has(bird2.fullName)}
+                        isLimitDisabled={!selectedBirds.has(bird2.fullName) && !canSelectMore}
+                        isJokerEligible={!!(bird2.groupName && jokerEligibleGroups.has(bird2.groupName))}
+                        onToggle={toggleBird}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           {filteredBirds.length === 0 && (
             <Card className="text-center py-12">

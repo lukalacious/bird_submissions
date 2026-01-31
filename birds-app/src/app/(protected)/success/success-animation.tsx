@@ -60,8 +60,8 @@ export function SuccessAnimation({ children }: SuccessAnimationProps) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Generate confetti particles
-  const confettiParticles = Array.from({ length: 30 }, (_, i) => ({
+  // Generate confetti particles (reduced from 30 to 12 for better TBT)
+  const confettiParticles = Array.from({ length: 12 }, (_, i) => ({
     id: i,
     delay: Math.random() * 0.5,
     x: Math.random() * 100,
@@ -88,8 +88,8 @@ export function SuccessAnimation({ children }: SuccessAnimationProps) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{
           type: "spring",
-          stiffness: 200,
-          damping: 20,
+          stiffness: 300,
+          damping: 30,
           delay: 0.1,
         }}
       >

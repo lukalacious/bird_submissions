@@ -47,7 +47,7 @@ export function FeedItem({ entry, index }: FeedItemProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, type: "spring", stiffness: 300, damping: 24 }}
+      transition={{ delay: Math.min(index * 0.03, 0.3), type: "spring", stiffness: 350, damping: 28 }}
       whileHover={{ scale: 1.01 }}
       className="bg-white rounded-lg border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow"
     >

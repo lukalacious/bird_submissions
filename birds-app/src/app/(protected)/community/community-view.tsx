@@ -2,15 +2,25 @@
 
 import { useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Bird, Users, Calendar, MapPin, Filter, Search, X, Trophy, AlertTriangle, MessageSquare, TrendingUp, Sparkles } from "lucide-react";
-import { ActivityFeed } from "@/components/community/activity-feed";
-import { Leaderboard } from "@/components/gamification/leaderboard";
 import type { FeedEntry, LeaderboardEntry } from "@/app/actions/feed-actions";
 import type { CommunityJokerEntry } from "@/app/actions/joker-actions";
+
+// Lazy load tab content - only loads when that tab is active
+const ActivityFeed = dynamic(
+  () => import("@/components/community/activity-feed").then((mod) => mod.ActivityFeed),
+  { loading: () => <div className="animate-pulse h-48 bg-gray-100 rounded-lg" /> }
+);
+
+const Leaderboard = dynamic(
+  () => import("@/components/gamification/leaderboard").then((mod) => mod.Leaderboard),
+  { loading: () => <div className="animate-pulse h-48 bg-gray-100 rounded-lg" /> }
+);
 
 interface CommunitySubmission {
   birdName: string;

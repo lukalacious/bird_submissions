@@ -1,7 +1,20 @@
 import prisma from "@/lib/prisma";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AnalyticsDashboard } from "@/components/admin/analytics-dashboard";
+import dynamic from "next/dynamic";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+
+// Lazy load the analytics dashboard - admin-only component
+const AnalyticsDashboard = dynamic(
+  () => import("@/components/admin/analytics-dashboard").then((mod) => mod.AnalyticsDashboard),
+  {
+    loading: () => (
+      <div className="animate-pulse space-y-4">
+        <div className="h-32 bg-gray-100 rounded-lg" />
+        <div className="h-64 bg-gray-100 rounded-lg" />
+      </div>
+    ),
+  }
+);
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import {

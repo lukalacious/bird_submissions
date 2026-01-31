@@ -2,8 +2,14 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Shield } from "lucide-react";
-import { useState } from "react";
-import { JokerHistoryDialog } from "./joker-history-dialog";
+import { useState, Suspense, lazy } from "react";
+
+// Lazy load the dialog - only loaded when user clicks to open
+const JokerHistoryDialog = lazy(() =>
+  import("./joker-history-dialog").then((mod) => ({
+    default: mod.JokerHistoryDialog,
+  }))
+);
 
 interface JokerCardProps {
   totalJokers: number;
@@ -38,12 +44,16 @@ export function JokerCard({ totalJokers, usedJokers, availableJokers, history, y
         </CardContent>
       </Card>
 
-      <JokerHistoryDialog
-        open={historyOpen}
-        onClose={() => setHistoryOpen(false)}
-        history={history}
-        year={year}
-      />
+{historyOpen && (
+        <Suspense fallback={null}>
+          <JokerHistoryDialog
+            open={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            history={history}
+            year={year}
+          />
+        </Suspense>
+      )}
     </>
   );
 }

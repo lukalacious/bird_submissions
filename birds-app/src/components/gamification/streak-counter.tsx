@@ -32,7 +32,7 @@ export function StreakCounter({ streak }: StreakCounterProps) {
             transition={{
               duration: 1.5,
               repeat: hasActiveStreak ? Infinity : 0,
-              repeatDelay: 2,
+              repeatDelay: 5, // Reduced frequency to lower TBT
             }}
             className="relative"
           >
