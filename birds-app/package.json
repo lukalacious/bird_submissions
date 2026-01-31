@@ -7,6 +7,13 @@
     "build": "npx prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "test:perf": "npx playwright test --project='Desktop Chrome'",
+    "test:perf:mobile": "npx playwright test --project='Mobile Chrome'",
+    "test:perf:slow": "npx playwright test --project='Slow 3G'",
+    "test:perf:all": "npx playwright test",
+    "test:perf:report": "npx playwright show-report performance-reports",
+    "test:perf:headed": "npx playwright test --headed --project='Desktop Chrome'",
+    "test:perf:generate-report": "tsx scripts/generate-perf-report.ts",
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
     "db:migrate": "npx prisma migrate dev",
@@ -52,6 +59,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
