@@ -514,8 +514,8 @@ Before deploying, check:
 
 ### Tests failing with timeout
 ```bash
-# Increase timeout in playwright.config.ts
-timeout: 60000,
+# Increase timeout in playwright.config.ts (currently set to 100 seconds)
+timeout: 100000,
 ```
 
 ### "Browser closed unexpectedly"

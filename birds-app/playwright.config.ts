@@ -12,9 +12,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 0, // No retries for performance tests - we want accurate measurements
   workers: 1, // Single worker for consistent CPU usage
-  timeout: 60000, // 60 second timeout per test
+  timeout: 3000, // 3 second timeout per test (testing threshold)
   expect: {
-    timeout: 10000, // 10 second timeout for assertions
+    timeout: 3000, // 3 second timeout for assertions (testing threshold)
   },
   reporter: [
     ['html', { outputFolder: 'performance-reports' }],
@@ -27,8 +27,8 @@ export default defineConfig({
     trace: 'on', // Capture traces for debugging
     video: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    navigationTimeout: 30000, // 30 second navigation timeout
-    actionTimeout: 15000, // 15 second action timeout
+    navigationTimeout: 3000, // 3 second navigation timeout (testing threshold)
+    actionTimeout: 3000, // 3 second action timeout (testing threshold)
   },
 
   projects: [

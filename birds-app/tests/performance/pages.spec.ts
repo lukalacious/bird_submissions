@@ -31,7 +31,7 @@ test.describe('Pre-flight Check', () => {
     try {
       const response = await page.goto('/', {
         waitUntil: 'domcontentloaded',
-        timeout: 30000
+        timeout: 3000
       });
 
       if (!response) {
@@ -173,7 +173,7 @@ test.describe('Performance Tests - Network Conditions', () => {
     await simulateNetworkConditions(browserPage, 'slow-3g');
 
     const startTime = Date.now();
-    await browserPage.goto('/', { waitUntil: 'networkidle', timeout: 60000 });
+    await browserPage.goto('/', { waitUntil: 'networkidle', timeout: 3000 });
     const loadTime = Date.now() - startTime;
 
     console.log(`\n📱 Slow 3G Load Time: ${loadTime}ms\n`);
@@ -191,7 +191,7 @@ test.describe('Performance Tests - Network Conditions', () => {
     await simulateNetworkConditions(browserPage, 'fast-3g');
 
     const startTime = Date.now();
-    await browserPage.goto('/', { waitUntil: 'networkidle', timeout: 30000 });
+    await browserPage.goto('/', { waitUntil: 'networkidle', timeout: 3000 });
     const loadTime = Date.now() - startTime;
 
     console.log(`\n📱 Fast 3G Load Time: ${loadTime}ms\n`);
