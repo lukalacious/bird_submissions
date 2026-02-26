@@ -404,13 +404,9 @@ export async function getCommunityJokerActivity(
   year: number,
   month: number
 ): Promise<CommunityJokerEntry[]> {
-  // Get all users who have joker records for this period
-  const jokerRecords = await prisma.userJoker.findMany({
-    where: {
-      year,
-      month,
-      totalJokers: { not: 0 },
-    },
+  // Get ALL UserJoker records for the year (cumulative — jokers roll over)
+  const allRecords = await prisma.userJoker.findMany({
+    where: { year },
     include: {
       user: {
         select: {
@@ -422,9 +418,42 @@ export async function getCommunityJokerActivity(
     },
   });
 
-  // Get all submissions for calculating group breakdowns
-  const userIds = jokerRecords.map((r) => r.userId);
+  // Group records by userId and compute cumulative totals
+  const userRecordsMap = new Map<string, typeof allRecords>();
+  for (const record of allRecords) {
+    const existing = userRecordsMap.get(record.userId) || [];
+    existing.push(record);
+    userRecordsMap.set(record.userId, existing);
+  }
 
+  const userIds: string[] = [];
+  const cumulativeData = new Map<
+    string,
+    {
+      totalEarned: number;
+      totalUsed: number;
+      available: number;
+      user: (typeof allRecords)[0]["user"];
+    }
+  >();
+
+  for (const [userId, records] of userRecordsMap) {
+    const totalEarned = records.reduce((sum, r) => sum + r.totalJokers, 0);
+    const totalUsed = records.reduce((sum, r) => sum + r.usedJokers, 0);
+    const available = totalEarned - totalUsed;
+
+    if (totalEarned > 0 || totalUsed > 0) {
+      userIds.push(userId);
+      cumulativeData.set(userId, {
+        totalEarned,
+        totalUsed,
+        available,
+        user: records[0].user,
+      });
+    }
+  }
+
+  // Get submissions for the selected month only (group breakdowns + joker usage)
   const submissions = await prisma.submission.findMany({
     where: {
       userId: { in: userIds },
@@ -458,12 +487,13 @@ export async function getCommunityJokerActivity(
     }
   }
 
-  // Build community joker entries
-  const entries: CommunityJokerEntry[] = jokerRecords.map((record) => {
-    // Get this user's submissions
-    const userSubmissions = submissions.filter((s) => s.userId === record.userId);
+  // Build community joker entries with cumulative totals
+  const entries: CommunityJokerEntry[] = [];
 
-    // Calculate group breakdown
+  for (const [userId, cumulative] of cumulativeData) {
+    const userSubmissions = submissions.filter((s) => s.userId === userId);
+
+    // Group breakdown for the selected month only
     const groupCounts = new Map<string, number>();
     for (const sub of userSubmissions) {
       if (!sub.isJokerSubmission) {
@@ -485,7 +515,7 @@ export async function getCommunityJokerActivity(
       }
     }
 
-    // Get joker submissions (when they used jokers)
+    // Joker submissions for the selected month only
     const jokerSubmissions = userSubmissions
       .filter((s) => s.isJokerSubmission)
       .map((s) => ({
@@ -493,17 +523,17 @@ export async function getCommunityJokerActivity(
         createdAt: s.createdAt,
       }));
 
-    return {
-      userId: record.userId,
-      userName: record.user.name,
-      userImage: record.user.image,
-      totalEarned: record.totalJokers,
-      totalUsed: record.usedJokers,
-      available: record.totalJokers - record.usedJokers,
+    entries.push({
+      userId,
+      userName: cumulative.user.name,
+      userImage: cumulative.user.image,
+      totalEarned: cumulative.totalEarned,
+      totalUsed: cumulative.totalUsed,
+      available: cumulative.available,
       groupBreakdown: groupBreakdown.sort((a, b) => b.jokersEarned - a.jokersEarned),
       jokerSubmissions,
-    };
-  });
+    });
+  }
 
   // Sort by total earned (highest first)
   return entries.sort((a, b) => b.totalEarned - a.totalEarned);

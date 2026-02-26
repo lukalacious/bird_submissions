@@ -423,9 +423,25 @@ export function CommunityView({
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Calendar className="h-3.5 w-3.5" />
-            <span className="font-medium">
-              {MONTH_NAMES[currentMonth - 1]} {currentYear} Joker Activity
-            </span>
+            <span className="font-medium">Joker Activity</span>
+            <select
+              value={currentMonth}
+              onChange={(e) => updateFilter("month", e.target.value)}
+              className="px-2 py-1 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {monthOptions.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+            <select
+              value={currentYear}
+              onChange={(e) => updateFilter("year", e.target.value)}
+              className="px-2 py-1 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {[2024, 2025, 2026].map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
           </div>
 
           {jokerActivity.length > 0 ? (
@@ -486,7 +502,7 @@ export function CommunityView({
                               </span>
                             )}
                             <span className="text-gray-500">
-                              {Math.floor(entry.available)} available next month
+                              {Math.floor(entry.available)} available
                             </span>
                           </div>
 
