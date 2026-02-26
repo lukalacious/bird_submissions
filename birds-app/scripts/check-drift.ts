@@ -14,7 +14,25 @@
  */
 
 import { execSync } from "child_process";
+import { readFileSync } from "fs";
 import path from "path";
+
+// Load .env manually (tsx doesn't auto-load like Prisma CLI does)
+const envPath = path.resolve(__dirname, "../.env");
+try {
+  const envContent = readFileSync(envPath, "utf-8");
+  for (const line of envContent.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIndex = trimmed.indexOf("=");
+    if (eqIndex === -1) continue;
+    const key = trimmed.slice(0, eqIndex).trim();
+    const value = trimmed.slice(eqIndex + 1).trim().replace(/^["']|["']$/g, "");
+    if (!process.env[key]) process.env[key] = value;
+  }
+} catch {
+  // .env not found — rely on environment variables
+}
 
 function checkDrift(): void {
   const prodUrl = process.env.DATABASE_URL_PRODUCTION;
@@ -35,7 +53,7 @@ function checkDrift(): void {
 
     const trimmed = diff.trim();
 
-    if (trimmed === "" || trimmed === "-- This is an empty migration.") {
+    if (trimmed === "" || trimmed === "-- This is an empty migration." || trimmed === "No difference detected.") {
       console.log("✅ No schema drift — local schema matches production.");
       process.exit(0);
     }
