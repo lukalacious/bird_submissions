@@ -130,6 +130,7 @@ export function BirdSubmissionForm({
   const [customBirdInput, setCustomBirdInput] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [step, setStep] = useState<"select" | "review">("select");
   const [isPending, startTransition] = useTransition();
   const [isBirdListExpanded, setIsBirdListExpanded] = useState(false);
@@ -137,6 +138,12 @@ export function BirdSubmissionForm({
 
   // Virtual scrolling ref for bird grid
   const parentRef = useRef<HTMLDivElement>(null);
+
+  // Debounce search query to avoid filtering 500+ birds on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 200);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Guard: if in review with no selection, go back to select
   useEffect(() => {
@@ -177,15 +184,15 @@ export function BirdSubmissionForm({
     );
   }, [birds]);
 
-  // Memoize filtered birds to avoid recalculating on every render
+  // Memoize filtered birds using debounced query to avoid filtering on every keystroke
   const filteredBirds = useMemo(
     () =>
       birds.filter(
         (bird) =>
-          bird.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          bird.scientificName.toLowerCase().includes(searchQuery.toLowerCase())
+          bird.fullName.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+          bird.scientificName.toLowerCase().includes(debouncedQuery.toLowerCase())
       ),
-    [birds, searchQuery]
+    [birds, debouncedQuery]
   );
 
   // Virtual scrolling for bird grid (2 columns)

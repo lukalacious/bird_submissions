@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 
 interface JokerInfo {
   totalJokers: number;
+  bonusJokers: number;
   usedJokers: number;
   availableJokers: number;
   /** Jokers available for use this month (excludes jokers earned this month) */
@@ -45,7 +46,7 @@ async function getAvailableJokersFromPreviousMonths(
     .map((j) => ({
       id: j.id,
       month: j.month,
-      available: j.jokers - j.usedJokers,
+      available: j.totalJokers - j.usedJokers,
     }))
     .filter((r) => r.available > 0);
 
@@ -140,6 +141,8 @@ export async function getUserJokerInfo(
   });
 
   const usedJokers = jokerRecord?.usedJokers || 0;
+  const bonusJokers = jokerRecord?.bonusJokers || 0;
+  const totalJokers = totalEarnedJokers + bonusJokers;
 
   // Get available jokers from PREVIOUS months (for use this month)
   const { available: availableFromPrevious } = await getAvailableJokersFromPreviousMonths(
@@ -149,9 +152,10 @@ export async function getUserJokerInfo(
   );
 
   return {
-    totalJokers: totalEarnedJokers,
+    totalJokers,
+    bonusJokers,
     usedJokers,
-    availableJokers: Math.max(0, totalEarnedJokers - usedJokers),
+    availableJokers: Math.max(0, totalJokers - usedJokers),
     availableJokersForUse: Math.floor(availableFromPrevious), // Only whole jokers can be used
     groupBreakdown: groupBreakdown.sort((a, b) => b.jokersEarned - a.jokersEarned),
   };
@@ -169,6 +173,15 @@ export async function recalculateJokers(
   }
 
   try {
+    // Only write group-based jokers (totalJokers - bonusJokers) — never touch bonusJokers
+    const groupJokers = jokerInfo.totalJokers - jokerInfo.bonusJokers;
+
+    // Read existing record to get current bonusJokers for totalJokers calculation
+    const existing = await prisma.userJoker.findUnique({
+      where: { userId_year_month: { userId, year, month } },
+    });
+    const existingBonusJokers = existing?.bonusJokers || 0;
+
     await prisma.userJoker.upsert({
       where: {
         userId_year_month: { userId, year, month },
@@ -177,11 +190,13 @@ export async function recalculateJokers(
         userId,
         year,
         month,
-        jokers: jokerInfo.totalJokers,
+        jokers: groupJokers,
+        totalJokers: groupJokers, // No bonus yet on create from recalculate
         usedJokers: 0,
       },
       update: {
-        jokers: jokerInfo.totalJokers,
+        jokers: groupJokers,
+        totalJokers: groupJokers + existingBonusJokers, // Preserve existing bonus
       },
     });
 
@@ -253,9 +268,9 @@ export async function getYearlyJokerSummary(userId?: string, year?: number) {
 
   return jokers.map((j) => ({
     month: j.month,
-    earned: j.jokers,
+    earned: j.totalJokers,
     used: j.usedJokers,
-    available: j.jokers - j.usedJokers,
+    available: j.totalJokers - j.usedJokers,
   }));
 }
 
@@ -356,7 +371,7 @@ export async function getJokerHistory(userId?: string, year?: number) {
         month,
         year: targetYear,
         ...jokerInfo,
-        hasData: jokerInfo && jokerInfo.totalJokers > 0
+        hasData: jokerInfo && (jokerInfo.totalJokers > 0 || jokerInfo.bonusJokers !== 0)
       };
     })
   );
@@ -394,7 +409,7 @@ export async function getCommunityJokerActivity(
     where: {
       year,
       month,
-      jokers: { gt: 0 }, // Only users who earned jokers
+      totalJokers: { not: 0 },
     },
     include: {
       user: {
@@ -482,9 +497,9 @@ export async function getCommunityJokerActivity(
       userId: record.userId,
       userName: record.user.name,
       userImage: record.user.image,
-      totalEarned: record.jokers,
+      totalEarned: record.totalJokers,
       totalUsed: record.usedJokers,
-      available: record.jokers - record.usedJokers,
+      available: record.totalJokers - record.usedJokers,
       groupBreakdown: groupBreakdown.sort((a, b) => b.jokersEarned - a.jokersEarned),
       jokerSubmissions,
     };

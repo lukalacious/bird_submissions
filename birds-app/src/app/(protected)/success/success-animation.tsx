@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ReactNode, useEffect, useState } from "react";
 
 interface SuccessAnimationProps {
@@ -53,12 +53,18 @@ function ConfettiParticle({ delay, x }: { delay: number; x: number }) {
 }
 
 export function SuccessAnimation({ children }: SuccessAnimationProps) {
+  const prefersReducedMotion = useReducedMotion();
   const [showConfetti, setShowConfetti] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowConfetti(false), 3000);
     return () => clearTimeout(timer);
   }, []);
+
+  // Skip all decorative animations for users who prefer reduced motion
+  if (prefersReducedMotion) {
+    return <div className="relative">{children}</div>;
+  }
 
   // Generate confetti particles (reduced from 30 to 12 for better TBT)
   const confettiParticles = Array.from({ length: 12 }, (_, i) => ({
@@ -100,7 +106,7 @@ export function SuccessAnimation({ children }: SuccessAnimationProps) {
           animate={{ opacity: [0, 1, 0.5], scale: [0.8, 1.1, 1] }}
           transition={{ duration: 1.5, ease: "easeOut" }}
         />
-        
+
         {/* Card content */}
         <div className="relative">{children}</div>
       </motion.div>

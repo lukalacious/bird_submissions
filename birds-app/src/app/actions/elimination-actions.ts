@@ -43,7 +43,7 @@ export async function getUserEliminationStatus(
     },
   });
 
-  const totalJokers = jokerData.reduce((sum, j) => sum + j.jokers, 0);
+  const totalJokers = jokerData.reduce((sum, j) => sum + j.totalJokers, 0);
   const usedJokers = jokerData.reduce((sum, j) => sum + j.usedJokers, 0);
 
   if (!status) {
@@ -150,13 +150,13 @@ export async function checkAndUpdateElimination(
   });
 
   const availableJokers = jokerRecords.reduce(
-    (sum, j) => sum + (j.jokers - j.usedJokers),
+    (sum, j) => sum + (j.totalJokers - j.usedJokers),
     0
   );
 
   if (availableJokers >= 1) {
     // Find the oldest joker record with available jokers (FIFO)
-    const jokerToUse = jokerRecords.find((j) => j.jokers - j.usedJokers >= 1);
+    const jokerToUse = jokerRecords.find((j) => j.totalJokers - j.usedJokers >= 1);
     if (jokerToUse) {
       await prisma.userJoker.update({
         where: { id: jokerToUse.id },

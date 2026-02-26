@@ -171,6 +171,137 @@ export async function syncToGoogleSheets(submission: SheetSubmission): Promise<b
   }
 }
 
+// --- Form Response Reader (for bonus joker processing) ---
+
+const FORM_RESPONSES_GID = "1953517996";
+
+export interface FormResponse {
+  email: string;
+  timestamp: string;
+  within15km: boolean | null;
+  anyBeyond750km: boolean | null;
+  nonMotorisedCount: number | null;
+  goldenBirdsCount: number | null;
+  lifersCount: number | null;
+  photosCount: number | null;
+}
+
+// Discover the tab name from its gid
+async function getSheetNameByGid(
+  sheets: ReturnType<typeof google.sheets>,
+  spreadsheetId: string,
+  gid: string
+): Promise<string | null> {
+  const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+  const sheet = spreadsheet.data.sheets?.find(
+    (s) => String(s.properties?.sheetId) === gid
+  );
+  return sheet?.properties?.title || null;
+}
+
+// Parse a yes/no answer to boolean
+function parseYesNo(value: string | undefined): boolean | null {
+  if (!value) return null;
+  const lower = value.toString().trim().toLowerCase();
+  if (lower === "yes") return true;
+  if (lower === "no") return false;
+  return null;
+}
+
+// Parse a numeric answer
+function parseCount(value: string | undefined): number | null {
+  if (!value) return null;
+  const num = parseInt(value.toString().trim(), 10);
+  return isNaN(num) ? null : num;
+}
+
+/**
+ * Read form responses from the Google Sheet for a given year/month.
+ * Column matching is done by header text substring (case-insensitive).
+ * For the duplicate non-motorised questions (Q4 vs Q18), Q18 is identified
+ * by having "joker" in its header text.
+ */
+export async function getFormResponses(
+  year: number,
+  month: number
+): Promise<FormResponse[]> {
+  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+  if (!spreadsheetId) {
+    throw new Error("GOOGLE_SHEETS_SPREADSHEET_ID not configured");
+  }
+
+  const sheets = getSheetsClient();
+  if (!sheets) {
+    throw new Error("Google Sheets client not available");
+  }
+
+  // Discover the tab name from gid
+  const tabName = await getSheetNameByGid(sheets, spreadsheetId, FORM_RESPONSES_GID);
+  if (!tabName) {
+    throw new Error(`Sheet tab with gid ${FORM_RESPONSES_GID} not found`);
+  }
+
+  // Read all data from the form responses tab
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `'${tabName}'`,
+  });
+
+  const rows = response.data.values;
+  if (!rows || rows.length < 2) {
+    return [];
+  }
+
+  const headers = rows[0].map((h: string) => h.toString().toLowerCase());
+
+  // Find column indices by header substring matching
+  const timestampCol = headers.findIndex((h: string) => h.includes("timestamp"));
+  const emailCol = headers.findIndex((h: string) => h.includes("email"));
+  const within15kmCol = headers.findIndex((h: string) => h.includes("15km") || h.includes("15 km"));
+  const beyond750kmCol = headers.findIndex((h: string) => h.includes("750km") || h.includes("750 km"));
+  const goldenBirdsCol = headers.findIndex((h: string) => h.includes("golden bird"));
+  const lifersCol = headers.findIndex((h: string) => h.includes("lifer"));
+  const photosCol = headers.findIndex((h: string) => h.includes("photograph"));
+
+  // For non-motorised: Q18 has "joker" in header, Q4 does not
+  const nonMotorisedCol = headers.findIndex(
+    (h: string) => (h.includes("motorised") || h.includes("motorized")) && h.includes("joker")
+  );
+
+  if (timestampCol === -1 || emailCol === -1) {
+    throw new Error("Could not find timestamp or email columns in form responses");
+  }
+
+  // Parse data rows and filter by year/month
+  const responses: FormResponse[] = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    const timestampStr = row[timestampCol]?.toString();
+    if (!timestampStr) continue;
+
+    // Parse timestamp — Google Forms uses "M/D/YYYY H:mm:ss" or similar
+    const date = new Date(timestampStr);
+    if (isNaN(date.getTime())) continue;
+
+    // Filter by year and month
+    if (date.getFullYear() !== year || date.getMonth() + 1 !== month) continue;
+
+    responses.push({
+      email: row[emailCol]?.toString()?.trim() || "",
+      timestamp: timestampStr,
+      within15km: within15kmCol !== -1 ? parseYesNo(row[within15kmCol]) : null,
+      anyBeyond750km: beyond750kmCol !== -1 ? parseYesNo(row[beyond750kmCol]) : null,
+      nonMotorisedCount: nonMotorisedCol !== -1 ? parseCount(row[nonMotorisedCol]) : null,
+      goldenBirdsCount: goldenBirdsCol !== -1 ? parseCount(row[goldenBirdsCol]) : null,
+      lifersCount: lifersCol !== -1 ? parseCount(row[lifersCol]) : null,
+      photosCount: photosCol !== -1 ? parseCount(row[photosCol]) : null,
+    });
+  }
+
+  return responses;
+}
+
 // Get all submissions from Google Sheets (for verification/debugging)
 export async function getSheetSubmissions(): Promise<string[][] | null> {
   const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;

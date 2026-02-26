@@ -154,13 +154,15 @@ model MonthlySettings {
 
 // UserJoker model - tracks jokers earned from same-group submissions
 model UserJoker {
-  id         String @id @default(cuid())
-  userId     String
-  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  year       Int
-  month      Int
-  jokers     Float  @default(0)     // Total jokers earned
-  usedJokers Float  @default(0)     // Jokers used for immunity
+  id          String @id @default(cuid())
+  userId      String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  year        Int
+  month       Int
+  jokers      Float  @default(0)     // Group-based jokers (recalculated from submissions)
+  bonusJokers Float  @default(0)     // Form-based bonus jokers (set by admin processing)
+  totalJokers Float  @default(0)     // jokers + bonusJokers (precomputed for reads)
+  usedJokers  Float  @default(0)     // Jokers used for immunity
 
   @@unique([userId, year, month])
   @@index([userId])

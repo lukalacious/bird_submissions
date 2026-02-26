@@ -180,14 +180,14 @@ async function runMonthlyEliminationCheck(): Promise<{
     // User below threshold - check for jokers from PREVIOUS months only
     // (jokers earned in month X can only be used in months > X)
     const jokersFromPreviousMonths = user.jokers.filter(j => j.month < checkMonth);
-    const totalJokers = jokersFromPreviousMonths.reduce((sum, j) => sum + j.jokers, 0);
+    const totalJokers = jokersFromPreviousMonths.reduce((sum, j) => sum + j.totalJokers, 0);
     const usedJokers = jokersFromPreviousMonths.reduce((sum, j) => sum + j.usedJokers, 0);
     const availableJokers = totalJokers - usedJokers;
 
     if (availableJokers >= 1) {
       // Find a joker record from a previous month to use (oldest first - FIFO)
       const sortedJokers = jokersFromPreviousMonths
-        .filter((j) => j.jokers - j.usedJokers >= 1)
+        .filter((j) => j.totalJokers - j.usedJokers >= 1)
         .sort((a, b) => a.month - b.month);
       const jokerToUse = sortedJokers[0];
 

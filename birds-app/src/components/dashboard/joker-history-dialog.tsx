@@ -13,6 +13,7 @@ interface JokerHistoryData {
   month: number;
   year: number;
   totalJokers: number;
+  bonusJokers?: number;
   usedJokers: number;
   availableJokers: number;
   groupBreakdown: {
@@ -93,7 +94,7 @@ export function JokerHistoryDialog({ open, onClose, history, year }: JokerHistor
                     </div>
                   </div>
 
-                  {month.groupBreakdown.length > 0 && (
+                  {(month.groupBreakdown.length > 0 || (month.bonusJokers != null && month.bonusJokers !== 0)) && (
                     <>
                       <button
                         onClick={() => toggleMonth(month.month)}
@@ -113,6 +114,14 @@ export function JokerHistoryDialog({ open, onClose, history, year }: JokerHistor
                               <span className="font-medium">+{group.jokersEarned.toFixed(1)}</span>
                             </div>
                           ))}
+                          {month.bonusJokers != null && month.bonusJokers !== 0 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Form Bonus</span>
+                              <span className={month.bonusJokers >= 0 ? "text-green-600" : "text-red-600"}>
+                                {month.bonusJokers >= 0 ? "+" : ""}{month.bonusJokers.toFixed(1)}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </>

@@ -51,19 +51,37 @@ async function calculateUserLevels(): Promise<Map<string, { rank: number; percen
     _count: { _all: true },
   });
 
-  // For users who reached 31+, get their completion timestamp
+  // For users who reached 31+, get their completion timestamps in a single batch query
+  const qualifyingUserIds = userStats
+    .filter((stat) => stat._count._all >= 31)
+    .map((stat) => stat.userId);
+
   const userCompletionTimes: Map<string, Date | null> = new Map();
 
-  for (const stat of userStats) {
-    if (stat._count._all >= 31) {
-      const submissions = await prisma.submission.findMany({
-        where: { userId: stat.userId, year: currentYear, month: currentMonth },
-        orderBy: { createdAt: "asc" },
-        take: 31,
-        select: { createdAt: true },
-      });
-      if (submissions.length >= 31) {
-        userCompletionTimes.set(stat.userId, submissions[30].createdAt);
+  if (qualifyingUserIds.length > 0) {
+    // Fetch first 31 submissions for all qualifying users in one query
+    const allCompletionSubmissions = await prisma.submission.findMany({
+      where: {
+        userId: { in: qualifyingUserIds },
+        year: currentYear,
+        month: currentMonth,
+      },
+      orderBy: { createdAt: "asc" },
+      select: { userId: true, createdAt: true },
+    });
+
+    // Group by user and extract the 31st submission timestamp
+    const userSubmissions = new Map<string, Date[]>();
+    for (const sub of allCompletionSubmissions) {
+      if (!userSubmissions.has(sub.userId)) {
+        userSubmissions.set(sub.userId, []);
+      }
+      userSubmissions.get(sub.userId)!.push(sub.createdAt);
+    }
+
+    for (const [userId, timestamps] of userSubmissions) {
+      if (timestamps.length >= 31) {
+        userCompletionTimes.set(userId, timestamps[30]);
       }
     }
   }
@@ -246,12 +264,12 @@ export async function getLeaderboard(
   const jokerTotals = await prisma.userJoker.groupBy({
     by: ["userId"],
     where: jokerWhereClause,
-    _sum: { jokers: true },
+    _sum: { totalJokers: true },
   });
 
   // Sort by total jokers earned (descending)
   const sortedByJokers = jokerTotals
-    .map((j) => ({ userId: j.userId, totalJokers: j._sum.jokers || 0 }))
+    .map((j) => ({ userId: j.userId, totalJokers: j._sum.totalJokers || 0 }))
     .sort((a, b) => b.totalJokers - a.totalJokers);
 
   // Filter based on challenge filter

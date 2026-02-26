@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Flame, Award } from "lucide-react";
 import type { UserStreak } from "@/app/actions/gamification-actions";
 
@@ -10,10 +10,11 @@ interface StreakCounterProps {
 
 export function StreakCounter({ streak }: StreakCounterProps) {
   const hasActiveStreak = streak.currentStreak > 0;
+  const prefersReducedMotion = useReducedMotion();
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border border-orange-100"
     >
@@ -22,7 +23,7 @@ export function StreakCounter({ streak }: StreakCounterProps) {
         <div className="flex items-center gap-3">
           <motion.div
             animate={
-              hasActiveStreak
+              hasActiveStreak && !prefersReducedMotion
                 ? {
                     scale: [1, 1.1, 1],
                     rotate: [0, -5, 5, 0],
@@ -31,8 +32,8 @@ export function StreakCounter({ streak }: StreakCounterProps) {
             }
             transition={{
               duration: 1.5,
-              repeat: hasActiveStreak ? Infinity : 0,
-              repeatDelay: 5, // Reduced frequency to lower TBT
+              repeat: hasActiveStreak && !prefersReducedMotion ? Infinity : 0,
+              repeatDelay: 5,
             }}
             className="relative"
           >
@@ -41,7 +42,7 @@ export function StreakCounter({ streak }: StreakCounterProps) {
                 hasActiveStreak ? "text-orange-500" : "text-gray-300"
               }`}
             />
-            {hasActiveStreak && streak.isActiveThisMonth && (
+            {hasActiveStreak && streak.isActiveThisMonth && !prefersReducedMotion && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: [0.5, 1, 0.5] }}

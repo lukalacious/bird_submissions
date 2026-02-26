@@ -10,12 +10,12 @@ import { JokerCard } from "@/components/dashboard/joker-card";
 import { GameRules } from "@/components/dashboard/game-rules";
 import { EliminationBanner } from "@/components/gamification/elimination-banner";
 
-async function getUserSubmissionCounts(userId: string): Promise<{
-  thisMonthCount: number;
-  totalCount: number;
-  maxBirdsPerPeriod: number;
-  eliminationThreshold: number;
-}> {
+export default async function DashboardPage() {
+  const session = await auth();
+  const userId = session!.user.id!;
+  const userName = session!.user.name?.split(" ")[0] || "there";
+
+  // Fetch settings once — shared by submission counts, joker info, and elimination status
   const settings = await prisma.settings.findUnique({ where: { id: "default" } });
   const currentYear = settings?.currentYear ?? new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
@@ -25,38 +25,17 @@ async function getUserSubmissionCounts(userId: string): Promise<{
   const maxBirdsPerPeriod = monthlySettings.maxBirdsPerPeriod;
   const eliminationThreshold = monthlySettings.eliminationThreshold;
 
-  const [thisMonthCount, totalCount] = await Promise.all([
+  // Fetch all data in parallel — submission counts, joker info, and elimination status
+  const [thisMonthCount, totalCount, jokerInfo, jokerHistory, eliminationStatus] = await Promise.all([
     prisma.submission.count({
-      where: {
-        userId,
-        year: currentYear,
-        month: currentMonth,
-      },
+      where: { userId, year: currentYear, month: currentMonth },
     }),
     prisma.submission.count({
       where: { userId },
     }),
-  ]);
-
-  return { thisMonthCount, totalCount, maxBirdsPerPeriod, eliminationThreshold };
-}
-
-export default async function DashboardPage() {
-  const session = await auth();
-  const userId = session!.user.id!;
-  const userName = session!.user.name?.split(" ")[0] || "there";
-
-  const { thisMonthCount, totalCount, maxBirdsPerPeriod, eliminationThreshold } = await getUserSubmissionCounts(userId);
-
-  // Fetch joker data and elimination status
-  const settings = await prisma.settings.findUnique({ where: { id: "default" } });
-  const currentYear = settings?.currentYear ?? new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-
-  const [jokerInfo, jokerHistory, eliminationStatus] = await Promise.all([
     getUserJokerInfo(userId, currentYear, currentMonth),
     getJokerHistory(userId, currentYear),
-    getUserEliminationStatus(userId, currentYear)
+    getUserEliminationStatus(userId, currentYear),
   ]);
 
   const jokerData = jokerInfo || {
