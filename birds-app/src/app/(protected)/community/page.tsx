@@ -196,7 +196,7 @@ export default async function CommunityPage({
     getCommunityFeed(50),
     getLeaderboard("month", challengeFilter),
     getLeaderboard("alltime", challengeFilter),
-    getCommunityJokerActivity(year, month),
+    getCommunityJokerActivity(year),
   ]);
 
   return (

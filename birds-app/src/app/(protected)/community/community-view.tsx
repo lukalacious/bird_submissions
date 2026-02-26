@@ -7,9 +7,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Bird, Users, Calendar, MapPin, Filter, Search, X, Trophy, AlertTriangle, MessageSquare, TrendingUp, Sparkles } from "lucide-react";
+import { Bird, Users, Calendar, MapPin, Filter, Search, X, Trophy, AlertTriangle, MessageSquare, TrendingUp, Sparkles, ChevronDown, Gift } from "lucide-react";
 import type { FeedEntry, LeaderboardEntry } from "@/app/actions/feed-actions";
-import type { CommunityJokerEntry } from "@/app/actions/joker-actions";
+import type { CommunityJokerEntry, CommunityMonthlyBreakdown } from "@/app/actions/joker-actions";
 import { BirdUsersModal } from "@/components/community/bird-users-modal";
 
 // Lazy load tab content - only loads when that tab is active
@@ -418,127 +418,13 @@ export function CommunityView({
         </Card>
       )}
 
-      {/* Jokers View */}
+      {/* Jokers View — Accumulated Balances */}
       {viewMode === "jokers" && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Calendar className="h-3.5 w-3.5" />
-            <span className="font-medium">Joker Activity</span>
-            <select
-              value={currentMonth}
-              onChange={(e) => updateFilter("month", e.target.value)}
-              className="px-2 py-1 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              {monthOptions.map((m) => (
-                <option key={m.value} value={m.value}>{m.label}</option>
-              ))}
-            </select>
-            <select
-              value={currentYear}
-              onChange={(e) => updateFilter("year", e.target.value)}
-              className="px-2 py-1 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              {[2024, 2025, 2026].map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
-
-          {jokerActivity.length > 0 ? (
-            <div className="space-y-2">
-              {jokerActivity.map((entry) => {
-                const initials = (entry.userName || "?")
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase()
-                  .slice(0, 2);
-
-                return (
-                  <Card key={entry.userId}>
-                    <CardContent className="py-3 px-4">
-                      <div className="flex items-start gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={entry.userImage || undefined} />
-                          <AvatarFallback className="text-sm bg-purple-100 text-purple-700">
-                            {initials}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <p className="font-medium text-gray-900">
-                              {entry.userName || "Anonymous"}
-                            </p>
-                            <Badge variant="secondary" className="text-xs">
-                              <Sparkles className="h-3 w-3 mr-1" />
-                              {entry.totalEarned} earned
-                            </Badge>
-                          </div>
-
-                          {/* Group breakdown */}
-                          {entry.groupBreakdown.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                              {entry.groupBreakdown.map((group) => (
-                                <div
-                                  key={group.groupName}
-                                  className="flex items-center justify-between text-xs text-gray-600 bg-gray-50 rounded px-2 py-1"
-                                >
-                                  <span>
-                                    {group.groupName} ({group.birdCount} birds)
-                                  </span>
-                                  <span className="font-medium text-green-600">
-                                    +{group.jokersEarned} joker{group.jokersEarned !== 1 ? "s" : ""}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Usage info */}
-                          <div className="mt-2 flex items-center gap-3 text-xs">
-                            {entry.totalUsed > 0 && (
-                              <span className="text-red-600">
-                                {entry.totalUsed} used
-                              </span>
-                            )}
-                            <span className="text-gray-500">
-                              {Math.floor(entry.available)} available
-                            </span>
-                          </div>
-
-                          {/* Joker submissions (when used) */}
-                          {entry.jokerSubmissions.length > 0 && (
-                            <div className="mt-2 text-xs text-gray-500">
-                              <span className="font-medium">Used: </span>
-                              {entry.jokerSubmissions.map((js, i) => (
-                                <span key={i}>
-                                  {js.birdName} ({new Date(js.createdAt).toLocaleDateString()})
-                                  {i < entry.jokerSubmissions.length - 1 ? ", " : ""}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          ) : (
-            <Card className="text-center py-8">
-              <CardContent>
-                <Sparkles className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                <h3 className="text-base font-medium text-gray-900 mb-1">
-                  No jokers earned yet
-                </h3>
-                <p className="text-sm text-gray-500">
-                  Earn jokers by twitching 3+ birds from the same group in a month.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        <JokersBalanceView
+          jokerActivity={jokerActivity}
+          currentYear={currentYear}
+          updateFilter={updateFilter}
+        />
       )}
 
       {/* Bird Users Modal */}
@@ -549,6 +435,187 @@ export function CommunityView({
           birdName={selectedBird.birdName}
           users={selectedBird.users}
         />
+      )}
+    </div>
+  );
+}
+
+// --- Jokers Balance View (extracted component) ---
+
+const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function JokersBalanceView({
+  jokerActivity,
+  currentYear,
+  updateFilter,
+}: {
+  jokerActivity: CommunityJokerEntry[];
+  currentYear: number;
+  updateFilter: (key: string, value: string) => void;
+}) {
+  const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 text-sm text-gray-600">
+        <Sparkles className="h-3.5 w-3.5" />
+        <span className="font-medium">Joker Balances</span>
+        <select
+          value={currentYear}
+          onChange={(e) => updateFilter("year", e.target.value)}
+          className="px-2 py-1 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+        >
+          {[2024, 2025, 2026].map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+      </div>
+
+      {jokerActivity.length > 0 ? (
+        <div className="space-y-2">
+          {jokerActivity.map((entry) => {
+            const initials = (entry.userName || "?")
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2);
+            const isExpanded = expandedUser === entry.userId;
+
+            return (
+              <Card key={entry.userId}>
+                <CardContent className="py-3 px-4">
+                  {/* Header row: avatar, name, balance badge */}
+                  <button
+                    onClick={() => setExpandedUser(isExpanded ? null : entry.userId)}
+                    className="w-full flex items-center gap-3 text-left"
+                  >
+                    <Avatar className="h-10 w-10 flex-shrink-0">
+                      <AvatarImage src={entry.userImage || undefined} />
+                      <AvatarFallback className="text-sm bg-purple-100 text-purple-700">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 truncate">
+                        {entry.userName || "Anonymous"}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                        <span>{entry.totalEarned} earned</span>
+                        {entry.totalUsed > 0 && (
+                          <>
+                            <span className="text-gray-300">|</span>
+                            <span className="text-red-500">{entry.totalUsed} used</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Badge
+                        className={`text-sm font-bold ${
+                          entry.available > 0
+                            ? "bg-green-100 text-green-700 border-green-200"
+                            : "bg-gray-100 text-gray-500 border-gray-200"
+                        }`}
+                        variant="outline"
+                      >
+                        {Math.floor(entry.available)}
+                      </Badge>
+                      <ChevronDown
+                        className={`h-4 w-4 text-gray-400 transition-transform ${
+                          isExpanded ? "rotate-180" : ""
+                        }`}
+                      />
+                    </div>
+                  </button>
+
+                  {/* Expanded: monthly breakdown */}
+                  {isExpanded && (
+                    <div className="mt-3 space-y-1.5 border-t pt-3">
+                      {entry.monthlyBreakdown.map((mb) => {
+                        const monthKey = `${entry.userId}-${mb.month}`;
+                        const isMonthExpanded = expandedMonth === monthKey;
+                        const hasBonus = mb.bonusJokers !== 0;
+
+                        return (
+                          <div key={mb.month}>
+                            <button
+                              onClick={() => setExpandedMonth(isMonthExpanded ? null : monthKey)}
+                              className="w-full flex items-center justify-between text-xs bg-gray-50 hover:bg-gray-100 rounded px-2.5 py-1.5 transition-colors"
+                            >
+                              <span className="font-medium text-gray-700">
+                                {SHORT_MONTHS[mb.month - 1]}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-500">
+                                  {mb.groupJokers > 0 && <span>{mb.groupJokers} groups</span>}
+                                  {mb.groupJokers > 0 && hasBonus && " + "}
+                                  {hasBonus && (
+                                    <span className={mb.bonusJokers > 0 ? "text-amber-600" : "text-red-500"}>
+                                      {mb.bonusJokers > 0 ? "+" : ""}{mb.bonusJokers} bonus
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="font-bold text-green-600">
+                                  +{mb.totalJokers}
+                                </span>
+                                {mb.usedJokers > 0 && (
+                                  <span className="text-red-500 font-medium">
+                                    -{mb.usedJokers} used
+                                  </span>
+                                )}
+                                {(hasBonus && mb.bonusBreakdown && mb.bonusBreakdown.length > 0) && (
+                                  <ChevronDown
+                                    className={`h-3 w-3 text-gray-400 transition-transform ${
+                                      isMonthExpanded ? "rotate-180" : ""
+                                    }`}
+                                  />
+                                )}
+                              </div>
+                            </button>
+
+                            {/* Bonus breakdown detail */}
+                            {isMonthExpanded && mb.bonusBreakdown && mb.bonusBreakdown.length > 0 && (
+                              <div className="ml-3 mt-1 space-y-0.5">
+                                {mb.bonusBreakdown.map((rule, i) => (
+                                  <div
+                                    key={i}
+                                    className="flex items-center justify-between text-xs text-gray-500 px-2 py-0.5"
+                                  >
+                                    <span className="flex items-center gap-1">
+                                      <Gift className="h-3 w-3 text-amber-500" />
+                                      {rule.rule}
+                                    </span>
+                                    <span className={`font-medium ${rule.value > 0 ? "text-green-600" : "text-red-500"}`}>
+                                      {rule.value > 0 ? "+" : ""}{rule.value}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <Card className="text-center py-8">
+          <CardContent>
+            <Sparkles className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+            <h3 className="text-base font-medium text-gray-900 mb-1">
+              No jokers earned yet
+            </h3>
+            <p className="text-sm text-gray-500">
+              Earn jokers by twitching 3+ birds from the same group in a month.
+            </p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

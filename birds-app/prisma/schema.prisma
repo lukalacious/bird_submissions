@@ -163,7 +163,8 @@ model UserJoker {
   jokers      Float  @default(0)     // Group-based jokers (recalculated from submissions)
   bonusJokers Float  @default(0)     // Form-based bonus jokers (set by admin processing)
   totalJokers Float  @default(0)     // jokers + bonusJokers (precomputed for reads)
-  usedJokers  Float  @default(0)     // Jokers used for immunity
+  usedJokers      Float  @default(0)     // Jokers used for immunity
+  bonusBreakdown  Json?                 // e.g. [{"rule":"Golden birds (2)","value":2},{"rule":"Lifers (5)","value":5}]
 
   @@unique([userId, year, month])
   @@index([userId])

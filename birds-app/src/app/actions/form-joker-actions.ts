@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { type Prisma } from "@prisma/client";
 import { getFormResponses, type FormResponse } from "@/lib/google-sheets";
 import { revalidatePath } from "next/cache";
 
@@ -130,7 +131,7 @@ export async function processFormJokers(
         });
         const existingGroupJokers = existing?.jokers || 0;
 
-        // Upsert UserJoker — write bonusJokers and totalJokers, never touch jokers or usedJokers
+        // Upsert UserJoker — write bonusJokers, bonusBreakdown, and totalJokers, never touch jokers or usedJokers
         await prisma.userJoker.upsert({
           where: {
             userId_year_month: { userId: user.id, year, month },
@@ -141,11 +142,13 @@ export async function processFormJokers(
             month,
             jokers: 0,
             bonusJokers: total,
+            bonusBreakdown: breakdown as unknown as Prisma.InputJsonValue,
             totalJokers: total, // No group jokers yet on create
             usedJokers: 0,
           },
           update: {
             bonusJokers: total,
+            bonusBreakdown: breakdown as unknown as Prisma.InputJsonValue,
             totalJokers: existingGroupJokers + total,
           },
         });
@@ -224,11 +227,13 @@ export async function assignBonusToUser(
         month,
         jokers: 0,
         bonusJokers: bonus,
+        bonusBreakdown: breakdown as unknown as Prisma.InputJsonValue,
         totalJokers: bonus,
         usedJokers: 0,
       },
       update: {
         bonusJokers: bonus,
+        bonusBreakdown: breakdown as unknown as Prisma.InputJsonValue,
         totalJokers: existingGroupJokers + bonus,
       },
     });

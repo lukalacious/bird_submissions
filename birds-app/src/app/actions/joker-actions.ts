@@ -380,8 +380,17 @@ export async function getJokerHistory(userId?: string, year?: number) {
   return history.filter(h => h.hasData);
 }
 
-// Community joker activity - shows all users' joker earnings and usage
+// Community joker activity - shows all users' accumulated joker balances
 // This is public data for transparency
+export interface CommunityMonthlyBreakdown {
+  month: number;
+  groupJokers: number;
+  bonusJokers: number;
+  totalJokers: number;
+  usedJokers: number;
+  bonusBreakdown: { rule: string; value: number }[] | null;
+}
+
 export interface CommunityJokerEntry {
   userId: string;
   userName: string | null;
@@ -389,22 +398,13 @@ export interface CommunityJokerEntry {
   totalEarned: number;
   totalUsed: number;
   available: number;
-  groupBreakdown: {
-    groupName: string;
-    birdCount: number;
-    jokersEarned: number;
-  }[];
-  jokerSubmissions: {
-    birdName: string;
-    createdAt: Date;
-  }[];
+  monthlyBreakdown: CommunityMonthlyBreakdown[];
 }
 
 export async function getCommunityJokerActivity(
-  year: number,
-  month: number
+  year: number
 ): Promise<CommunityJokerEntry[]> {
-  // Get ALL UserJoker records for the year (cumulative — jokers roll over)
+  // Get ALL UserJoker records for the year
   const allRecords = await prisma.userJoker.findMany({
     where: { year },
     include: {
@@ -412,13 +412,15 @@ export async function getCommunityJokerActivity(
         select: {
           id: true,
           name: true,
+          username: true,
           image: true,
         },
       },
     },
+    orderBy: { month: "asc" },
   });
 
-  // Group records by userId and compute cumulative totals
+  // Group records by userId
   const userRecordsMap = new Map<string, typeof allRecords>();
   for (const record of allRecords) {
     const existing = userRecordsMap.get(record.userId) || [];
@@ -426,115 +428,36 @@ export async function getCommunityJokerActivity(
     userRecordsMap.set(record.userId, existing);
   }
 
-  const userIds: string[] = [];
-  const cumulativeData = new Map<
-    string,
-    {
-      totalEarned: number;
-      totalUsed: number;
-      available: number;
-      user: (typeof allRecords)[0]["user"];
-    }
-  >();
+  // Build community joker entries with cumulative totals + monthly breakdowns
+  const entries: CommunityJokerEntry[] = [];
 
   for (const [userId, records] of userRecordsMap) {
     const totalEarned = records.reduce((sum, r) => sum + r.totalJokers, 0);
     const totalUsed = records.reduce((sum, r) => sum + r.usedJokers, 0);
     const available = totalEarned - totalUsed;
 
-    if (totalEarned > 0 || totalUsed > 0) {
-      userIds.push(userId);
-      cumulativeData.set(userId, {
-        totalEarned,
-        totalUsed,
-        available,
-        user: records[0].user,
-      });
-    }
-  }
+    if (totalEarned === 0 && totalUsed === 0) continue;
 
-  // Get submissions for the selected month only (group breakdowns + joker usage)
-  const submissions = await prisma.submission.findMany({
-    where: {
-      userId: { in: userIds },
-      year,
-      month,
-    },
-    select: {
-      userId: true,
-      birdName: true,
-      isJokerSubmission: true,
-      createdAt: true,
-    },
-  });
-
-  // Get bird group data
-  const birdNames = [...new Set(submissions.filter(s => !s.isJokerSubmission).map((s) => s.birdName))];
-  const birds = await prisma.bird.findMany({
-    where: {
-      fullName: { in: birdNames },
-    },
-    select: {
-      fullName: true,
-      groupName: true,
-    },
-  });
-
-  const birdGroupMap = new Map<string, string>();
-  for (const bird of birds) {
-    if (bird.groupName) {
-      birdGroupMap.set(bird.fullName, bird.groupName);
-    }
-  }
-
-  // Build community joker entries with cumulative totals
-  const entries: CommunityJokerEntry[] = [];
-
-  for (const [userId, cumulative] of cumulativeData) {
-    const userSubmissions = submissions.filter((s) => s.userId === userId);
-
-    // Group breakdown for the selected month only
-    const groupCounts = new Map<string, number>();
-    for (const sub of userSubmissions) {
-      if (!sub.isJokerSubmission) {
-        const group = birdGroupMap.get(sub.birdName);
-        if (group) {
-          groupCounts.set(group, (groupCounts.get(group) || 0) + 1);
-        }
-      }
-    }
-
-    const groupBreakdown: CommunityJokerEntry["groupBreakdown"] = [];
-    for (const [groupName, count] of groupCounts) {
-      if (count >= 3) {
-        groupBreakdown.push({
-          groupName,
-          birdCount: count,
-          jokersEarned: calculateJokersFromGroup(count),
-        });
-      }
-    }
-
-    // Joker submissions for the selected month only
-    const jokerSubmissions = userSubmissions
-      .filter((s) => s.isJokerSubmission)
-      .map((s) => ({
-        birdName: s.birdName,
-        createdAt: s.createdAt,
-      }));
+    const monthlyBreakdown: CommunityMonthlyBreakdown[] = records.map((r) => ({
+      month: r.month,
+      groupJokers: r.jokers,
+      bonusJokers: r.bonusJokers,
+      totalJokers: r.totalJokers,
+      usedJokers: r.usedJokers,
+      bonusBreakdown: r.bonusBreakdown as { rule: string; value: number }[] | null,
+    }));
 
     entries.push({
       userId,
-      userName: cumulative.user.name,
-      userImage: cumulative.user.image,
-      totalEarned: cumulative.totalEarned,
-      totalUsed: cumulative.totalUsed,
-      available: cumulative.available,
-      groupBreakdown: groupBreakdown.sort((a, b) => b.jokersEarned - a.jokersEarned),
-      jokerSubmissions,
+      userName: records[0].user.username || records[0].user.name,
+      userImage: records[0].user.image,
+      totalEarned,
+      totalUsed,
+      available,
+      monthlyBreakdown,
     });
   }
 
-  // Sort by total earned (highest first)
-  return entries.sort((a, b) => b.totalEarned - a.totalEarned);
+  // Sort by available balance (highest first)
+  return entries.sort((a, b) => b.available - a.available);
 }
