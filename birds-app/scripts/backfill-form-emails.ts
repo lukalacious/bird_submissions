@@ -497,26 +497,36 @@ async function main() {
 
       if (!formName) continue;
 
-      // Skip if already an email
-      if (formName.includes("@")) {
-        results.push({
-          rowIndex: i,
-          formName,
-          matchedEmail: null,
-          matchType: "SKIPPED",
-        });
-        continue;
-      }
-
-      // Check overrides first
+      // Check overrides first — allows correcting wrongly-matched emails too
       const overrideEmail = overrides.get(normalize(formName));
       if (overrideEmail) {
+        // Skip if the cell already has the correct email
+        if (formName === overrideEmail) {
+          results.push({
+            rowIndex: i,
+            formName,
+            matchedEmail: null,
+            matchType: "SKIPPED",
+          });
+          continue;
+        }
         results.push({
           rowIndex: i,
           formName,
           matchedEmail: overrideEmail,
           matchType: "EXACT",
           matchedVia: "manual override",
+        });
+        continue;
+      }
+
+      // Skip if already an email (and no override matched)
+      if (formName.includes("@")) {
+        results.push({
+          rowIndex: i,
+          formName,
+          matchedEmail: null,
+          matchType: "SKIPPED",
         });
         continue;
       }

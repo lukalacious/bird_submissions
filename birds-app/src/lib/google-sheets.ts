@@ -216,6 +216,34 @@ function parseCount(value: string | undefined): number | null {
 }
 
 /**
+ * Parse a timestamp string that may be in DD/MM/YYYY HH:mm:ss format
+ * (South African locale from Google Forms) or other formats.
+ * Falls back to native Date parsing for unrecognised formats.
+ */
+function parseTimestamp(timestampStr: string): Date {
+  // Match DD/MM/YYYY with optional HH:mm:ss
+  const match = timestampStr.match(
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
+  );
+
+  if (match) {
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10); // 1-based
+    const year = parseInt(match[3], 10);
+    const hours = match[4] ? parseInt(match[4], 10) : 0;
+    const minutes = match[5] ? parseInt(match[5], 10) : 0;
+    const seconds = match[6] ? parseInt(match[6], 10) : 0;
+
+    // Sanity check: if day > 12, it's definitely DD/MM (not MM/DD)
+    // If day <= 12, we still treat as DD/MM since the form uses SA locale
+    return new Date(year, month - 1, day, hours, minutes, seconds);
+  }
+
+  // Fallback: let native parser handle other formats (e.g. ISO 8601)
+  return new Date(timestampStr);
+}
+
+/**
  * Read form responses from the Google Sheet for a given year/month.
  * Column matching is done by header text substring (case-insensitive).
  * For the duplicate non-motorised questions (Q4 vs Q18), Q18 is identified
@@ -280,8 +308,8 @@ export async function getFormResponses(
     const timestampStr = row[timestampCol]?.toString();
     if (!timestampStr) continue;
 
-    // Parse timestamp — Google Forms uses "M/D/YYYY H:mm:ss" or similar
-    const date = new Date(timestampStr);
+    // Parse timestamp — Google Forms SA locale uses DD/MM/YYYY HH:mm:ss
+    const date = parseTimestamp(timestampStr);
     if (isNaN(date.getTime())) continue;
 
     // Filter by year and month

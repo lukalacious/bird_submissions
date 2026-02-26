@@ -21,6 +21,29 @@ When you encounter a problem and solve it, add an entry:
 
 ## 2026
 
+### February 26, 2026 - DD/MM/YYYY Timestamp Parsing in Google Forms
+
+**Problem:** All January 2026 bonus jokers were 0 in the database. The admin panel form processing matched zero users — every row was silently skipped.
+
+**Root Cause:**
+- The Google Form is configured with South African locale, producing timestamps like `26/01/2026 10:30:00` (DD/MM/YYYY)
+- `new Date("26/01/2026 10:30:00")` returns `Invalid Date` in V8 because it expects MM/DD/YYYY
+- Dates where DD ≤ 12 (e.g. `01/02/2026`) would silently parse as the wrong month — even worse than failing
+- Additionally, the Form's "Email" column contained names instead of email addresses, causing email matching to fail
+
+**Solution:**
+1. Added `parseTimestamp()` helper in `src/lib/google-sheets.ts` that regex-matches `DD/MM/YYYY HH:mm:ss` and constructs Date via `new Date(year, month-1, day, ...)`, with fallback to native parsing
+2. Created `scripts/overrides.json` for 3 unmatched users whose names couldn't be auto-resolved
+3. Ran `scripts/backfill-form-emails.ts` to replace names with emails in the Google Sheet
+4. Reprocessed January via `/admin/form-jokers`
+
+**Prevention:**
+- Never rely on `new Date(string)` for locale-dependent formats — always parse explicitly
+- When integrating Google Forms, check the locale setting and test with actual form data
+- The `parseTimestamp()` helper now handles both DD/MM/YYYY and fallback formats
+
+---
+
 ### January 28, 2026 - Schema Drift Between Dev and Production
 
 **Problem:** Community page worked locally but crashed in production with "column does not exist" error.
@@ -200,6 +223,7 @@ Copy this template when adding new learnings:
 
 | Issue | Quick Fix |
 |-------|-----------|
+| DD/MM/YYYY timestamps from Google Forms | Use `parseTimestamp()` — never `new Date()` on locale strings |
 | Prisma types out of sync | `npx prisma generate` |
 | Schema not in production | Compare schemas, apply migration |
 | External images broken | Add domain to `next.config.ts` remotePatterns |
