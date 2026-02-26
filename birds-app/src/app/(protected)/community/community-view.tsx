@@ -420,11 +420,7 @@ export function CommunityView({
 
       {/* Jokers View — Accumulated Balances */}
       {viewMode === "jokers" && (
-        <JokersBalanceView
-          jokerActivity={jokerActivity}
-          currentYear={currentYear}
-          updateFilter={updateFilter}
-        />
+        <JokersBalanceView jokerActivity={jokerActivity} />
       )}
 
       {/* Bird Users Modal */}
@@ -446,32 +442,14 @@ const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "S
 
 function JokersBalanceView({
   jokerActivity,
-  currentYear,
-  updateFilter,
 }: {
   jokerActivity: CommunityJokerEntry[];
-  currentYear: number;
-  updateFilter: (key: string, value: string) => void;
 }) {
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 text-sm text-gray-600">
-        <Sparkles className="h-3.5 w-3.5" />
-        <span className="font-medium">Joker Balances</span>
-        <select
-          value={currentYear}
-          onChange={(e) => updateFilter("year", e.target.value)}
-          className="px-2 py-1 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-        >
-          {[2024, 2025, 2026].map((y) => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
-      </div>
-
       {jokerActivity.length > 0 ? (
         <div className="space-y-2">
           {jokerActivity.map((entry) => {
