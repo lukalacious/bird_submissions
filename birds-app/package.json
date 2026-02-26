@@ -28,7 +28,8 @@
     "db:studio": "npx prisma studio",
     "postinstall": "npx prisma generate",
     "local:start": "bash scripts/local-start.sh",
-    "backfill:form-emails": "tsx scripts/backfill-form-emails.ts"
+    "backfill:form-emails": "tsx scripts/backfill-form-emails.ts",
+    "db:check-drift": "tsx scripts/check-drift.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

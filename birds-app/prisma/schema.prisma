@@ -168,6 +168,20 @@ model UserJoker {
   @@index([userId])
 }
 
+// ProcessingLog model - tracks when admin processes form jokers per month
+model ProcessingLog {
+  id             String   @id @default(cuid())
+  type           String   // "bonus_jokers"
+  year           Int
+  month          Int
+  processedAt    DateTime @default(now())
+  processedBy    String   // Admin user ID
+  matchedCount   Int      @default(0)
+  unmatchedCount Int      @default(0)
+
+  @@index([type, year, month])
+}
+
 // UserChallengeStatus model - tracks elimination status per user per year
 model UserChallengeStatus {
   id               String    @id @default(cuid())

@@ -168,6 +168,20 @@ export async function processFormJokers(
       }
     }
 
+    // 5. Write processing log for audit trail
+    const matchedCount = results.filter((r) => r.matched).length;
+    const unmatchedCount = results.filter((r) => !r.matched).length;
+    await prisma.processingLog.create({
+      data: {
+        type: "bonus_jokers",
+        year,
+        month,
+        processedBy: session.user.id,
+        matchedCount,
+        unmatchedCount,
+      },
+    });
+
     revalidatePath("/dashboard");
     revalidatePath("/admin/form-jokers");
 
@@ -180,4 +194,76 @@ export async function processFormJokers(
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
+}
+
+// --- Manual Assignment for Unmatched Emails ---
+
+export async function assignBonusToUser(
+  userId: string,
+  bonus: number,
+  breakdown: { rule: string; value: number }[],
+  year: number,
+  month: number
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== "ADMIN") {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const existing = await prisma.userJoker.findUnique({
+      where: { userId_year_month: { userId, year, month } },
+    });
+    const existingGroupJokers = existing?.jokers || 0;
+
+    await prisma.userJoker.upsert({
+      where: { userId_year_month: { userId, year, month } },
+      create: {
+        userId,
+        year,
+        month,
+        jokers: 0,
+        bonusJokers: bonus,
+        totalJokers: bonus,
+        usedJokers: 0,
+      },
+      update: {
+        bonusJokers: bonus,
+        totalJokers: existingGroupJokers + bonus,
+      },
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/admin/form-jokers");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to assign bonus:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+// --- User List for Matching Dropdown ---
+
+export async function getAllUsersForMatching(): Promise<
+  { id: string; name: string; email: string }[]
+> {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== "ADMIN") {
+    return [];
+  }
+
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true, username: true, email: true },
+    orderBy: { name: "asc" },
+  });
+
+  return users.map((u) => ({
+    id: u.id,
+    name: u.username || u.name || u.email,
+    email: u.email,
+  }));
 }
