@@ -21,6 +21,60 @@ When you encounter a problem and solve it, add an entry:
 
 ## 2026
 
+### February 27, 2026 - Duplicate Vercel Projects Causing Failed Deployments
+
+**Problem:** Commit `1a894f5` showed a red X — deployment failed. But the app was actually deploying fine on the real project.
+
+**Root Cause:**
+- Three separate Vercel projects were linked to the same `lukalacious/bird_submissions` repo:
+  1. `bird-submissions` — the original production project (connected to repo, has domain)
+  2. `birds` — accidental duplicate created from repo root via `vercel` CLI (`.vercel/project.json` at repo root)
+  3. `birds-app` — old leftover created by running `vercel` CLI from `birds-app/` subdirectory (later disconnected)
+- Both `bird-submissions` and `birds` were connected to the repo, so every push triggered **two deployments**
+- The duplicate project didn't have correct root directory / env vars, causing one to always fail
+- Running `vercel` CLI from different directories silently creates new projects — `.vercel/project.json` is local-only (gitignored) so this goes unnoticed
+
+**Solution:**
+1. Deleted `birds` and `birds-app` projects from Vercel dashboard
+2. Removed stale local `.vercel/` directories (repo root and `birds-app/`) that pointed to deleted projects
+3. Kept `bird-submissions` as the single production project
+
+**Prevention:**
+- Only ONE Vercel project per repo — check the Vercel dashboard before running `vercel` CLI
+- If you run `vercel` from a new directory, it creates a new project — always verify on the dashboard
+- When you see dual deployment statuses on GitHub commits, check for duplicate Vercel projects immediately
+- The `.vercel/project.json` files are gitignored and local-only — they don't warn you about duplicates
+
+---
+
+### February 27, 2026 - Prisma Migrate P3009: Failed Migration Blocking Deploys
+
+**Problem:** Vercel deploy failed with `Error: P3009 — migrate found failed migrations in the target database`. Build exited after 15 seconds.
+
+**Root Cause:**
+- The `results` column had already been added to `ProcessingLog` via `prisma db push` during development
+- When `prisma migrate deploy` ran in the Vercel build, the migration tried `ALTER TABLE "ProcessingLog" ADD COLUMN "results" JSONB` — but the column already existed (error code `42701`)
+- Prisma recorded the migration as "failed" in `_prisma_migrations` table (`finished_at = NULL, applied_steps_count = 0`)
+- All subsequent deploys refused to run because of the stuck failed migration
+
+**Solution:**
+1. Verified the column already existed with correct type (`JSONB`) via `information_schema.columns`
+2. Marked the migration as applied in production:
+   ```sql
+   UPDATE _prisma_migrations
+   SET finished_at = NOW(), applied_steps_count = 1, logs = NULL
+   WHERE migration_name = '20260227000000_add_results_to_processing_log';
+   ```
+3. Redeployed — build succeeded
+
+**Prevention:**
+- Don't mix `prisma db push` (for dev prototyping) with `prisma migrate deploy` (for production) on the same database
+- If you used `db push` to add a column during dev, make sure the migration file doesn't try to add it again on production
+- If a migration fails with P3009: check `_prisma_migrations` table, verify the actual DB state, then either roll back or mark as applied
+- Consider running `prisma migrate diff` to check for schema drift before deploying
+
+---
+
 ### February 27, 2026 - Vercel Cron Route Handler Broken by "use server" Directive
 
 **Problem:** Monthly elimination cron job (`/api/cron/elimination-check`) never fired. No users were eliminated after January despite the cron schedule being configured in `vercel.json`.
@@ -261,6 +315,8 @@ Copy this template when adding new learnings:
 | Unique constraint error | Check `@@unique` in schema, use compound key |
 | Route handler returns 404 | Don't use `"use server"` on `route.ts` — it's for Server Actions only |
 | Vercel Cron not firing | Check `CRON_SECRET` is set (Production only), check route is registered |
+| Duplicate deploy failures | Check Vercel dashboard for multiple projects on same repo — delete extras |
+| Prisma P3009 failed migration | Check `_prisma_migrations` table, verify column exists, mark as applied |
 
 ---
 
