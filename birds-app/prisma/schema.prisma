@@ -180,6 +180,7 @@ model ProcessingLog {
   processedBy    String   // Admin user ID
   matchedCount   Int      @default(0)
   unmatchedCount Int      @default(0)
+  results        Json?    // Full FormJokerResult[] for viewing past processing results
 
   @@index([type, year, month])
 }

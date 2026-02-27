@@ -21,6 +21,34 @@ When you encounter a problem and solve it, add an entry:
 
 ## 2026
 
+### February 27, 2026 - Vercel Cron Route Handler Broken by "use server" Directive
+
+**Problem:** Monthly elimination cron job (`/api/cron/elimination-check`) never fired. No users were eliminated after January despite the cron schedule being configured in `vercel.json`.
+
+**Root Cause:**
+- The route handler file had `"use server";` as its first line
+- `"use server"` is a Next.js directive for **Server Actions only** — it tells the compiler to treat exported functions as RPC-callable from the client
+- Route handlers (`export async function GET/POST` in `route.ts`) are already server-only by convention
+- The directive confused Next.js module bundling, preventing the route from being registered — resulting in 404 for the endpoint
+
+**Solution:**
+1. Removed `"use server";` from `src/app/api/cron/elimination-check/route.ts`
+2. Set `CRON_SECRET` env var in Vercel (Production only)
+3. Manually triggered the endpoint via curl to backfill January's elimination check
+
+**Prevention:**
+- Never use `"use server"` on route handlers (`route.ts`) — only on Server Action files
+- `"use server"` → Server Actions (functions called via RPC from client)
+- `"use client"` → Client Components
+- Route handlers → neither directive needed (server-only by default)
+
+**Additional Notes:**
+- Vercel production URL is `bird-submissions.vercel.app` (not `birds-app.vercel.app`)
+- Vercel Crons only run in Production — `CRON_SECRET` only needed in Production env
+- January backfill result: 20 safe (31/31), 1 eliminated (Charles Roberts, 1/31), 1 skipped (Ronald du Toit, join month)
+
+---
+
 ### February 26, 2026 - DD/MM/YYYY Timestamp Parsing in Google Forms
 
 **Problem:** All January 2026 bonus jokers were 0 in the database. The admin panel form processing matched zero users — every row was silently skipped.
@@ -231,6 +259,8 @@ Copy this template when adding new learnings:
 | Hydration mismatch | Check for `document`/`window` access, use `mounted` state |
 | Build fails on Vercel | Check build command includes `prisma generate` |
 | Unique constraint error | Check `@@unique` in schema, use compound key |
+| Route handler returns 404 | Don't use `"use server"` on `route.ts` — it's for Server Actions only |
+| Vercel Cron not firing | Check `CRON_SECRET` is set (Production only), check route is registered |
 
 ---
 

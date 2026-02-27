@@ -7,6 +7,7 @@ import {
   processFormJokers,
   assignBonusToUser,
   getAllUsersForMatching,
+  getProcessingResults,
   type FormJokerResult,
 } from "@/app/actions/form-joker-actions";
 import type { ProcessingHistoryEntry } from "./page";
@@ -31,6 +32,7 @@ export function FormJokerPanel({ processingHistory, currentYear }: FormJokerPane
   const [year, setYear] = useState(currentYear);
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [loading, setLoading] = useState(false);
+  const [loadingResults, setLoadingResults] = useState(false);
   const [results, setResults] = useState<FormJokerResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -117,9 +119,27 @@ export function FormJokerPanel({ processingHistory, currentYear }: FormJokerPane
     }
   }
 
-  function handleMonthClick(m: number) {
+  async function handleMonthClick(m: number) {
     setMonth(m);
     setShowConfirm(false);
+    setError(null);
+    setAssignments({});
+
+    // If month was already processed, load the saved results
+    if (processedMonths.has(m)) {
+      setLoadingResults(true);
+      setResults(null);
+      try {
+        const saved = await getProcessingResults(year, m);
+        setResults(saved);
+      } catch {
+        setError("Failed to load saved results");
+      } finally {
+        setLoadingResults(false);
+      }
+    } else {
+      setResults(null);
+    }
   }
 
   const matchedResults = results?.filter((r) => r.matched) || [];
@@ -223,6 +243,13 @@ export function FormJokerPanel({ processingHistory, currentYear }: FormJokerPane
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Loading saved results */}
+      {loadingResults && (
+        <div className="bg-white rounded-lg border border-gray-200 p-4 text-sm text-gray-500">
+          Loading saved results...
         </div>
       )}
 

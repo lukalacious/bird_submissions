@@ -182,6 +182,7 @@ export async function processFormJokers(
         processedBy: session.user.id,
         matchedCount,
         unmatchedCount,
+        results: results as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -249,6 +250,27 @@ export async function assignBonusToUser(
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
+}
+
+// --- Load Saved Processing Results ---
+
+export async function getProcessingResults(
+  year: number,
+  month: number
+): Promise<FormJokerResult[] | null> {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== "ADMIN") {
+    return null;
+  }
+
+  const log = await prisma.processingLog.findFirst({
+    where: { type: "bonus_jokers", year, month },
+    orderBy: { processedAt: "desc" },
+    select: { results: true },
+  });
+
+  if (!log?.results) return null;
+  return log.results as unknown as FormJokerResult[];
 }
 
 // --- User List for Matching Dropdown ---
