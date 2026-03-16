@@ -31,5 +31,8 @@ dist/
 *.crdownload
 *.tmp
 
+# Form response backups
+birds-app/scripts/form-responses-backup-*.json
+
 # Test artifacts
 test-results/
