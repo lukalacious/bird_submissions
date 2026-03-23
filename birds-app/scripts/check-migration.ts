@@ -1,43 +1,47 @@
 /**
- * Pre-commit check script for database migrations
+ * Pre-push check script for database migrations
  *
- * This script verifies that schema.prisma changes are accompanied by migration files.
+ * Verifies that schema.prisma changes in commits about to be pushed
+ * are accompanied by migration files. This is the last safe moment
+ * before Vercel auto-deploys from main.
+ *
  * Run manually with: npx tsx scripts/check-migration.ts
- * Or add to pre-commit hooks.
+ * Wired into .githooks/pre-push automatically.
  */
 
 import { execSync } from "child_process";
 
 function checkMigrations(): void {
   try {
-    // Get staged files
-    const stagedFiles = execSync("git diff --cached --name-only", {
+    // Compare all commits on this branch vs origin/main
+    const changedFiles = execSync("git diff origin/main...HEAD --name-only", {
       encoding: "utf-8",
     });
 
-    const schemaStaged = stagedFiles.includes("prisma/schema.prisma");
-    const migrationsStaged = stagedFiles.includes("prisma/migrations/");
+    const schemaChanged = changedFiles.includes("prisma/schema.prisma");
+    const migrationsChanged = changedFiles.includes("prisma/migrations/");
 
-    if (schemaStaged && !migrationsStaged) {
-      console.error("\n❌ ERROR: schema.prisma is staged but no migration files found!\n");
-      console.error("   You must create a migration before committing schema changes:");
+    if (schemaChanged && !migrationsChanged) {
+      console.error("\n❌ PUSH BLOCKED: schema.prisma was changed but no migration files found!\n");
+      console.error("   You must create a migration before pushing schema changes:");
       console.error("   npm run db:migrate\n");
-      console.error("   Then stage the migration files:");
-      console.error("   git add prisma/migrations/\n");
+      console.error("   Then commit the migration files:");
+      console.error("   git add prisma/schema.prisma prisma/migrations/");
+      console.error("   git commit -m 'Add migration for schema change'\n");
       process.exit(1);
     }
 
-    if (schemaStaged && migrationsStaged) {
-      console.log("✅ Schema change detected with migration files - good to go!");
-    } else if (!schemaStaged) {
-      console.log("✅ No schema changes detected");
+    if (schemaChanged && migrationsChanged) {
+      console.log("✅ Schema change detected with migration files - good to push!");
+    } else if (!schemaChanged) {
+      console.log("✅ No schema changes detected - good to push!");
     }
 
     process.exit(0);
   } catch (error) {
-    // Not in a git repository or git not available
-    console.warn("⚠️  Could not check git status:", error);
-    process.exit(0); // Don't block commit if we can't check
+    // If origin/main doesn't exist (e.g., fresh clone), don't block
+    console.warn("⚠️  Could not check migration status:", error);
+    process.exit(0);
   }
 }
 

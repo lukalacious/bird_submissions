@@ -15,7 +15,7 @@
     "test:perf:headed": "npx playwright test --headed --project='Desktop Chrome'",
     "test:perf:generate-report": "tsx scripts/generate-perf-report.ts",
     "db:generate": "npx prisma generate",
-    "db:push": "npx prisma db push",
+    "db:push": "echo '❌ db:push is disabled. Use npm run db:migrate instead. See docs/processes/DATABASE_SCHEMA_MANAGEMENT.md' && exit 1",
     "db:migrate": "npx prisma migrate dev",
     "db:migrate:create": "npx prisma migrate dev --create-only",
     "db:migrate:status": "npx prisma migrate status",
@@ -26,10 +26,11 @@
     "db:make-admin": "tsx scripts/make-admin.ts",
     "db:check-migration": "tsx scripts/check-migration.ts",
     "db:studio": "npx prisma studio",
-    "postinstall": "npx prisma generate",
+    "postinstall": "npx prisma generate && cd \"$(git rev-parse --show-toplevel 2>/dev/null)\" && git config core.hooksPath birds-app/.githooks 2>/dev/null || true",
     "local:start": "bash scripts/local-start.sh",
     "backfill:form-emails": "tsx scripts/backfill-form-emails.ts",
-    "db:check-drift": "tsx scripts/check-drift.ts"
+    "db:check-drift": "tsx scripts/check-drift.ts",
+    "db:upsert-regions": "tsx prisma/upsert-regions.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

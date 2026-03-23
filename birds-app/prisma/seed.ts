@@ -24,8 +24,15 @@ function formatRegionName(sheetName: string): string {
   return sheetName.toLowerCase().replace(/\s+/g, "_");
 }
 
-// Override display labels when the formatted sheet name isn't preferred (e.g. "The Netherlands")
+// Map Excel sheet names to canonical region names used in production
+const NAME_OVERRIDES: Record<string, string> = {
+  southern_africa: "south_africa",
+  the_netherlands: "netherlands",
+};
+
+// Override display labels when the formatted sheet name isn't preferred
 const LABEL_OVERRIDES: Record<string, string> = {
+  south_africa: "South Africa",
   netherlands: "The Netherlands",
 };
 
@@ -62,7 +69,8 @@ async function main() {
 
   // Process each sheet as a region
   for (const sheetName of workbook.SheetNames) {
-    const regionName = formatRegionName(sheetName);
+    const rawName = formatRegionName(sheetName);
+    const regionName = NAME_OVERRIDES[rawName] ?? rawName;
     const regionLabel = LABEL_OVERRIDES[regionName] ?? formatRegionLabel(sheetName);
 
     console.log(`\n🌍 Processing region: ${regionLabel} (${regionName})`);

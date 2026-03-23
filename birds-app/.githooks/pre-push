@@ -1,0 +1,9 @@
+#!/bin/sh
+# Pre-push hook: verify schema changes have accompanying migrations.
+# This is the last guardrail before Vercel auto-deploys from main.
+#
+# To install: git config core.hooksPath birds-app/.githooks
+# Or run from birds-app/: git config core.hooksPath .githooks
+
+cd "$(git rev-parse --show-toplevel)/birds-app" || exit 0
+npx tsx scripts/check-migration.ts
