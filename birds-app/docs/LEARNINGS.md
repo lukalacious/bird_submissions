@@ -281,6 +281,42 @@ useEffect(() => {
 
 ---
 
+### [2026-07-26] - Joker grouping broken by mixed group-name schemes + unscoped bird lookup
+
+**Problem:**
+Users reported wrong joker counts: Kenya user's 6 flycatchers counted as only 3, egrets+herons merged into one group, suspected Latin-name ("capensis") grouping.
+
+**Root Cause:**
+Two independent issues. (1) EA/WA regions had long taxonomic `groupName`s ("Herons, Egrets and Bitterns") while SA/NL used short name-derived ones ("Heron"). (2) `getUserJokerInfo` looked up `Bird` by `fullName` without region filter — birds existing in multiple regions got a nondeterministic groupName. There was never any Latin-name matching; grouping is purely `Bird.groupName` data.
+
+**Solution:**
+Extracted region-scoped, session-free computation into `src/lib/joker-groups.ts` (lookup by `(fullName, regionId)`); normalized 2,735 EA/WA groupNames to the short scheme (`scripts/audit-group-names.ts` + `normalize-group-names.ts`); recalculated all 2026 group jokers (`scripts/recalc-all-jokers.ts`, bonus jokers preserved).
+
+**Prevention:**
+- New bird data must use the short group scheme (groupName ≈ last word of common name)
+- Never look up `Bird` by `fullName` alone — always scope by region; match species across regions by `scientificName` (277 species have different common names per region)
+- Scripts needing joker recalc must use `joker-groups.ts` — `recalculateJokers` server action needs an auth session context
+
+---
+
+### [2026-07-26] - Wrong-email accounts: submissions and form responses land on duplicate users
+
+**Problem:**
+Shaun submitted May under a second Google account (`shaun.wytske@`), so his May birds/jokers were invisible; Dave Gear filled the joker Google Form with a second email, which matched an *empty* duplicate User instead of failing visibly.
+
+**Root Cause:**
+Google OAuth silently creates a new User for any Google account. Form-joker processing matches responses by exact email, so a duplicate account "matches" and absorbs bonus jokers.
+
+**Solution:**
+One-off `scripts/fix-shaun-may.ts` (move submissions + UserJoker, delete duplicate rows/user); `EMAIL_ALIASES` map in `form-joker-actions.ts` canonicalizes known wrong emails before matching.
+
+**Prevention:**
+- When a user reports "missing" submissions/jokers, first check for a second User with a similar email
+- Add new aliases to `EMAIL_ALIASES`; delete empty duplicate accounts
+- Fix scripts: dry-run by default, `--apply` to execute, test on a Neon branch first
+
+---
+
 ## Template for New Entries
 
 Copy this template when adding new learnings:
