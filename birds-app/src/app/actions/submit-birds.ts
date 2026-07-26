@@ -38,9 +38,10 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
     const [monthlySettings, currentCount, existingSubmissions, region, user, jokersBefore] = await Promise.all([
       // Get monthly settings to check max birds per period
       getMonthlySettings(year, month),
-      // Cap: count existing submissions for (userId, regionId, year, month)
+      // Cap: count existing submissions for (userId, year, month) ACROSS ALL REGIONS
+      // — the monthly cap is shared, mixing regions in a month is allowed
       prisma.submission.count({
-        where: { userId, regionId, year, month },
+        where: { userId, year, month },
       }),
       // Duplicates: check for already submitted birds
       prisma.submission.findMany({

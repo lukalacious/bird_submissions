@@ -113,10 +113,10 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
       currentMonth,
       resetPeriod
     ),
+    // Cross-region count: monthly cap is shared across all regions
     prisma.submission.count({
       where: {
         userId: session!.user.id!,
-        regionId: region.id,
         year: currentYear,
         month: currentMonth,
       },
