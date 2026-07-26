@@ -223,33 +223,37 @@ export async function getCommunityFeed(limit = 20): Promise<FeedEntry[]> {
 
 /**
  * Get leaderboard for a given period, sorted by total jokers earned
- * @param period - "month" for current month, "alltime" for all time
+ * @param period - "month" for a single month (current by default), "alltime" for all time
  * @param challengeFilter - "all", "active" (non-eliminated), or "eliminated"
+ * @param monthOverride - view a past month's standings (only used when period is "month")
  */
 export async function getLeaderboard(
   period: "month" | "alltime",
-  challengeFilter: "all" | "active" | "eliminated" = "all"
+  challengeFilter: "all" | "active" | "eliminated" = "all",
+  monthOverride?: { year: number; month: number }
 ): Promise<LeaderboardEntry[]> {
   const session = await auth();
   const currentUserId = session?.user?.id;
 
   const now = new Date();
   const currentYear = now.getFullYear();
+  const targetYear = monthOverride?.year ?? currentYear;
+  const targetMonth = monthOverride?.month ?? now.getMonth() + 1;
 
   // Build the where clause for time filtering
   const jokerWhereClause =
     period === "month"
       ? {
-          year: currentYear,
-          month: now.getMonth() + 1,
+          year: targetYear,
+          month: targetMonth,
         }
       : {};
 
   const submissionWhereClause =
     period === "month"
       ? {
-          year: currentYear,
-          month: now.getMonth() + 1,
+          year: targetYear,
+          month: targetMonth,
         }
       : {};
 

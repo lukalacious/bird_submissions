@@ -413,6 +413,7 @@ export function CommunityView({
             <Leaderboard
               monthlyEntries={monthlyLeaderboard}
               allTimeEntries={allTimeLeaderboard}
+              challengeFilter={challengeFilter}
             />
           </CardContent>
         </Card>

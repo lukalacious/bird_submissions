@@ -1,16 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, Medal, Crown, TrendingUp, Calendar, AlertTriangle } from "lucide-react";
+import { Trophy, Medal, Crown, TrendingUp, Calendar, AlertTriangle, Loader2, ChevronDown } from "lucide-react";
 import { LEVELS } from "@/lib/gamification-constants";
+import { getLeaderboard } from "@/app/actions/feed-actions";
 import type { LeaderboardEntry } from "@/app/actions/feed-actions";
 
 interface LeaderboardProps {
   monthlyEntries: LeaderboardEntry[];
   allTimeEntries: LeaderboardEntry[];
+  /** Passed through when fetching past months so the filter stays consistent */
+  challengeFilter?: "all" | "active" | "eliminated";
 }
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
 
 function getRankIcon(rank: number) {
   switch (rank) {
@@ -125,10 +133,47 @@ function LeaderboardItem({
   );
 }
 
-export function Leaderboard({ monthlyEntries, allTimeEntries }: LeaderboardProps) {
+export function Leaderboard({
+  monthlyEntries,
+  allTimeEntries,
+  challengeFilter = "all",
+}: LeaderboardProps) {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
   const [activeTab, setActiveTab] = useState<"month" | "alltime">("month");
-  const entries = activeTab === "month" ? monthlyEntries : allTimeEntries;
-  const currentMonth = new Date().toLocaleString("default", { month: "long" });
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  // Cache of past-month leaderboards fetched on demand
+  const [pastMonths, setPastMonths] = useState<Record<number, LeaderboardEntry[]>>({});
+  const [isPending, startTransition] = useTransition();
+
+  const entries =
+    activeTab === "alltime"
+      ? allTimeEntries
+      : selectedMonth === currentMonth
+        ? monthlyEntries
+        : pastMonths[selectedMonth] ?? [];
+
+  const isLoadingMonth =
+    activeTab === "month" &&
+    selectedMonth !== currentMonth &&
+    pastMonths[selectedMonth] === undefined &&
+    isPending;
+
+  function handleMonthChange(month: number) {
+    setSelectedMonth(month);
+    setActiveTab("month");
+    if (month !== currentMonth && pastMonths[month] === undefined) {
+      startTransition(async () => {
+        const data = await getLeaderboard("month", challengeFilter, {
+          year: currentYear,
+          month,
+        });
+        setPastMonths((prev) => ({ ...prev, [month]: data }));
+      });
+    }
+  }
 
   return (
     <motion.div
@@ -145,17 +190,31 @@ export function Leaderboard({ monthlyEntries, allTimeEntries }: LeaderboardProps
 
         {/* Tab Switcher */}
         <div className="flex bg-gray-100 rounded-lg p-1">
-          <button
-            onClick={() => setActiveTab("month")}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+          {/* Month picker — native select for mobile friendliness */}
+          <div
+            className={`relative flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
               activeTab === "month"
                 ? "bg-white text-purple-700 shadow-sm"
                 : "text-gray-600 hover:text-gray-900"
             }`}
           >
             <Calendar className="h-4 w-4" />
-            {currentMonth}
-          </button>
+            <span>{MONTH_NAMES[selectedMonth - 1]}</span>
+            <ChevronDown className="h-3 w-3" />
+            <select
+              aria-label="Select leaderboard month"
+              value={selectedMonth}
+              onChange={(e) => handleMonthChange(Number(e.target.value))}
+              onFocus={() => setActiveTab("month")}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            >
+              {MONTH_NAMES.slice(0, currentMonth).map((name, i) => (
+                <option key={name} value={i + 1}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             onClick={() => setActiveTab("alltime")}
             className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
@@ -174,22 +233,33 @@ export function Leaderboard({ monthlyEntries, allTimeEntries }: LeaderboardProps
       <div className="space-y-2">
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeTab}
+            key={activeTab === "alltime" ? "alltime" : `month-${selectedMonth}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
             className="space-y-2"
           >
-            {entries.length > 0 ? (
+            {isLoadingMonth ? (
+              <div className="text-center py-8 text-gray-500">
+                <Loader2 className="h-8 w-8 mx-auto mb-2 text-purple-400 animate-spin" />
+                <p className="text-sm">Loading {MONTH_NAMES[selectedMonth - 1]}...</p>
+              </div>
+            ) : entries.length > 0 ? (
               entries.slice(0, 5).map((entry, index) => (
                 <LeaderboardItem key={entry.userId} entry={entry} index={index} />
               ))
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <Trophy className="h-10 w-10 mx-auto mb-2 text-gray-300" />
-                <p className="text-sm">No submissions yet</p>
-                <p className="text-xs mt-1">Be the first to top the leaderboard!</p>
+                <p className="text-sm">
+                  {activeTab === "month" && selectedMonth !== currentMonth
+                    ? `No jokers recorded for ${MONTH_NAMES[selectedMonth - 1]}`
+                    : "No submissions yet"}
+                </p>
+                {activeTab === "month" && selectedMonth === currentMonth && (
+                  <p className="text-xs mt-1">Be the first to top the leaderboard!</p>
+                )}
               </div>
             )}
           </motion.div>
