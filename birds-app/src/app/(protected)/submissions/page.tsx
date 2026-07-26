@@ -31,6 +31,7 @@ interface BirdEntry {
   month: number;
   deletable: boolean;
   requestable: boolean;
+  photoUrl: string | null;
 }
 
 export default async function SubmissionsPage() {
@@ -50,6 +51,7 @@ export default async function SubmissionsPage() {
       year: true,
       month: true,
       isJokerSubmission: true,
+      photoUrl: true,
     },
   });
 
@@ -70,6 +72,7 @@ export default async function SubmissionsPage() {
       deletable: isCurrentMonth && !s.isJokerSubmission,
       // Past months are locked — changes go through an admin request
       requestable: !isCurrentMonth && !s.isJokerSubmission,
+      photoUrl: s.photoUrl,
     });
   }
 
@@ -162,28 +165,43 @@ export default async function SubmissionsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 pb-2 px-4">
-                  <ul className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1">
                     {g.birds
                       .sort((a, b) => a.birdName.localeCompare(b.birdName))
-                      .map((bird, idx) =>
-                        bird.requestable ? (
+                      .map((bird, idx) => (
+                        <span key={`${bird.birdName}-${idx}`} className="inline-flex items-center gap-1">
+                        {bird.requestable ? (
                           <RequestChangePill
-                            key={`${bird.birdName}-${idx}`}
                             birdName={bird.birdName}
                             year={bird.year}
                             month={bird.month}
                           />
                         ) : (
                           <DeletableBirdPill
-                            key={`${bird.birdName}-${idx}`}
                             birdName={bird.birdName}
                             year={bird.year}
                             month={bird.month}
                             deletable={bird.deletable}
                           />
-                        )
-                      )}
-                  </ul>
+                        )}
+                        {bird.photoUrl && (
+                          <a
+                            href={bird.photoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`View photo of ${bird.birdName}`}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={bird.photoUrl}
+                              alt={`Photo of ${bird.birdName}`}
+                              className="h-6 w-6 rounded object-cover border border-sky-300"
+                            />
+                          </a>
+                        )}
+                        </span>
+                      ))}
+                  </div>
                 </CardContent>
               </Card>
             );

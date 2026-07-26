@@ -54,7 +54,7 @@ export function RequestChangePill({ birdName, year, month }: RequestChangePillPr
   };
 
   return (
-    <li>
+    <>
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -132,6 +132,6 @@ export function RequestChangePill({ birdName, year, month }: RequestChangePillPr
           </div>
         </div>
       </Modal>
-    </li>
+    </>
   );
 }

@@ -31,9 +31,9 @@ export function DeletableBirdPill({ birdName, year, month, deletable }: Deletabl
 
   if (!deletable) {
     return (
-      <li className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
+      <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
         {birdName}
-      </li>
+      </span>
     );
   }
 
@@ -59,8 +59,7 @@ export function DeletableBirdPill({ birdName, year, month, deletable }: Deletabl
   };
 
   return (
-    <li>
-      <button
+    <button
         type="button"
         onClick={handleTap}
         disabled={isPending}
@@ -78,6 +77,5 @@ export function DeletableBirdPill({ birdName, year, month, deletable }: Deletabl
           <X className="h-3 w-3" />
         )}
       </button>
-    </li>
   );
 }

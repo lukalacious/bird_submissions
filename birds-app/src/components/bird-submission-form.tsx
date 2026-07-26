@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect, useMemo, useCallback, useRef, memo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { PhotoBirdUpload } from "@/components/photo-bird-upload";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -143,6 +144,8 @@ export function BirdSubmissionForm({
 }: BirdSubmissionFormProps) {
   const goldenSet = useMemo(() => new Set(goldenSpecies), [goldenSpecies]);
   const photoSet = useMemo(() => new Set(photoSpecies), [photoSpecies]);
+  // Proof photos for this month's photo birds: birdName -> Blob URL
+  const [photos, setPhotos] = useState<Record<string, string>>({});
   const specialBadgeFor = useCallback(
     (bird: Bird): "golden" | "photo" | null =>
       goldenSet.has(bird.scientificName)
@@ -282,6 +285,7 @@ export function BirdSubmissionForm({
         year: currentYear,
         month: currentMonth,
         customBirds,
+        photos,
       });
 
       if (result.success) {
@@ -358,10 +362,25 @@ export function BirdSubmissionForm({
                 .sort((a, b) => a.localeCompare(b))
                 .map((fullName) => {
                   const sci = birds.find((b) => b.fullName === fullName)?.scientificName ?? "";
+                  const isPhotoBird = sci !== "" && photoSet.has(sci);
                   return (
-                    <li key={fullName} className="text-sm">
+                    <li key={fullName} className="text-sm flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-foreground">{fullName}</span>
-                      {sci && <span className="italic text-muted-foreground"> ({sci})</span>}
+                      {sci && <span className="italic text-muted-foreground">({sci})</span>}
+                      {isPhotoBird && (
+                        <PhotoBirdUpload
+                          birdName={fullName}
+                          photoUrl={photos[fullName] ?? null}
+                          onChange={(url) =>
+                            setPhotos((prev) => {
+                              const next = { ...prev };
+                              if (url) next[fullName] = url;
+                              else delete next[fullName];
+                              return next;
+                            })
+                          }
+                        />
+                      )}
                     </li>
                   );
                 })}

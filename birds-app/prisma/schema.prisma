@@ -118,6 +118,7 @@ model Submission {
   month             Int      @default(1) // Month (1-12) for per-month cap and greying
   isCustomBird      Boolean  @default(false) // True if bird was not in predefined list
   isJokerSubmission Boolean  @default(false) // True if this is a joker immunity submission
+  photoUrl          String?  // Vercel Blob URL — proof photo for designated photo birds
   createdAt         DateTime @default(now())
 
   @@unique([userId, regionId, birdName, year, month])

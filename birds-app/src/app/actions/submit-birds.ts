@@ -19,6 +19,18 @@ interface SubmitBirdsInput {
   year: number;
   month: number;
   customBirds?: string[]; // Birds not in the predefined list
+  /** Proof photos for photo birds: birdName -> Vercel Blob URL */
+  photos?: Record<string, string>;
+}
+
+// Only accept photo URLs from our own Blob store
+function isOwnBlobUrl(url: string): boolean {
+  try {
+    const { hostname, protocol } = new URL(url);
+    return protocol === "https:" && hostname.endsWith(".public.blob.vercel-storage.com");
+  } catch {
+    return false;
+  }
 }
 
 interface SubmitBirdsResult {
@@ -29,7 +41,7 @@ interface SubmitBirdsResult {
 }
 
 export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsResult> {
-  const { regionId, birdNames, year, month, customBirds = [] } = input;
+  const { regionId, birdNames, year, month, customBirds = [], photos = {} } = input;
 
   try {
     // SECURITY: identity comes from the session, never from the client
@@ -183,6 +195,8 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
       year,
       month,
       isCustomBird: false,
+      photoUrl:
+        photos[birdName] && isOwnBlobUrl(photos[birdName]) ? photos[birdName] : null,
     }));
 
     const customSubmissions = customBirds.map((birdName) => ({
@@ -291,6 +305,11 @@ export async function deleteSubmission(input: {
 
     // Find and delete the submission (never joker submissions — those
     // represent spent jokers and deleting them wouldn't refund the joker)
+    const target = await prisma.submission.findFirst({
+      where: { userId, birdName, year, month, isJokerSubmission: false },
+      select: { photoUrl: true },
+    });
+
     const deleted = await prisma.submission.deleteMany({
       where: {
         userId,
@@ -303,6 +322,13 @@ export async function deleteSubmission(input: {
 
     if (deleted.count === 0) {
       return { success: false, error: "Submission not found" };
+    }
+
+    // Clean up the proof photo blob, if any (best-effort)
+    if (target?.photoUrl) {
+      import("@vercel/blob")
+        .then(({ del }) => del(target.photoUrl!))
+        .catch((blobError) => console.error("Failed to delete photo blob:", blobError));
     }
 
     // Recalculate jokers after deletion
