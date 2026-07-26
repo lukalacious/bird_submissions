@@ -10,18 +10,26 @@ interface PhotoBirdUploadProps {
   birdName: string;
   photoUrl: string | null;
   onChange: (url: string | null) => void;
+  /** Lets the parent form block submission while an upload is in flight */
+  onUploadingChange?: (isUploading: boolean) => void;
 }
 
 /**
  * Proof-photo picker for a designated photo bird. Compresses client-side
  * (~1600px) then uploads directly to Vercel Blob via /api/upload.
  */
-export function PhotoBirdUpload({ birdName, photoUrl, onChange }: PhotoBirdUploadProps) {
+export function PhotoBirdUpload({
+  birdName,
+  photoUrl,
+  onChange,
+  onUploadingChange,
+}: PhotoBirdUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const handleFile = async (file: File) => {
     setIsUploading(true);
+    onUploadingChange?.(true);
     try {
       const compressed = await imageCompression(file, {
         maxWidthOrHeight: 1600,
@@ -44,6 +52,7 @@ export function PhotoBirdUpload({ birdName, photoUrl, onChange }: PhotoBirdUploa
       toast.error(error instanceof Error ? error.message : "Photo upload failed");
     } finally {
       setIsUploading(false);
+      onUploadingChange?.(false);
     }
   };
 

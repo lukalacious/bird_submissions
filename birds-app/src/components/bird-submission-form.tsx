@@ -165,6 +165,8 @@ export function BirdSubmissionForm({
   const photoSet = useMemo(() => new Set(photoSpecies), [photoSpecies]);
   // Proof photos for this month's photo birds: birdName -> Blob URL
   const [photos, setPhotos] = useState<Record<string, string>>({});
+  // Number of photo uploads currently in flight — blocks submission until 0
+  const [uploadsInFlight, setUploadsInFlight] = useState(0);
   const specialBadgeFor = useCallback(
     (bird: Bird): "golden" | "photo" | null =>
       goldenSet.has(bird.scientificName)
@@ -321,6 +323,10 @@ export function BirdSubmissionForm({
   const handleSubmit = () => {
     if (selectedBirds.size === 0 && customBirds.length === 0 && photoOnlyBirds.size === 0) {
       toast.error("Please select at least one bird");
+      return;
+    }
+    if (uploadsInFlight > 0) {
+      toast.error("Hold on — a photo is still uploading");
       return;
     }
     if (photoOnlyMissingPhoto.length > 0) {
@@ -500,6 +506,9 @@ export function BirdSubmissionForm({
                         <PhotoBirdUpload
                           birdName={fullName}
                           photoUrl={photos[fullName] ?? null}
+                          onUploadingChange={(uploading) =>
+                            setUploadsInFlight((n) => (uploading ? n + 1 : Math.max(0, n - 1)))
+                          }
                           onChange={(url) =>
                             setPhotos((prev) => {
                               const next = { ...prev };
@@ -529,12 +538,17 @@ export function BirdSubmissionForm({
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={isPending || photoOnlyMissingPhoto.length > 0}
+                disabled={isPending || uploadsInFlight > 0 || photoOnlyMissingPhoto.length > 0}
               >
                 {isPending ? (
                   <>
                     <span className="animate-spin mr-2">⏳</span>
                     Submitting...
+                  </>
+                ) : uploadsInFlight > 0 ? (
+                  <>
+                    <span className="animate-spin mr-2">⏳</span>
+                    Photo uploading...
                   </>
                 ) : photoOnlyMissingPhoto.length > 0 ? (
                   <>📸 Add photo{photoOnlyMissingPhoto.length > 1 ? "s" : ""} first</>
