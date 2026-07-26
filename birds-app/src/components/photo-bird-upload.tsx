@@ -44,7 +44,8 @@ export function PhotoBirdUpload({
         maxIteration: 4,
         onProgress: (p: number) => setStatus(`Preparing ${Math.round(p)}%`),
       });
-      setStatus("Uploading...");
+      const sizeMB = (compressed.size / (1024 * 1024)).toFixed(1);
+      setStatus(`Uploading ${sizeMB}MB...`);
       const blob = await upload(
         `photo-birds/${birdName.replaceAll(" ", "-")}.jpg`,
         compressed,
@@ -52,8 +53,11 @@ export function PhotoBirdUpload({
           access: "public",
           handleUploadUrl: "/api/upload",
           clientPayload: JSON.stringify({ birdName }),
+          // Multipart chunks the transfer with retries and reliable progress
+          // events — the single-PUT path can sit at 0% on mobile browsers
+          multipart: true,
           onUploadProgress: ({ percentage }) =>
-            setStatus(`Uploading ${Math.round(percentage)}%`),
+            setStatus(`Uploading ${Math.round(percentage)}% of ${sizeMB}MB`),
         }
       );
       onChange(blob.url);
