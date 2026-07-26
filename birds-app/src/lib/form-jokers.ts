@@ -119,6 +119,27 @@ export async function processFormJokersCore(
       });
       const existingGroupJokers = existing?.jokers || 0;
 
+      // Merge in manual photo awards (stored on Submission rows) so the
+      // recompute never wipes admin-granted photo jokers
+      const photoAwards = await prisma.submission.findMany({
+        where: {
+          userId: user.id,
+          year,
+          month,
+          photoAwardJokers: { gt: 0 },
+        },
+        select: { birdName: true, photoAwardJokers: true },
+      });
+      const photoTotal = photoAwards.reduce((sum, p) => sum + p.photoAwardJokers, 0);
+      const fullBreakdown = [
+        ...breakdown,
+        ...photoAwards.map((p) => ({
+          rule: `Photo award: ${p.birdName}`,
+          value: p.photoAwardJokers,
+        })),
+      ];
+      const bonusTotal = total + photoTotal;
+
       // Upsert UserJoker — write bonusJokers, bonusBreakdown, and totalJokers;
       // never touch jokers or usedJokers
       await prisma.userJoker.upsert({
@@ -128,15 +149,15 @@ export async function processFormJokersCore(
           year,
           month,
           jokers: 0,
-          bonusJokers: total,
-          bonusBreakdown: breakdown as unknown as Prisma.InputJsonValue,
-          totalJokers: total, // No group jokers yet on create
+          bonusJokers: bonusTotal,
+          bonusBreakdown: fullBreakdown as unknown as Prisma.InputJsonValue,
+          totalJokers: bonusTotal, // No group jokers yet on create
           usedJokers: 0,
         },
         update: {
-          bonusJokers: total,
-          bonusBreakdown: breakdown as unknown as Prisma.InputJsonValue,
-          totalJokers: existingGroupJokers + total,
+          bonusJokers: bonusTotal,
+          bonusBreakdown: fullBreakdown as unknown as Prisma.InputJsonValue,
+          totalJokers: existingGroupJokers + bonusTotal,
         },
       });
 

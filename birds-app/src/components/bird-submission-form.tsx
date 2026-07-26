@@ -362,25 +362,10 @@ export function BirdSubmissionForm({
                 .sort((a, b) => a.localeCompare(b))
                 .map((fullName) => {
                   const sci = birds.find((b) => b.fullName === fullName)?.scientificName ?? "";
-                  const isPhotoBird = sci !== "" && photoSet.has(sci);
                   return (
-                    <li key={fullName} className="text-sm flex items-center gap-2 flex-wrap">
+                    <li key={fullName} className="text-sm">
                       <span className="font-medium text-foreground">{fullName}</span>
-                      {sci && <span className="italic text-muted-foreground">({sci})</span>}
-                      {isPhotoBird && (
-                        <PhotoBirdUpload
-                          birdName={fullName}
-                          photoUrl={photos[fullName] ?? null}
-                          onChange={(url) =>
-                            setPhotos((prev) => {
-                              const next = { ...prev };
-                              if (url) next[fullName] = url;
-                              else delete next[fullName];
-                              return next;
-                            })
-                          }
-                        />
-                      )}
+                      {sci && <span className="italic text-muted-foreground"> ({sci})</span>}
                     </li>
                   );
                 })}
@@ -394,6 +379,57 @@ export function BirdSubmissionForm({
                 </li>
               ))}
             </ul>
+
+            {/* Bonus bird photos — golden + photography birds in this selection */}
+            {(() => {
+              const bonusSelected = Array.from(selectedBirds)
+                .map((fullName) => {
+                  const sci = birds.find((b) => b.fullName === fullName)?.scientificName ?? "";
+                  const kind = goldenSet.has(sci)
+                    ? ("golden" as const)
+                    : photoSet.has(sci)
+                      ? ("photo" as const)
+                      : null;
+                  return kind ? { fullName, kind } : null;
+                })
+                .filter((b): b is { fullName: string; kind: "golden" | "photo" } => b !== null)
+                .sort((a, b) => a.fullName.localeCompare(b.fullName));
+
+              if (bonusSelected.length === 0) return null;
+              return (
+                <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3 space-y-2">
+                  <p className="text-sm font-semibold text-foreground">
+                    📸 Bonus bird photos
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Attach a photo as proof — admins award bonus jokers for verified
+                    golden and photography birds.
+                  </p>
+                  <ul className="space-y-2">
+                    {bonusSelected.map(({ fullName, kind }) => (
+                      <li key={fullName} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span>{kind === "golden" ? "🪙" : "📸"}</span>
+                          <span className="font-medium truncate">{fullName}</span>
+                        </span>
+                        <PhotoBirdUpload
+                          birdName={fullName}
+                          photoUrl={photos[fullName] ?? null}
+                          onChange={(url) =>
+                            setPhotos((prev) => {
+                              const next = { ...prev };
+                              if (url) next[fullName] = url;
+                              else delete next[fullName];
+                              return next;
+                            })
+                          }
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })()}
 
             {/* Joker Preview */}
             <JokerPreviewCard

@@ -22,22 +22,25 @@ export async function POST(request: Request): Promise<NextResponse> {
           throw new Error("Not signed in");
         }
 
-        // Uploads are restricted to this month's photo birds — matched by
-        // SPECIES since regional common names differ (Southern/Common Fiscal)
+        // Uploads are restricted to this month's BONUS birds (golden +
+        // photography) — matched by SPECIES since regional common names
+        // differ (Southern/Common Fiscal)
         const { year, month } = getCurrentChallengeMonth();
-        const { photoSpecies } = await getSpecialBirdSpecies(year, month);
+        const { photoSpecies, goldenSpecies } = await getSpecialBirdSpecies(year, month);
         const birdName = clientPayload ? (JSON.parse(clientPayload) as { birdName?: string }).birdName : undefined;
 
-        let isPhotoBird = false;
-        if (birdName && photoSpecies.size > 0) {
+        let isBonusBird = false;
+        if (birdName && (photoSpecies.size > 0 || goldenSpecies.size > 0)) {
           const bird = await prisma.bird.findFirst({
             where: { fullName: { equals: birdName, mode: "insensitive" } },
             select: { scientificName: true },
           });
-          isPhotoBird = !!bird && photoSpecies.has(bird.scientificName);
+          isBonusBird =
+            !!bird &&
+            (photoSpecies.has(bird.scientificName) || goldenSpecies.has(bird.scientificName));
         }
-        if (!isPhotoBird) {
-          throw new Error("Photos can only be attached to this month's photo birds");
+        if (!isBonusBird) {
+          throw new Error("Photos can only be attached to this month's golden or photo birds");
         }
 
         return {

@@ -7,8 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Bird, Users, Calendar, MapPin, Filter, Search, X, Trophy, AlertTriangle, MessageSquare, TrendingUp, Sparkles, ChevronDown, Gift } from "lucide-react";
+import { Bird, Users, Calendar, MapPin, Filter, Search, X, Trophy, AlertTriangle, MessageSquare, TrendingUp, Sparkles, ChevronDown, Gift, Camera } from "lucide-react";
 import type { FeedEntry, LeaderboardEntry } from "@/app/actions/feed-actions";
+import type { BonusBirdPhoto } from "@/app/actions/photo-actions";
+import { PhotoGallery } from "@/components/community/photo-gallery";
 import type { CommunityJokerEntry, CommunityMonthlyBreakdown } from "@/app/actions/joker-actions";
 import { BirdUsersModal } from "@/components/community/bird-users-modal";
 
@@ -37,7 +39,7 @@ interface CommunitySubmission {
 }
 
 type ChallengeFilter = "all" | "active" | "eliminated";
-type ViewMode = "birds" | "feed" | "leaderboard" | "jokers";
+type ViewMode = "birds" | "feed" | "leaderboard" | "jokers" | "photos";
 
 interface CommunityViewProps {
   submissions: CommunitySubmission[];
@@ -59,6 +61,7 @@ interface CommunityViewProps {
   monthlyLeaderboard: LeaderboardEntry[];
   allTimeLeaderboard: LeaderboardEntry[];
   jokerActivity: CommunityJokerEntry[];
+  bonusPhotos: BonusBirdPhoto[];
 }
 
 const MONTH_NAMES = [
@@ -82,6 +85,7 @@ export function CommunityView({
   monthlyLeaderboard,
   allTimeLeaderboard,
   jokerActivity,
+  bonusPhotos,
 }: CommunityViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -172,6 +176,17 @@ export function CommunityView({
         >
           <Sparkles className="h-4 w-4" />
           Jokers
+        </button>
+        <button
+          onClick={() => updateFilter("view", "photos")}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            viewMode === "photos"
+              ? "bg-white text-purple-700 shadow-sm"
+              : "text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          <Camera className="h-4 w-4" />
+          Photos
         </button>
       </div>
 
@@ -422,6 +437,15 @@ export function CommunityView({
       {/* Jokers View — Accumulated Balances */}
       {viewMode === "jokers" && (
         <JokersBalanceView jokerActivity={jokerActivity} />
+      )}
+
+      {/* Photos View — bonus bird gallery */}
+      {viewMode === "photos" && (
+        <Card>
+          <CardContent className="p-2 sm:p-4">
+            <PhotoGallery photos={bonusPhotos} />
+          </CardContent>
+        </Card>
       )}
 
       {/* Bird Users Modal */}
