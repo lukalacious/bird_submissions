@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { BirdSubmissionForm } from "@/components/bird-submission-form";
 import { RegionSelector } from "@/components/region-selector";
-import { getMonthlySettings } from "@/lib/settings-utils";
+import { getMonthlySettings, getSpecialBirdSpecies } from "@/lib/settings-utils";
 import { getUserJokerInfo } from "@/app/actions/joker-actions";
 import type { ResetPeriod } from "@prisma/client";
 
@@ -144,6 +144,9 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
     getUserJokerInfo(session!.user.id!, currentYear, currentMonth),
   ]);
 
+  // This month's announced golden/photo birds (species-matched, any region)
+  const specialBirds = await getSpecialBirdSpecies(currentYear, currentMonth);
+
   const jokerData = jokerInfo || {
     totalJokers: 0,
     usedJokers: 0,
@@ -174,6 +177,8 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
         availableJokers={jokerData.availableJokersForUse}
         regionId={region.id}
         allRegions={allRegions}
+        goldenSpecies={[...specialBirds.goldenSpecies]}
+        photoSpecies={[...specialBirds.photoSpecies]}
       />
     </div>
   );

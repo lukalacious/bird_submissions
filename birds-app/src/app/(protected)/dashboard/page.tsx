@@ -3,7 +3,8 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Bird, Calendar, Target } from "lucide-react";
-import { getMonthlySettings } from "@/lib/settings-utils";
+import { getMonthlySettings, getSpecialBirdSpecies } from "@/lib/settings-utils";
+import { SpecialBirdsCard } from "@/components/dashboard/special-birds-card";
 import { getUserJokerInfo, getJokerHistory } from "@/app/actions/joker-actions";
 import { getUserEliminationStatus } from "@/app/actions/elimination-actions";
 import { JokerCard } from "@/components/dashboard/joker-card";
@@ -37,6 +38,30 @@ export default async function DashboardPage() {
     getJokerHistory(userId, currentYear),
     getUserEliminationStatus(userId, currentYear),
   ]);
+
+  // This month's golden/photo birds + which species the user already ticked
+  const specialBirds = await getSpecialBirdSpecies(currentYear, currentMonth);
+  let tickedSpecies = new Set<string>();
+  if (specialBirds.goldenBirds.length > 0 || specialBirds.photoBirds.length > 0) {
+    const monthSubs = await prisma.submission.findMany({
+      where: { userId, year: currentYear, month: currentMonth, isCustomBird: false },
+      select: { birdName: true, regionId: true },
+    });
+    if (monthSubs.length > 0) {
+      const subBirds = await prisma.bird.findMany({
+        where: {
+          OR: monthSubs.map((s) => ({ fullName: s.birdName, regionId: s.regionId })),
+        },
+        select: { scientificName: true },
+      });
+      tickedSpecies = new Set(subBirds.map((b) => b.scientificName));
+    }
+  }
+  const withTickedStatus = (resolved: { name: string; scientificName: string | null }[]) =>
+    resolved.map((r) => ({
+      name: r.name,
+      ticked: Boolean(r.scientificName && tickedSpecies.has(r.scientificName)),
+    }));
 
   const jokerData = jokerInfo || {
     totalJokers: 0,
@@ -152,6 +177,13 @@ export default async function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* This month's golden + photo birds */}
+      <SpecialBirdsCard
+        monthName={new Date(currentYear, currentMonth - 1).toLocaleString("default", { month: "long" })}
+        goldenBirds={withTickedStatus(specialBirds.goldenResolved)}
+        photoBirds={withTickedStatus(specialBirds.photoResolved)}
+      />
 
       {/* Game Rules */}
       <GameRules rules={settings?.rules ?? null} />

@@ -47,6 +47,8 @@ export async function getMonthlySettings(year: number, month: number) {
       maxBirdsPerPeriod: maxBirds,
       // Default elimination threshold to maxBirdsPerPeriod (monthly goal = threshold)
       eliminationThreshold: global?.eliminationThreshold ?? maxBirds,
+      goldenBirds: [] as string[],
+      photoBirds: [] as string[],
     };
   }
 
@@ -54,6 +56,63 @@ export async function getMonthlySettings(year: number, month: number) {
     maxBirdsPerPeriod: monthly.maxBirdsPerPeriod,
     // Default to maxBirdsPerPeriod if eliminationThreshold not explicitly set
     eliminationThreshold: monthly.eliminationThreshold ?? monthly.maxBirdsPerPeriod,
+    goldenBirds: monthly.goldenBirds,
+    photoBirds: monthly.photoBirds,
+  };
+}
+
+/**
+ * Resolve the month's golden/photo bird names to scientificName sets.
+ * Matching is by species across ALL regions (a golden bird counts whether
+ * ticked in SA, EA or WA), and name matching is case-insensitive since
+ * admins type names as announced in the group.
+ */
+export async function getSpecialBirdSpecies(year: number, month: number) {
+  const { goldenBirds, photoBirds } = await getMonthlySettings(year, month);
+  const allNames = [...goldenBirds, ...photoBirds];
+
+  if (allNames.length === 0) {
+    return {
+      goldenBirds,
+      photoBirds,
+      goldenResolved: [] as { name: string; scientificName: string | null }[],
+      photoResolved: [] as { name: string; scientificName: string | null }[],
+      goldenSpecies: new Set<string>(),
+      photoSpecies: new Set<string>(),
+    };
+  }
+
+  const birds = await prisma.bird.findMany({
+    where: {
+      OR: allNames.map((name) => ({
+        fullName: { equals: name, mode: "insensitive" as const },
+      })),
+    },
+    select: { fullName: true, scientificName: true },
+  });
+
+  const sciByLowerName = new Map(
+    birds.map((b) => [b.fullName.toLowerCase(), b.scientificName])
+  );
+  const resolve = (names: string[]) =>
+    names.map((name) => ({
+      name,
+      scientificName: sciByLowerName.get(name.toLowerCase()) ?? null,
+    }));
+  const goldenResolved = resolve(goldenBirds);
+  const photoResolved = resolve(photoBirds);
+  const toSpecies = (resolved: { scientificName: string | null }[]) =>
+    new Set(
+      resolved.map((r) => r.scientificName).filter((s): s is string => Boolean(s))
+    );
+
+  return {
+    goldenBirds,
+    photoBirds,
+    goldenResolved,
+    photoResolved,
+    goldenSpecies: toSpecies(goldenResolved),
+    photoSpecies: toSpecies(photoResolved),
   };
 }
 

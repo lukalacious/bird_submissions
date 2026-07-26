@@ -148,6 +148,8 @@ model MonthlySettings {
   month                Int    // 1-12
   maxBirdsPerPeriod    Int    // Required submissions for this month
   eliminationThreshold Int?   // Optional: override elimination threshold for this month
+  goldenBirds          String[] @default([]) // Bird names announced as golden birds this month
+  photoBirds           String[] @default([]) // Bird names designated for photography bonuses
 
   @@unique([year, month])
   @@index([year])

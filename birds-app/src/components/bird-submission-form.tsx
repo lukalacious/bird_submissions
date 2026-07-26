@@ -47,6 +47,9 @@ interface BirdSubmissionFormProps {
   availableJokers: number;
   regionId: string;
   allRegions: Region[];
+  /** scientificNames of this month's golden/photo birds (species match, any region) */
+  goldenSpecies?: string[];
+  photoSpecies?: string[];
 }
 
 // Memoized BirdCard component for virtualized grid
@@ -55,6 +58,8 @@ interface BirdCardProps {
   isSelected: boolean;
   isLimitDisabled: boolean;
   isJokerEligible: boolean;
+  /** This month's announced bonus bird (matched by species, any region) */
+  specialBadge?: "golden" | "photo" | null;
   onToggle: (birdName: string) => void;
 }
 
@@ -63,6 +68,7 @@ const BirdCard = memo(function BirdCard({
   isSelected,
   isLimitDisabled,
   isJokerEligible,
+  specialBadge,
   onToggle,
 }: BirdCardProps) {
   return (
@@ -101,6 +107,16 @@ const BirdCard = memo(function BirdCard({
                 Already Twitched
               </Badge>
             )}
+            {!bird.isDisabled && specialBadge === "golden" && (
+              <Badge className="mt-1 text-xs bg-amber-100 text-amber-800 border-amber-300">
+                🪙 Golden Bird
+              </Badge>
+            )}
+            {!bird.isDisabled && specialBadge === "photo" && (
+              <Badge className="mt-1 text-xs bg-sky-100 text-sky-800 border-sky-300">
+                📸 Photo Bird
+              </Badge>
+            )}
           </div>
         </div>
         {isJokerEligible && (
@@ -122,7 +138,20 @@ export function BirdSubmissionForm({
   availableJokers,
   regionId,
   allRegions,
+  goldenSpecies = [],
+  photoSpecies = [],
 }: BirdSubmissionFormProps) {
+  const goldenSet = useMemo(() => new Set(goldenSpecies), [goldenSpecies]);
+  const photoSet = useMemo(() => new Set(photoSpecies), [photoSpecies]);
+  const specialBadgeFor = useCallback(
+    (bird: Bird): "golden" | "photo" | null =>
+      goldenSet.has(bird.scientificName)
+        ? "golden"
+        : photoSet.has(bird.scientificName)
+          ? "photo"
+          : null,
+    [goldenSet, photoSet]
+  );
   const [selectedBirds, setSelectedBirds] = useState<Set<string>>(new Set());
   const [customBirds, setCustomBirds] = useState<string[]>([]);
   const [customBirdInput, setCustomBirdInput] = useState("");
@@ -624,6 +653,7 @@ export function BirdSubmissionForm({
                         isSelected={selectedBirds.has(bird1.fullName)}
                         isLimitDisabled={!selectedBirds.has(bird1.fullName) && !canSelectMore}
                         isJokerEligible={!!(bird1.groupName && jokerEligibleGroups.has(bird1.groupName))}
+                        specialBadge={specialBadgeFor(bird1)}
                         onToggle={toggleBird}
                       />
                     )}
@@ -633,6 +663,7 @@ export function BirdSubmissionForm({
                         isSelected={selectedBirds.has(bird2.fullName)}
                         isLimitDisabled={!selectedBirds.has(bird2.fullName) && !canSelectMore}
                         isJokerEligible={!!(bird2.groupName && jokerEligibleGroups.has(bird2.groupName))}
+                        specialBadge={specialBadgeFor(bird2)}
                         onToggle={toggleBird}
                       />
                     )}

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { getSettings, updateSettings, updateMonthlySettings, resetMonthlySettings, getYearlyMonthlySettings } from "@/app/actions/admin-actions";
 import { Settings, Save, Calendar, Bird, RefreshCw, Shield, RotateCcw, ClipboardList, BookOpen } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { SpecialBirdsAdmin } from "@/components/admin/special-birds-admin";
 
 type ResetPeriod = "MONTHLY" | "YEARLY" | "NEVER";
 
@@ -368,6 +369,9 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </form>
+
+      {/* Monthly golden/photo birds */}
+      <SpecialBirdsAdmin year={currentYear} />
 
       {/* Monthly Settings */}
       <Card>

@@ -212,6 +212,80 @@ export async function updateMonthlySettings(input: {
   }
 }
 
+// Get the golden/photo bird lists for a month
+export async function getMonthlySpecialBirds(year: number, month: number) {
+  await requireAdmin();
+  const monthly = await prisma.monthlySettings.findUnique({
+    where: { year_month: { year, month } },
+    select: { goldenBirds: true, photoBirds: true },
+  });
+  return {
+    goldenBirds: monthly?.goldenBirds ?? [],
+    photoBirds: monthly?.photoBirds ?? [],
+  };
+}
+
+// Set the month's announced golden/photo birds.
+// Names are matched to the bird database case-insensitively across all
+// regions; unmatched names are saved but returned as warnings (typos).
+export async function updateMonthlySpecialBirds(input: {
+  year: number;
+  month: number;
+  goldenBirds: string[];
+  photoBirds: string[];
+}) {
+  try {
+    await requireAdmin();
+
+    if (input.month < 1 || input.month > 12) {
+      return { success: false, error: "Invalid month" };
+    }
+
+    const clean = (names: string[]) =>
+      [...new Set(names.map((n) => n.trim()).filter(Boolean))];
+    const goldenBirds = clean(input.goldenBirds);
+    const photoBirds = clean(input.photoBirds);
+
+    // Preserve existing cap settings; fall back to global default on create
+    const global = await prisma.settings.findUnique({ where: { id: "default" } });
+    await prisma.monthlySettings.upsert({
+      where: { year_month: { year: input.year, month: input.month } },
+      update: { goldenBirds, photoBirds },
+      create: {
+        year: input.year,
+        month: input.month,
+        maxBirdsPerPeriod: global?.maxBirdsPerPeriod ?? 31,
+        goldenBirds,
+        photoBirds,
+      },
+    });
+
+    // Flag names that don't match any bird in any region (likely typos)
+    const allNames = [...goldenBirds, ...photoBirds];
+    let unmatched: string[] = [];
+    if (allNames.length > 0) {
+      const found = await prisma.bird.findMany({
+        where: {
+          OR: allNames.map((name) => ({
+            fullName: { equals: name, mode: "insensitive" as const },
+          })),
+        },
+        select: { fullName: true },
+      });
+      const foundLower = new Set(found.map((b) => b.fullName.toLowerCase()));
+      unmatched = allNames.filter((n) => !foundLower.has(n.toLowerCase()));
+    }
+
+    revalidatePath("/admin/settings");
+    revalidatePath("/dashboard");
+    revalidatePath("/twitch");
+    return { success: true, unmatched };
+  } catch (error) {
+    console.error("Failed to update special birds:", error);
+    return { success: false, error: "Failed to update bonus birds" };
+  }
+}
+
 // Reset monthly settings to use global defaults
 export async function resetMonthlySettings(year: number, month: number) {
   try {
