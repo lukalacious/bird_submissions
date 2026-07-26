@@ -61,6 +61,18 @@ function calculateFormBonus(response: FormResponse): BonusResult {
 
 // --- Admin Processing ---
 
+// Wrong emails people keep entering on the Google Form -> their real account.
+// Applied before dedupe/matching so bonus jokers land on the right user.
+const EMAIL_ALIASES: Record<string, string> = {
+  "davesgear48@gmail.com": "geardave0@gmail.com", // Dave Gear, July 2026
+  "shaun.wytske@gmail.com": "chamberlainshaun1@gmail.com", // Shaun Chamberlain, May 2026
+};
+
+function canonicalEmail(raw: string): string {
+  const normalized = raw.toLowerCase().trim();
+  return EMAIL_ALIASES[normalized] ?? normalized;
+}
+
 export interface FormJokerResult {
   email: string;
   matched: boolean;
@@ -87,19 +99,19 @@ export async function processFormJokers(
       return { success: true, results: [], error: "No form responses found for this month" };
     }
 
-    // 2. Deduplicate by email (first response per email wins)
+    // 2. Deduplicate by (alias-resolved) email — first response per email wins
     const seenEmails = new Set<string>();
     const uniqueResponses: FormResponse[] = [];
     for (const r of responses) {
-      const normalizedEmail = r.email.toLowerCase().trim();
+      const normalizedEmail = canonicalEmail(r.email);
       if (!seenEmails.has(normalizedEmail)) {
         seenEmails.add(normalizedEmail);
         uniqueResponses.push(r);
       }
     }
 
-    // 3. Match emails to users (case-insensitive)
-    const allEmails = uniqueResponses.map((r) => r.email.toLowerCase().trim());
+    // 3. Match emails to users (case-insensitive, alias-resolved)
+    const allEmails = uniqueResponses.map((r) => canonicalEmail(r.email));
     const users = await prisma.user.findMany({
       where: {
         email: { in: allEmails, mode: "insensitive" },
@@ -120,7 +132,7 @@ export async function processFormJokers(
     const results: FormJokerResult[] = [];
 
     for (const response of uniqueResponses) {
-      const normalizedEmail = response.email.toLowerCase().trim();
+      const normalizedEmail = canonicalEmail(response.email);
       const user = userByEmail.get(normalizedEmail);
       const { total, breakdown } = calculateFormBonus(response);
 
