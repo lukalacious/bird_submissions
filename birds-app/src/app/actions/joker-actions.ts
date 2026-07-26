@@ -17,6 +17,10 @@ interface JokerInfo {
     birdCount: number;
     jokersEarned: number;
   }[];
+  /** Per-rule detail of the form bonus (golden birds, lifers, photos, ...) */
+  bonusBreakdown: { rule: string; value: number }[] | null;
+  /** Positive when more jokers were used than the month now holds (e.g. after edits) */
+  shortfall: number;
 }
 
 // Get available jokers from PREVIOUS months only (jokers earned in month X can only be used in months > X)
@@ -102,6 +106,9 @@ export async function getUserJokerInfo(
     availableJokers: Math.max(0, totalJokers - usedJokers),
     availableJokersForUse: Math.floor(availableFromPrevious), // Only whole jokers can be used
     groupBreakdown: groupBreakdown.sort((a, b) => b.jokersEarned - a.jokersEarned),
+    bonusBreakdown:
+      (jokerRecord?.bonusBreakdown as { rule: string; value: number }[] | null) ?? null,
+    shortfall: Math.max(0, usedJokers - totalJokers),
   };
 }
 
