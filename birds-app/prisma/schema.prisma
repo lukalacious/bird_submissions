@@ -30,6 +30,7 @@ model User {
   sessions         Session[]
   jokers           UserJoker[]
   challengeStatus  UserChallengeStatus[]
+  changeRequests   ChangeRequest[]
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
 }
@@ -173,6 +174,40 @@ model UserJoker {
 }
 
 // ProcessingLog model - tracks when admin processes form jokers per month
+// User-filed requests to change PAST month submissions (current month is
+// self-service). Admin approves (auto-applies swap/delete) or rejects.
+model ChangeRequest {
+  id              String              @id @default(cuid())
+  userId          String
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            ChangeRequestType
+  year            Int
+  month           Int
+  birdName        String?             // target submission (SWAP / DELETE)
+  replacementBird String?             // desired bird (SWAP)
+  note            String?             // user's free-text explanation
+  status          ChangeRequestStatus @default(PENDING)
+  adminNote       String?
+  resolvedById    String?
+  createdAt       DateTime            @default(now())
+  resolvedAt      DateTime?
+
+  @@index([status])
+  @@index([userId])
+}
+
+enum ChangeRequestType {
+  SWAP
+  DELETE
+  OTHER
+}
+
+enum ChangeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model ProcessingLog {
   id             String   @id @default(cuid())
   type           String   // "bonus_jokers"

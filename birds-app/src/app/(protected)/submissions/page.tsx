@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Bird, Calendar, Pencil } from "lucide-react";
 import { getCurrentChallengeMonth } from "@/lib/settings-utils";
 import { DeletableBirdPill } from "@/components/submissions/deletable-bird-pill";
+import { RequestChangePill } from "@/components/submissions/request-change-pill";
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -29,6 +30,7 @@ interface BirdEntry {
   year: number;
   month: number;
   deletable: boolean;
+  requestable: boolean;
 }
 
 export default async function SubmissionsPage() {
@@ -58,14 +60,16 @@ export default async function SubmissionsPage() {
     if (!byDate.has(dateKey)) {
       byDate.set(dateKey, { date: s.createdAt, birds: [] });
     }
+    const isCurrentMonth = s.year === current.year && s.month === current.month;
     byDate.get(dateKey)!.birds.push({
       birdName: s.birdName,
       year: s.year,
       month: s.month,
       // Current month is freely editable until month end (SAST);
       // joker submissions represent spent jokers and can't be removed here
-      deletable:
-        s.year === current.year && s.month === current.month && !s.isJokerSubmission,
+      deletable: isCurrentMonth && !s.isJokerSubmission,
+      // Past months are locked — changes go through an admin request
+      requestable: !isCurrentMonth && !s.isJokerSubmission,
     });
   }
 
@@ -161,15 +165,24 @@ export default async function SubmissionsPage() {
                   <ul className="flex flex-wrap gap-1">
                     {g.birds
                       .sort((a, b) => a.birdName.localeCompare(b.birdName))
-                      .map((bird, idx) => (
-                        <DeletableBirdPill
-                          key={`${bird.birdName}-${idx}`}
-                          birdName={bird.birdName}
-                          year={bird.year}
-                          month={bird.month}
-                          deletable={bird.deletable}
-                        />
-                      ))}
+                      .map((bird, idx) =>
+                        bird.requestable ? (
+                          <RequestChangePill
+                            key={`${bird.birdName}-${idx}`}
+                            birdName={bird.birdName}
+                            year={bird.year}
+                            month={bird.month}
+                          />
+                        ) : (
+                          <DeletableBirdPill
+                            key={`${bird.birdName}-${idx}`}
+                            birdName={bird.birdName}
+                            year={bird.year}
+                            month={bird.month}
+                            deletable={bird.deletable}
+                          />
+                        )
+                      )}
                   </ul>
                 </CardContent>
               </Card>

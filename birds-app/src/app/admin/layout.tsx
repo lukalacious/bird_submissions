@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Bird, Users, UserPlus, Settings, ArrowLeft, Shield, ClipboardCheck } from "lucide-react";
+import { Bird, Users, UserPlus, Settings, ArrowLeft, Shield, ClipboardCheck, MailQuestion } from "lucide-react";
 
 const adminNavItems = [
   { href: "/admin", label: "Dashboard", icon: Bird },
@@ -10,6 +10,7 @@ const adminNavItems = [
   { href: "/admin/add-user", label: "Add User", icon: UserPlus },
   { href: "/admin/elimination", label: "Elimination", icon: Shield },
   { href: "/admin/form-jokers", label: "Form Jokers", icon: ClipboardCheck },
+  { href: "/admin/change-requests", label: "Change Requests", icon: MailQuestion },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
