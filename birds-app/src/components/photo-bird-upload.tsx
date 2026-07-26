@@ -48,7 +48,7 @@ export function PhotoBirdUpload({ birdName, photoUrl, onChange }: PhotoBirdUploa
   };
 
   return (
-    <span className="inline-flex items-center gap-1">
+    <span className="inline-flex items-center gap-1 flex-shrink-0 max-w-full">
       <input
         ref={inputRef}
         type="file"

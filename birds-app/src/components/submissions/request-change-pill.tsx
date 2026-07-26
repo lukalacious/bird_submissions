@@ -74,7 +74,7 @@ export function RequestChangePill({ birdName, year, month }: RequestChangePillPr
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               variant={mode === "SWAP" ? "default" : "outline"}

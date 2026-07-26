@@ -407,9 +407,9 @@ export function BirdSubmissionForm({
                   </p>
                   <ul className="space-y-2">
                     {bonusSelected.map(({ fullName, kind }) => (
-                      <li key={fullName} className="flex items-center justify-between gap-2 text-sm">
-                        <span className="flex items-center gap-1.5 min-w-0">
-                          <span>{kind === "golden" ? "🪙" : "📸"}</span>
+                      <li key={fullName} className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm">
+                        <span className="flex items-center gap-1.5 min-w-0 flex-1 basis-40">
+                          <span className="flex-shrink-0">{kind === "golden" ? "🪙" : "📸"}</span>
                           <span className="font-medium truncate">{fullName}</span>
                         </span>
                         <PhotoBirdUpload

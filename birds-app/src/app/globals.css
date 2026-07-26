@@ -152,6 +152,13 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Mobile: never allow the page itself to scroll sideways — any wide
+     content must scroll inside its own container (overflow-x-auto) */
+  html,
+  body {
+    overflow-x: clip;
+    max-width: 100%;
+  }
   /* Reduce tap delay on touch devices */
   button,
   a,
