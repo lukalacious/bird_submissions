@@ -26,16 +26,25 @@ export function PhotoBirdUpload({
 }: PhotoBirdUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [status, setStatus] = useState("");
 
   const handleFile = async (file: File) => {
     setIsUploading(true);
     onUploadingChange?.(true);
     try {
+      setStatus("Preparing...");
       const compressed = await imageCompression(file, {
         maxWidthOrHeight: 1600,
         maxSizeMB: 1,
         useWebWorker: true,
+        // Start at a quality that lands under 1MB in one pass — the default
+        // starts near lossless and re-encodes the image up to 10 times
+        initialQuality: 0.75,
+        fileType: "image/jpeg",
+        maxIteration: 4,
+        onProgress: (p: number) => setStatus(`Preparing ${Math.round(p)}%`),
       });
+      setStatus("Uploading...");
       const blob = await upload(
         `photo-birds/${birdName.replaceAll(" ", "-")}.jpg`,
         compressed,
@@ -43,6 +52,8 @@ export function PhotoBirdUpload({
           access: "public",
           handleUploadUrl: "/api/upload",
           clientPayload: JSON.stringify({ birdName }),
+          onUploadProgress: ({ percentage }) =>
+            setStatus(`Uploading ${Math.round(percentage)}%`),
         }
       );
       onChange(blob.url);
@@ -52,6 +63,7 @@ export function PhotoBirdUpload({
       toast.error(error instanceof Error ? error.message : "Photo upload failed");
     } finally {
       setIsUploading(false);
+      setStatus("");
       onUploadingChange?.(false);
     }
   };
@@ -98,7 +110,7 @@ export function PhotoBirdUpload({
           ) : (
             <Camera className="h-3 w-3" />
           )}
-          {isUploading ? "Uploading..." : "Add photo"}
+          {isUploading ? status || "Uploading..." : "Add photo"}
         </button>
       )}
     </span>
