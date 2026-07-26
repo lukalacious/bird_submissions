@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import { syncToGoogleSheets } from "@/lib/google-sheets";
 import { revalidatePath } from "next/cache";
 import { recalculateJokers, getUserJokerInfo } from "./joker-actions";
-import { getMonthlySettings } from "@/lib/settings-utils";
+import { getMonthlySettings, getCurrentChallengeMonth } from "@/lib/settings-utils";
 import { requireSession } from "@/lib/auth-helpers";
 import {
   checkCap,
@@ -278,13 +278,26 @@ export async function deleteSubmission(input: {
     const sessionUser = await requireSession();
     const userId = sessionUser.id!;
 
-    // Find and delete the submission
+    // RULES: submissions are freely editable until the end of the month
+    // (SAST). Whatever stands on the last day is final; past months are
+    // locked and go through the admin change-request flow.
+    const current = getCurrentChallengeMonth();
+    if (year !== current.year || month !== current.month) {
+      return {
+        success: false,
+        error: "Past months are locked — ask an admin to request a change",
+      };
+    }
+
+    // Find and delete the submission (never joker submissions — those
+    // represent spent jokers and deleting them wouldn't refund the joker)
     const deleted = await prisma.submission.deleteMany({
       where: {
         userId,
         birdName,
         year,
         month,
+        isJokerSubmission: false,
       },
     });
 

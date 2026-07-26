@@ -1,6 +1,23 @@
 import prisma from "@/lib/prisma";
 
 /**
+ * The challenge runs on South African time: submissions for a month are
+ * editable until midnight SAST on the last day, then final.
+ */
+export const CHALLENGE_TIMEZONE = "Africa/Johannesburg";
+
+export function getCurrentChallengeMonth(): { year: number; month: number } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: CHALLENGE_TIMEZONE,
+    year: "numeric",
+    month: "numeric",
+  }).formatToParts(new Date());
+  const year = Number(parts.find((p) => p.type === "year")!.value);
+  const month = Number(parts.find((p) => p.type === "month")!.value);
+  return { year, month };
+}
+
+/**
  * Get the number of days in a given month
  */
 export function getDaysInMonth(year: number, month: number): number {

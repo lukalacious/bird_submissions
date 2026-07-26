@@ -2,7 +2,9 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Bird, Calendar } from "lucide-react";
+import { FileText, Bird, Calendar, Pencil } from "lucide-react";
+import { getCurrentChallengeMonth } from "@/lib/settings-utils";
+import { DeletableBirdPill } from "@/components/submissions/deletable-bird-pill";
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -17,58 +19,54 @@ function formatDateKey(date: Date): string {
   return date.toISOString().split("T")[0]; // YYYY-MM-DD
 }
 
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+interface BirdEntry {
+  birdName: string;
+  year: number;
+  month: number;
+  deletable: boolean;
+}
+
 export default async function SubmissionsPage() {
   const session = await auth();
-  const userId = session?.user?.id;
+  const userId = session!.user.id!;
 
-  // Get user's default region from database
-  const user = userId
-    ? await prisma.user.findUnique({
-        where: { id: userId },
-        select: { defaultRegionId: true },
-      })
-    : null;
+  const current = getCurrentChallengeMonth();
 
-  const region = user?.defaultRegionId
-    ? await prisma.region.findUnique({ where: { id: user.defaultRegionId } })
-    : null;
-
-  // If no default region set, prompt user to set one
-  if (!region) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        <div className="text-center mb-8">
-          <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-2">My Submissions</h1>
-          <p className="text-muted-foreground mb-4">
-            Please set your default region in your profile to view submissions.
-          </p>
-          <Link
-            href="/profile"
-            className="text-primary hover:underline inline-block py-2"
-          >
-            Go to Profile →
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  // Fetch all submissions for user's default region, grouped by date
+  // All of the user's submissions, across every region (mixed-region months
+  // are allowed — the monthly cap is shared)
   const submissions = await prisma.submission.findMany({
-    where: { userId: userId!, regionId: region.id },
+    where: { userId },
     orderBy: { createdAt: "desc" },
-    select: { birdName: true, createdAt: true },
+    select: {
+      birdName: true,
+      createdAt: true,
+      year: true,
+      month: true,
+      isJokerSubmission: true,
+    },
   });
 
   // Group by submission date
-  const byDate = new Map<string, { date: Date; birds: string[] }>();
+  const byDate = new Map<string, { date: Date; birds: BirdEntry[] }>();
   for (const s of submissions) {
     const dateKey = formatDateKey(s.createdAt);
     if (!byDate.has(dateKey)) {
       byDate.set(dateKey, { date: s.createdAt, birds: [] });
     }
-    byDate.get(dateKey)!.birds.push(s.birdName);
+    byDate.get(dateKey)!.birds.push({
+      birdName: s.birdName,
+      year: s.year,
+      month: s.month,
+      // Current month is freely editable until month end (SAST);
+      // joker submissions represent spent jokers and can't be removed here
+      deletable:
+        s.year === current.year && s.month === current.month && !s.isJokerSubmission,
+    });
   }
 
   // Sort by date descending
@@ -87,7 +85,17 @@ export default async function SubmissionsPage() {
           <FileText className="h-6 w-6 text-primary" />
           My Submissions
         </h1>
-        <p className="text-muted-foreground">{region.label}</p>
+        <p className="text-muted-foreground">All regions</p>
+      </div>
+
+      {/* Editable-month hint */}
+      <div className="mb-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-foreground">
+        <Pencil className="h-4 w-4 text-primary flex-shrink-0" />
+        <span>
+          {MONTH_NAMES[current.month - 1]} birds are editable until the end of the
+          month (SAST) — tap a bird to remove it. Whatever stands on the last day
+          is your final list.
+        </span>
       </div>
 
       {/* Summary Card */}
@@ -151,14 +159,17 @@ export default async function SubmissionsPage() {
                 </CardHeader>
                 <CardContent className="pt-0 pb-2 px-4">
                   <ul className="flex flex-wrap gap-1">
-                    {g.birds.sort((a, b) => a.localeCompare(b)).map((bird, idx) => (
-                      <li
-                        key={`${bird}-${idx}`}
-                        className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
-                      >
-                        {bird}
-                      </li>
-                    ))}
+                    {g.birds
+                      .sort((a, b) => a.birdName.localeCompare(b.birdName))
+                      .map((bird, idx) => (
+                        <DeletableBirdPill
+                          key={`${bird.birdName}-${idx}`}
+                          birdName={bird.birdName}
+                          year={bird.year}
+                          month={bird.month}
+                          deletable={bird.deletable}
+                        />
+                      ))}
                   </ul>
                 </CardContent>
               </Card>
