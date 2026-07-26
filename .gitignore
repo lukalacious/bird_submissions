@@ -36,3 +36,4 @@ birds-app/scripts/form-responses-backup-*.json
 
 # Test artifacts
 test-results/
+birds-app/scripts/joker-recalc-diff.csv
