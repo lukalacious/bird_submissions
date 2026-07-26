@@ -460,7 +460,10 @@ export async function deleteSubmission(input: {
     // Clean up the proof photo blob, if any (best-effort)
     if (target?.photoUrl) {
       import("@vercel/blob")
-        .then(({ del }) => del(target.photoUrl!))
+        .then(async ({ del }) => {
+          const { getBlobToken } = await import("@/lib/blob-token");
+          return del(target.photoUrl!, { token: getBlobToken() });
+        })
         .catch((blobError) => console.error("Failed to delete photo blob:", blobError));
     }
 

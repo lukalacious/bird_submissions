@@ -3,6 +3,7 @@ import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getCurrentChallengeMonth, getSpecialBirdSpecies } from "@/lib/settings-utils";
+import { getBlobToken } from "@/lib/blob-token";
 
 /**
  * Client-upload token endpoint for proof photos of the month's designated
@@ -16,6 +17,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const jsonResponse = await handleUpload({
       body,
       request,
+      token: getBlobToken(),
       onBeforeGenerateToken: async (pathname, clientPayload) => {
         const session = await auth();
         if (!session?.user?.id) {
