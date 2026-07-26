@@ -131,12 +131,12 @@ export function CommunityView({
         </div>
       </div>
 
-      {/* View Mode Tabs — scrolls sideways on narrow screens instead of
-          clipping the last tab (page-level overflow-x is clipped globally) */}
-      <div className="flex gap-1 p-1 bg-purple-50 rounded-lg overflow-x-auto">
+      {/* View Mode Tabs — 5-col grid so all tabs fit on one screen;
+          icons stack above labels on phones, inline from sm up */}
+      <div className="grid grid-cols-5 gap-1 p-1 bg-purple-50 rounded-lg">
         <button
           onClick={() => updateFilter("view", "birds")}
-          className={`flex-1 min-w-fit whitespace-nowrap flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1 sm:px-2.5 py-1.5 sm:py-2 rounded-md text-[11px] sm:text-sm font-medium transition-colors ${
             viewMode === "birds"
               ? "bg-white text-purple-700 shadow-sm"
               : "text-gray-600 hover:text-gray-900"
@@ -147,7 +147,7 @@ export function CommunityView({
         </button>
         <button
           onClick={() => updateFilter("view", "feed")}
-          className={`flex-1 min-w-fit whitespace-nowrap flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1 sm:px-2.5 py-1.5 sm:py-2 rounded-md text-[11px] sm:text-sm font-medium transition-colors ${
             viewMode === "feed"
               ? "bg-white text-purple-700 shadow-sm"
               : "text-gray-600 hover:text-gray-900"
@@ -158,7 +158,7 @@ export function CommunityView({
         </button>
         <button
           onClick={() => updateFilter("view", "leaderboard")}
-          className={`flex-1 min-w-fit whitespace-nowrap flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1 sm:px-2.5 py-1.5 sm:py-2 rounded-md text-[11px] sm:text-sm font-medium transition-colors ${
             viewMode === "leaderboard"
               ? "bg-white text-purple-700 shadow-sm"
               : "text-gray-600 hover:text-gray-900"
@@ -169,7 +169,7 @@ export function CommunityView({
         </button>
         <button
           onClick={() => updateFilter("view", "jokers")}
-          className={`flex-1 min-w-fit whitespace-nowrap flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1 sm:px-2.5 py-1.5 sm:py-2 rounded-md text-[11px] sm:text-sm font-medium transition-colors ${
             viewMode === "jokers"
               ? "bg-white text-purple-700 shadow-sm"
               : "text-gray-600 hover:text-gray-900"
@@ -180,7 +180,7 @@ export function CommunityView({
         </button>
         <button
           onClick={() => updateFilter("view", "photos")}
-          className={`flex-1 min-w-fit whitespace-nowrap flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1 sm:px-2.5 py-1.5 sm:py-2 rounded-md text-[11px] sm:text-sm font-medium transition-colors ${
             viewMode === "photos"
               ? "bg-white text-purple-700 shadow-sm"
               : "text-gray-600 hover:text-gray-900"
@@ -218,7 +218,7 @@ export function CommunityView({
         <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
           <button
             onClick={() => updateFilter("challenge", "active")}
-            className={`flex-1 min-w-fit whitespace-nowrap flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1 sm:px-2.5 py-1.5 sm:py-2 rounded-md text-[11px] sm:text-sm font-medium transition-colors ${
               challengeFilter === "active"
                 ? "bg-white text-green-700 shadow-sm"
                 : "text-gray-600 hover:text-gray-900"
@@ -229,7 +229,7 @@ export function CommunityView({
           </button>
           <button
             onClick={() => updateFilter("challenge", "all")}
-            className={`flex-1 min-w-fit whitespace-nowrap flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1 sm:px-2.5 py-1.5 sm:py-2 rounded-md text-[11px] sm:text-sm font-medium transition-colors ${
               challengeFilter === "all"
                 ? "bg-white text-gray-900 shadow-sm"
                 : "text-gray-600 hover:text-gray-900"
@@ -240,7 +240,7 @@ export function CommunityView({
           </button>
           <button
             onClick={() => updateFilter("challenge", "eliminated")}
-            className={`flex-1 min-w-fit whitespace-nowrap flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1 sm:px-2.5 py-1.5 sm:py-2 rounded-md text-[11px] sm:text-sm font-medium transition-colors ${
               challengeFilter === "eliminated"
                 ? "bg-white text-red-700 shadow-sm"
                 : "text-gray-600 hover:text-gray-900"
