@@ -31,8 +31,22 @@ model User {
   jokers           UserJoker[]
   challengeStatus  UserChallengeStatus[]
   changeRequests   ChangeRequest[]
+  pushSubscriptions PushSubscription[]
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
+}
+
+// Web Push subscriptions (one row per browser/device)
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 enum Role {

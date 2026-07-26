@@ -279,6 +279,23 @@ export async function updateMonthlySpecialBirds(input: {
     revalidatePath("/admin/settings");
     revalidatePath("/dashboard");
     revalidatePath("/twitch");
+
+    // Announce via push when this month's birds are set (fire-and-forget)
+    const now = new Date();
+    const isCurrentMonth =
+      input.year === now.getFullYear() && input.month === now.getMonth() + 1;
+    if (isCurrentMonth && (goldenBirds.length > 0 || photoBirds.length > 0)) {
+      import("@/lib/push")
+        .then(({ sendPushToAll }) =>
+          sendPushToAll({
+            title: "This month's bonus birds are out! 🪙📸",
+            body: `${goldenBirds.length} golden birds and ${photoBirds.length} photo birds announced — check the dashboard.`,
+            url: "/dashboard",
+          })
+        )
+        .catch((pushError) => console.error("Bonus bird push failed:", pushError));
+    }
+
     return { success: true, unmatched };
   } catch (error) {
     console.error("Failed to update special birds:", error);

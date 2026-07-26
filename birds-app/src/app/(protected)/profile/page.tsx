@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Mail, Bird } from "lucide-react";
+import { PushSubscribeButton } from "@/components/push-subscribe-button";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -97,6 +98,21 @@ export default async function ProfilePage() {
             currentRegionId={profile.defaultRegionId}
             regions={regions}
           />
+        </CardContent>
+      </Card>
+
+      {/* Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Notifications</CardTitle>
+          <CardDescription>
+            Get a push reminder 3 days before month end and when the month&apos;s
+            bonus birds are announced. On iPhone, add the app to your home screen
+            first (Share → Add to Home Screen).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PushSubscribeButton />
         </CardContent>
       </Card>
     </div>
