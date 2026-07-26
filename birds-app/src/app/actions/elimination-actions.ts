@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { isAdminSession } from "@/lib/auth-helpers";
 
 export interface EliminationStatus {
   isEliminated: boolean;
@@ -232,8 +233,7 @@ export async function getEliminationLeaderboard(year?: number) {
 
 // Admin: manually eliminate a user
 export async function adminEliminateUser(userId: string, year: number, month: number) {
-  const session = await auth();
-  if (!session?.user?.id || session.user.role !== "ADMIN") {
+  if (!(await isAdminSession())) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -264,8 +264,7 @@ export async function adminEliminateUser(userId: string, year: number, month: nu
 
 // Admin: reinstate a user
 export async function adminReinstateUser(userId: string, year: number) {
-  const session = await auth();
-  if (!session?.user?.id || session.user.role !== "ADMIN") {
+  if (!(await isAdminSession())) {
     return { success: false, error: "Unauthorized" };
   }
 

@@ -44,7 +44,6 @@ interface BirdSubmissionFormProps {
   maxBirds: number;
   currentYear: number;
   currentMonth: number;
-  userId: string;
   availableJokers: number;
   regionId: string;
   allRegions: Region[];
@@ -120,7 +119,6 @@ export function BirdSubmissionForm({
   maxBirds,
   currentYear,
   currentMonth,
-  userId,
   availableJokers,
   regionId,
   allRegions,
@@ -250,7 +248,6 @@ export function BirdSubmissionForm({
 
     startTransition(async () => {
       const result = await submitBirds({
-        userId,
         regionId: region.id,
         birdNames: Array.from(selectedBirds),
         year: currentYear,

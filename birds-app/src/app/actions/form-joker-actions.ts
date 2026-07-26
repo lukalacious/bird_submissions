@@ -1,7 +1,7 @@
 "use server";
 
-import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { isAdminSession, requireAdmin } from "@/lib/auth-helpers";
 import { type Prisma } from "@prisma/client";
 import { getFormResponses, type FormResponse } from "@/lib/google-sheets";
 import { revalidatePath } from "next/cache";
@@ -86,8 +86,10 @@ export async function processFormJokers(
   year: number,
   month: number
 ): Promise<{ success: boolean; results: FormJokerResult[]; error?: string }> {
-  const session = await auth();
-  if (!session?.user?.id || session.user.role !== "ADMIN") {
+  let admin;
+  try {
+    admin = await requireAdmin();
+  } catch {
     return { success: false, results: [], error: "Unauthorized" };
   }
 
@@ -191,7 +193,7 @@ export async function processFormJokers(
         type: "bonus_jokers",
         year,
         month,
-        processedBy: session.user.id,
+        processedBy: admin.id!,
         matchedCount,
         unmatchedCount,
         results: results as unknown as Prisma.InputJsonValue,
@@ -221,8 +223,7 @@ export async function assignBonusToUser(
   year: number,
   month: number
 ): Promise<{ success: boolean; error?: string }> {
-  const session = await auth();
-  if (!session?.user?.id || session.user.role !== "ADMIN") {
+  if (!(await isAdminSession())) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -270,8 +271,7 @@ export async function getProcessingResults(
   year: number,
   month: number
 ): Promise<FormJokerResult[] | null> {
-  const session = await auth();
-  if (!session?.user?.id || session.user.role !== "ADMIN") {
+  if (!(await isAdminSession())) {
     return null;
   }
 
@@ -290,8 +290,7 @@ export async function getProcessingResults(
 export async function getAllUsersForMatching(): Promise<
   { id: string; name: string; email: string }[]
 > {
-  const session = await auth();
-  if (!session?.user?.id || session.user.role !== "ADMIN") {
+  if (!(await isAdminSession())) {
     return [];
   }
 

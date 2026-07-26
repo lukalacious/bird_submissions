@@ -2,6 +2,7 @@
  * Calculate joker preview for selected birds before submission
  * Mirrors the server-side joker calculation logic
  */
+import { calculateJokersFromGroup } from "@/lib/joker-groups";
 
 interface Bird {
   fullName: string;
@@ -15,15 +16,6 @@ interface JokerPreview {
     count: number;
     jokersEarned: number;
   }>;
-}
-
-/**
- * Calculate jokers earned from a group of birds
- * Formula: 3 birds = 1 joker, +0.5 for each additional bird
- */
-function calculateJokersFromGroup(birdCount: number): number {
-  if (birdCount < 3) return 0;
-  return 1 + (birdCount - 3) * 0.5;
 }
 
 /**

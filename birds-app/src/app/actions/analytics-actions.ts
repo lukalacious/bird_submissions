@@ -1,16 +1,7 @@
 "use server";
 
-import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-
-// Helper to check if current user is admin
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized");
-  }
-  return session.user;
-}
+import { requireAdmin } from "@/lib/auth-helpers";
 
 // Get overview statistics
 export async function getAnalyticsOverview() {

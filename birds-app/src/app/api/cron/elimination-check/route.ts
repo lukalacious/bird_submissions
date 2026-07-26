@@ -65,6 +65,7 @@ async function runMonthlyEliminationCheck(): Promise<{
   eliminated: number;
   jokersUsed: number;
   results: EliminationResult[];
+  alreadyProcessed?: boolean;
 }> {
   const settings = await prisma.settings.findFirst();
   const currentYear = settings?.currentYear ?? new Date().getFullYear();
@@ -79,6 +80,35 @@ async function runMonthlyEliminationCheck(): Promise<{
     checkMonth = 12;
     checkYear = currentYear - 1;
   }
+
+  // IDEMPOTENCY: if this month was already processed (Vercel cron retry,
+  // manual re-trigger), skip — eliminations and joker use must not run twice.
+  const existingRun = await prisma.processingLog.findFirst({
+    where: { type: "elimination_check", year: checkYear, month: checkMonth },
+  });
+  if (existingRun) {
+    console.log(`Elimination check for ${checkMonth}/${checkYear} already processed — skipping`);
+    return {
+      success: true,
+      year: checkYear,
+      month: checkMonth,
+      processed: 0,
+      eliminated: 0,
+      jokersUsed: 0,
+      results: [],
+      alreadyProcessed: true,
+    };
+  }
+
+  // Claim the run before processing so a concurrent invocation skips
+  const claim = await prisma.processingLog.create({
+    data: {
+      type: "elimination_check",
+      year: checkYear,
+      month: checkMonth,
+      processedBy: "cron",
+    },
+  });
 
   // Get threshold for the month being checked
   const monthlySettings = await getMonthlySettings(checkYear, checkMonth);
@@ -231,6 +261,15 @@ async function runMonthlyEliminationCheck(): Promise<{
     `Elimination check complete for ${checkMonth}/${checkYear}: ` +
     `${usersToCheck.length} users checked, ${eliminatedCount} eliminated, ${jokersUsedCount} jokers used`
   );
+
+  // Record the outcome on the claimed run
+  await prisma.processingLog.update({
+    where: { id: claim.id },
+    data: {
+      matchedCount: usersToCheck.length,
+      results: JSON.parse(JSON.stringify(results)),
+    },
+  });
 
   return {
     success: true,

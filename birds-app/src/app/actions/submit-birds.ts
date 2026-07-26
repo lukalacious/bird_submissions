@@ -5,9 +5,15 @@ import { syncToGoogleSheets } from "@/lib/google-sheets";
 import { revalidatePath } from "next/cache";
 import { recalculateJokers, getUserJokerInfo } from "./joker-actions";
 import { getMonthlySettings } from "@/lib/settings-utils";
+import { requireSession } from "@/lib/auth-helpers";
+import {
+  checkCap,
+  findDuplicates,
+  findInvalidBirds,
+  findSpeciesConflicts,
+} from "@/lib/submission-validators";
 
 interface SubmitBirdsInput {
-  userId: string;
   regionId: string;
   birdNames: string[];
   year: number;
@@ -23,9 +29,13 @@ interface SubmitBirdsResult {
 }
 
 export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsResult> {
-  const { userId, regionId, birdNames, year, month, customBirds = [] } = input;
+  const { regionId, birdNames, year, month, customBirds = [] } = input;
 
   try {
+    // SECURITY: identity comes from the session, never from the client
+    const sessionUser = await requireSession();
+    const userId = sessionUser.id!;
+
     // Combine regular and custom birds
     const allBirdNames = [...birdNames, ...customBirds];
 
@@ -75,18 +85,22 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
 
     const maxBirdsPerPeriod = monthlySettings.maxBirdsPerPeriod;
 
-    // Validate: check submission cap
-    if (currentCount + allBirdNames.length > maxBirdsPerPeriod) {
-      const remaining = Math.max(0, maxBirdsPerPeriod - currentCount);
+    // Validate: check submission cap (pre-check for a friendly message;
+    // the authoritative check happens inside the transaction below)
+    const cap = checkCap(currentCount, allBirdNames.length, maxBirdsPerPeriod);
+    if (!cap.ok) {
       return {
         success: false,
-        error: `You can twitch at most ${remaining} more birds this month`,
+        error: `You can twitch at most ${cap.remaining} more birds this month`,
       };
     }
 
     // Validate: check for duplicates
-    if (existingSubmissions.length > 0) {
-      const alreadyTwitched = existingSubmissions.map((s) => s.birdName);
+    const alreadyTwitched = findDuplicates(
+      existingSubmissions.map((s) => s.birdName),
+      allBirdNames
+    );
+    if (alreadyTwitched.length > 0) {
       return {
         success: false,
         error: `Already twitched: ${alreadyTwitched.join(", ")}`,
@@ -99,9 +113,10 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
     }
 
     // Validate: birds exist in region
-    const validBirdNames = region.birds.map((b) => b.fullName);
-    const invalidBirds = birdNames.filter((name) => !validBirdNames.includes(name));
-
+    const invalidBirds = findInvalidBirds(
+      region.birds.map((b) => b.fullName),
+      birdNames
+    );
     if (invalidBirds.length > 0) {
       return {
         success: false,
@@ -146,10 +161,10 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
           }),
         ]);
 
-        const alreadyTwitchedSci = new Set(existingBirds.map((b) => b.scientificName));
-        const speciesConflicts = incomingBirds
-          .filter((b) => alreadyTwitchedSci.has(b.scientificName))
-          .map((b) => b.fullName);
+        const speciesConflicts = findSpeciesConflicts(
+          incomingBirds,
+          new Set(existingBirds.map((b) => b.scientificName))
+        );
 
         if (speciesConflicts.length > 0) {
           return {
@@ -181,9 +196,31 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
 
     const jokerCountBefore = jokersBefore?.totalJokers || 0;
 
-    const submissions = await prisma.submission.createMany({
-      data: [...regularSubmissions, ...customSubmissions],
-    });
+    // ATOMIC: re-check the cap and insert in one transaction so two
+    // concurrent submits can't both pass the pre-check and exceed the cap.
+    let createdCount: number;
+    try {
+      createdCount = await prisma.$transaction(async (tx) => {
+        const countInTx = await tx.submission.count({
+          where: { userId, year, month },
+        });
+        if (!checkCap(countInTx, allBirdNames.length, maxBirdsPerPeriod).ok) {
+          throw new Error("CAP_EXCEEDED");
+        }
+        const created = await tx.submission.createMany({
+          data: [...regularSubmissions, ...customSubmissions],
+        });
+        return created.count;
+      });
+    } catch (txError) {
+      if (txError instanceof Error && txError.message === "CAP_EXCEEDED") {
+        return {
+          success: false,
+          error: "You've hit this month's bird limit",
+        };
+      }
+      throw txError;
+    }
 
     // OPTIMIZATION: Fire-and-forget Google Sheets sync (truly non-blocking)
     syncToGoogleSheets({
@@ -218,23 +255,29 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
     revalidatePath("/twitch");
     revalidatePath("/submissions");
 
-    return { success: true, count: submissions.count, jokersEarned };
+    return { success: true, count: createdCount, jokersEarned };
   } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return { success: false, error: "Please sign in again" };
+    }
     console.error("Failed to twitch birds:", error);
     return { success: false, error: "Failed to twitch birds. Please try again." };
   }
 }
 
-// Delete a single submission
+// Delete a single submission (own submissions only — identity from session)
 export async function deleteSubmission(input: {
-  userId: string;
   birdName: string;
   year: number;
   month: number;
 }): Promise<{ success: boolean; error?: string }> {
-  const { userId, birdName, year, month } = input;
+  const { birdName, year, month } = input;
 
   try {
+    // SECURITY: identity comes from the session, never from the client
+    const sessionUser = await requireSession();
+    const userId = sessionUser.id!;
+
     // Find and delete the submission
     const deleted = await prisma.submission.deleteMany({
       where: {
@@ -263,6 +306,9 @@ export async function deleteSubmission(input: {
 
     return { success: true };
   } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return { success: false, error: "Please sign in again" };
+    }
     console.error("Failed to delete submission:", error);
     return { success: false, error: "Failed to delete submission" };
   }

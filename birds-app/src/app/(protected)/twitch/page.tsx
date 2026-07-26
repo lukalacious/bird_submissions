@@ -171,7 +171,6 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
         maxBirds={maxBirds}
         currentYear={currentYear}
         currentMonth={currentMonth}
-        userId={session!.user.id!}
         availableJokers={jokerData.availableJokersForUse}
         regionId={region.id}
         allRegions={allRegions}

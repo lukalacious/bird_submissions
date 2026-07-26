@@ -231,27 +231,30 @@ export async function useJokerForImmunity(
     const jokerNumber = existingJokerCount + 1;
     const jokerBirdName = `🃏 Joker #${jokerNumber}`;
 
-    // Create a special "joker submission" that counts towards monthly goal
-    await prisma.submission.create({
-      data: {
-        userId,
-        regionId,
-        birdName: jokerBirdName,
-        year: targetYear,
-        month: targetMonth,
-        isCustomBird: false,
-        isJokerSubmission: true,
-      },
-    });
-
-    // Deduct from the oldest month's joker record (FIFO)
+    // ATOMIC: the joker submission and the joker deduction must succeed or
+    // fail together — otherwise a mid-failure grants a free submission.
     const jokerToUse = jokerRecords[0];
-    if (jokerToUse) {
-      await prisma.userJoker.update({
-        where: { id: jokerToUse.id },
-        data: { usedJokers: { increment: 1 } },
+    await prisma.$transaction(async (tx) => {
+      await tx.submission.create({
+        data: {
+          userId,
+          regionId,
+          birdName: jokerBirdName,
+          year: targetYear,
+          month: targetMonth,
+          isCustomBird: false,
+          isJokerSubmission: true,
+        },
       });
-    }
+
+      // Deduct from the oldest month's joker record (FIFO)
+      if (jokerToUse) {
+        await tx.userJoker.update({
+          where: { id: jokerToUse.id },
+          data: { usedJokers: { increment: 1 } },
+        });
+      }
+    });
 
     revalidatePath("/dashboard");
     revalidatePath("/twitch");
