@@ -109,6 +109,57 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
       };
     }
 
+    // Validate: same SPECIES not already twitched in another region.
+    // The same species can exist in multiple regions, sometimes under different
+    // common names (e.g. Southern Fiscal / Common Fiscal), so match on
+    // scientificName across all of the user's submissions in the reset window.
+    if (birdNames.length > 0) {
+      const settings = await prisma.settings.findUnique({ where: { id: "default" } });
+      const resetPeriod = settings?.resetPeriod ?? "YEARLY";
+      const windowFilter =
+        resetPeriod === "MONTHLY" ? { year, month } : resetPeriod === "YEARLY" ? { year } : {};
+
+      const existingElsewhere = await prisma.submission.findMany({
+        where: {
+          userId,
+          regionId: { not: regionId },
+          isCustomBird: false,
+          ...windowFilter,
+        },
+        select: { birdName: true, regionId: true },
+      });
+
+      if (existingElsewhere.length > 0) {
+        const [incomingBirds, existingBirds] = await Promise.all([
+          prisma.bird.findMany({
+            where: { regionId, fullName: { in: birdNames } },
+            select: { fullName: true, scientificName: true },
+          }),
+          prisma.bird.findMany({
+            where: {
+              OR: existingElsewhere.map((s) => ({
+                regionId: s.regionId,
+                fullName: s.birdName,
+              })),
+            },
+            select: { scientificName: true },
+          }),
+        ]);
+
+        const alreadyTwitchedSci = new Set(existingBirds.map((b) => b.scientificName));
+        const speciesConflicts = incomingBirds
+          .filter((b) => alreadyTwitchedSci.has(b.scientificName))
+          .map((b) => b.fullName);
+
+        if (speciesConflicts.length > 0) {
+          return {
+            success: false,
+            error: `Already twitched in another region (same species): ${speciesConflicts.join(", ")}`,
+          };
+        }
+      }
+    }
+
     // Create submissions in database (regular birds + custom birds)
     const regularSubmissions = birdNames.map((birdName) => ({
       userId,

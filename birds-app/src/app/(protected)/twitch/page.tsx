@@ -23,17 +23,17 @@ async function getRegionData(regionName: string) {
   return region;
 }
 
+// Returns submitted bird names in THIS region plus the scientific names of
+// every species submitted in ANY region (same species can't be twitched twice
+// across regions — e.g. African Fish Eagle in SA and East Africa).
 async function getSubmittedBirds(
   userId: string,
   regionId: string,
   year: number,
   month: number,
   resetPeriod: ResetPeriod
-): Promise<string[]> {
-  const where: { userId: string; regionId: string; year?: number; month?: number } = {
-    userId,
-    regionId,
-  };
+): Promise<{ birdNames: string[]; scientificNames: Set<string> }> {
+  const where: { userId: string; year?: number; month?: number } = { userId };
   if (resetPeriod === "MONTHLY") {
     where.year = year;
     where.month = month;
@@ -42,9 +42,29 @@ async function getSubmittedBirds(
   }
   const submissions = await prisma.submission.findMany({
     where,
-    select: { birdName: true },
+    select: { birdName: true, regionId: true, isCustomBird: true },
   });
-  return submissions.map((s) => s.birdName);
+
+  const birdNames = submissions
+    .filter((s) => s.regionId === regionId)
+    .map((s) => s.birdName);
+
+  const realSubmissions = submissions.filter((s) => !s.isCustomBird);
+  const scientificNames = new Set<string>();
+  if (realSubmissions.length > 0) {
+    const birds = await prisma.bird.findMany({
+      where: {
+        OR: realSubmissions.map((s) => ({
+          regionId: s.regionId,
+          fullName: s.birdName,
+        })),
+      },
+      select: { scientificName: true },
+    });
+    for (const b of birds) scientificNames.add(b.scientificName);
+  }
+
+  return { birdNames, scientificNames };
 }
 
 async function getSettings() {
@@ -134,10 +154,13 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
 
   const maxBirds = Math.max(0, maxBirdsPerPeriod - currentMonthCount);
 
-  // Mark birds as disabled if already submitted (per resetPeriod)
+  // Mark birds as disabled if already submitted (per resetPeriod) —
+  // by name in this region, or by species (scientificName) in any region
   const birdsWithStatus = region.birds.map((bird) => ({
     ...bird,
-    isDisabled: submittedBirds.includes(bird.fullName),
+    isDisabled:
+      submittedBirds.birdNames.includes(bird.fullName) ||
+      submittedBirds.scientificNames.has(bird.scientificName),
   }));
 
   return (
