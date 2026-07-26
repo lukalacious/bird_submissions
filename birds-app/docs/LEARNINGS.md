@@ -353,6 +353,8 @@ Copy this template when adding new learnings:
 | Vercel Cron not firing | Check `CRON_SECRET` is set (Production only), check route is registered |
 | Duplicate deploy failures | Check Vercel dashboard for multiple projects on same repo — delete extras |
 | Prisma P3009 failed migration | Check `_prisma_migrations` table, verify column exists, mark as applied |
+| Blob upload "failed to retrieve client token" | Store connected with custom env prefix → var is `BLOB_READ_WRITE_TOKEN_READ_WRITE_TOKEN`, not the default name. Pass `token: getBlobToken()` (src/lib/blob-token.ts) to `handleUpload`/`del` |
+| Can't read a Vercel env value locally | Sensitive vars pull as empty strings via `vercel env pull` — fix in code instead of copying the secret |
 
 ---
 
