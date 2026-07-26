@@ -1,13 +1,32 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { getSettings, updateSettings, updateMonthlySettings, resetMonthlySettings, getYearlyMonthlySettings } from "@/app/actions/admin-actions";
-import { Settings, Save, Calendar, Bird, RefreshCw, Shield, RotateCcw, ClipboardList, BookOpen } from "lucide-react";
+import {
+  getSettings,
+  updateSettings,
+  updateMonthlySettings,
+  resetMonthlySettings,
+  getYearlyMonthlySettings,
+} from "@/app/actions/admin-actions";
+import {
+  Settings,
+  Save,
+  Calendar,
+  Bird,
+  RefreshCw,
+  Shield,
+  RotateCcw,
+  ClipboardList,
+  BookOpen,
+  Sparkles,
+  Check,
+} from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { SpecialBirdsAdmin } from "@/components/admin/special-birds-admin";
 
@@ -22,18 +41,73 @@ interface MonthSetting {
   isCustom: boolean;
 }
 
+interface GlobalSettings {
+  maxBirdsPerPeriod: number;
+  resetPeriod: ResetPeriod;
+  currentYear: number;
+  monthlyFormEmbedUrl: string;
+  eliminationThreshold: number;
+  rules: string;
+}
+
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
+  "July", "August", "September", "October", "November", "December",
 ];
 
+const SECTIONS = [
+  { id: "game", label: "Game", icon: Settings },
+  { id: "bonus-birds", label: "Bonus Birds", icon: Sparkles },
+  { id: "monthly-caps", label: "Monthly Caps", icon: Calendar },
+  { id: "form", label: "Form", icon: ClipboardList },
+  { id: "rules", label: "Rules", icon: BookOpen },
+];
+
+/** Save button that reflects dirty/saving/saved state — standard settings UX. */
+function SectionSaveButton({
+  dirty,
+  saving,
+  onClick,
+  label = "Save changes",
+}: {
+  dirty: boolean;
+  saving: boolean;
+  onClick: () => void;
+  label?: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 pt-2">
+      <Button type="button" onClick={onClick} disabled={!dirty || saving}>
+        {saving ? (
+          <>
+            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+            Saving...
+          </>
+        ) : (
+          <>
+            <Save className="mr-2 h-4 w-4" />
+            {label}
+          </>
+        )}
+      </Button>
+      {!dirty && !saving && (
+        <span className="flex items-center gap-1 text-sm text-muted-foreground">
+          <Check className="h-4 w-4 text-green-600" />
+          Saved
+        </span>
+      )}
+      {dirty && !saving && (
+        <span className="text-sm text-amber-600">Unsaved changes</span>
+      )}
+    </div>
+  );
+}
+
 export default function SettingsPage() {
-  const [maxBirds, setMaxBirds] = useState(31);
-  const [resetPeriod, setResetPeriod] = useState<ResetPeriod>("YEARLY");
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  const [monthlyFormEmbedUrl, setMonthlyFormEmbedUrl] = useState("");
-  const [eliminationThreshold, setEliminationThreshold] = useState(30);
-  const [rules, setRules] = useState("");
+  // Draft (editable) and saved (last persisted) copies — dirty = they differ
+  const [draft, setDraft] = useState<GlobalSettings | null>(null);
+  const [saved, setSaved] = useState<GlobalSettings | null>(null);
+
   const [monthlySettings, setMonthlySettings] = useState<MonthSetting[]>([]);
   const [editingMonth, setEditingMonth] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -50,12 +124,16 @@ export default function SettingsPage() {
           getYearlyMonthlySettings(new Date().getFullYear()),
         ]);
         if (settings) {
-          setMaxBirds(settings.maxBirdsPerPeriod);
-          setResetPeriod(settings.resetPeriod);
-          setCurrentYear(settings.currentYear);
-          setMonthlyFormEmbedUrl(settings.monthlyFormEmbedUrl ?? "");
-          setEliminationThreshold(settings.eliminationThreshold);
-          setRules(settings.rules ?? "");
+          const loaded: GlobalSettings = {
+            maxBirdsPerPeriod: settings.maxBirdsPerPeriod,
+            resetPeriod: settings.resetPeriod,
+            currentYear: settings.currentYear,
+            monthlyFormEmbedUrl: settings.monthlyFormEmbedUrl ?? "",
+            eliminationThreshold: settings.eliminationThreshold,
+            rules: settings.rules ?? "",
+          };
+          setDraft(loaded);
+          setSaved(loaded);
         }
         setMonthlySettings(monthly);
         setLoadError(null);
@@ -69,113 +147,58 @@ export default function SettingsPage() {
     loadSettings();
   }, []);
 
-  // Reload monthly settings when year changes
+  // Reload the monthly grid when the competition year changes (after save)
+  const savedYear = saved?.currentYear;
   useEffect(() => {
-    if (!isLoading) {
-      getYearlyMonthlySettings(currentYear).then(setMonthlySettings);
+    if (!isLoading && savedYear) {
+      getYearlyMonthlySettings(savedYear).then(setMonthlySettings);
     }
-  }, [currentYear, isLoading]);
+  }, [savedYear, isLoading]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const set = useCallback(<K extends keyof GlobalSettings>(key: K, value: GlobalSettings[K]) => {
+    setDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
+  }, []);
+
+  /**
+   * All sections persist through ONE helper that always writes the full
+   * (draft-merged) settings object — no section can accidentally revert
+   * another's unsaved values because dirtiness is tracked per field group.
+   */
+  const persist = (fields: (keyof GlobalSettings)[]) => {
+    if (!draft || !saved) return;
+    // Merge: take edited fields from draft, everything else from last saved
+    const payload: GlobalSettings = { ...saved };
+    for (const field of fields) {
+      Object.assign(payload, { [field]: draft[field] });
+    }
 
     startTransition(async () => {
       const result = await updateSettings({
-        maxBirdsPerPeriod: maxBirds,
-        resetPeriod,
-        currentYear,
-        monthlyFormEmbedUrl: monthlyFormEmbedUrl.trim() || null,
-        eliminationThreshold,
-        rules: rules.trim() || null,
+        maxBirdsPerPeriod: payload.maxBirdsPerPeriod,
+        resetPeriod: payload.resetPeriod,
+        currentYear: payload.currentYear,
+        monthlyFormEmbedUrl: payload.monthlyFormEmbedUrl.trim() || null,
+        eliminationThreshold: payload.eliminationThreshold,
+        rules: payload.rules.trim() || null,
       });
-
       if (result.success) {
-        toast.success("Settings updated successfully");
-        // Reload monthly settings to reflect any changes
-        const monthly = await getYearlyMonthlySettings(currentYear);
-        setMonthlySettings(monthly);
+        setSaved(payload);
+        toast.success("Settings saved");
       } else {
-        toast.error(result.error || "Failed to update settings");
+        toast.error(result.error || "Failed to save settings");
       }
     });
   };
 
-  const handleSaveRules = async () => {
-    startTransition(async () => {
-      try {
-        console.log("Saving rules:", rules);
+  const isDirty = (fields: (keyof GlobalSettings)[]) =>
+    Boolean(draft && saved && fields.some((f) => draft[f] !== saved[f]));
 
-        // First get current settings to preserve them
-        const currentSettings = await getSettings();
-        if (!currentSettings) {
-          console.error("No current settings found");
-          toast.error("Failed to load current settings");
-          return;
-        }
-
-        console.log("Current settings loaded:", currentSettings);
-
-        const trimmedRules = rules.trim() || null;
-        console.log("Trimmed rules:", trimmedRules);
-
-        // Update only the rules field, keep everything else the same
-        const result = await updateSettings({
-          maxBirdsPerPeriod: currentSettings.maxBirdsPerPeriod,
-          resetPeriod: currentSettings.resetPeriod,
-          currentYear: currentSettings.currentYear,
-          monthlyFormEmbedUrl: currentSettings.monthlyFormEmbedUrl,
-          eliminationThreshold: currentSettings.eliminationThreshold,
-          rules: trimmedRules,
-        });
-
-        console.log("Update result:", result);
-
-        if (result.success) {
-          toast.success("Game rules saved successfully");
-        } else {
-          console.error("Update failed:", result.error);
-          toast.error(result.error || "Failed to save game rules");
-        }
-      } catch (error) {
-        console.error("Error saving rules:", error);
-        toast.error(`An error occurred: ${error instanceof Error ? error.message : "Unknown error"}`);
-      }
-    });
-  };
-
-  const handleSaveForm = async () => {
-    startTransition(async () => {
-      try {
-        const result = await updateSettings({
-          maxBirdsPerPeriod: maxBirds,
-          resetPeriod,
-          currentYear,
-          monthlyFormEmbedUrl: monthlyFormEmbedUrl.trim() || null,
-          eliminationThreshold,
-          rules: rules.trim() || null,
-        });
-
-        if (result.success) {
-          toast.success("Settings updated successfully");
-          const monthly = await getYearlyMonthlySettings(currentYear);
-          setMonthlySettings(monthly);
-        } else {
-          toast.error(result.error || "Failed to update settings");
-        }
-      } catch (error) {
-        console.error("Error updating settings:", error);
-        toast.error("An error occurred while saving");
-      }
-    });
-  };
-
-  const handleMonthEdit = (month: number) => {
-    const setting = monthlySettings.find(s => s.month === month);
-    if (setting) {
-      setEditingMonth(month);
-      setEditValue(setting.maxBirdsPerPeriod.toString());
-    }
-  };
+  const GAME_FIELDS: (keyof GlobalSettings)[] = [
+    "maxBirdsPerPeriod",
+    "eliminationThreshold",
+    "resetPeriod",
+    "currentYear",
+  ];
 
   const handleMonthSave = (month: number) => {
     const value = parseInt(editValue);
@@ -183,18 +206,16 @@ export default function SettingsPage() {
       toast.error("Value must be between 1 and 100");
       return;
     }
-
     startMonthTransition(async () => {
       const result = await updateMonthlySettings({
-        year: currentYear,
+        year: saved?.currentYear ?? new Date().getFullYear(),
         month,
         maxBirdsPerPeriod: value,
       });
-
       if (result.success) {
-        toast.success(`${MONTH_NAMES[month - 1]} settings updated`);
+        toast.success(`${MONTH_NAMES[month - 1]} cap set to ${value}`);
         setEditingMonth(null);
-        const monthly = await getYearlyMonthlySettings(currentYear);
+        const monthly = await getYearlyMonthlySettings(saved?.currentYear ?? new Date().getFullYear());
         setMonthlySettings(monthly);
       } else {
         toast.error(result.error || "Failed to update");
@@ -204,12 +225,14 @@ export default function SettingsPage() {
 
   const handleMonthReset = (month: number) => {
     startMonthTransition(async () => {
-      const result = await resetMonthlySettings(currentYear, month);
-
+      const result = await resetMonthlySettings(
+        saved?.currentYear ?? new Date().getFullYear(),
+        month
+      );
       if (result.success) {
-        toast.success(`${MONTH_NAMES[month - 1]} reset to default`);
+        toast.success(`${MONTH_NAMES[month - 1]} back to default`);
         setEditingMonth(null);
-        const monthly = await getYearlyMonthlySettings(currentYear);
+        const monthly = await getYearlyMonthlySettings(saved?.currentYear ?? new Date().getFullYear());
         setMonthlySettings(monthly);
       } else {
         toast.error(result.error || "Failed to reset");
@@ -219,19 +242,20 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-4 animate-pulse">
+        <div className="h-8 w-48 bg-muted rounded" />
+        <div className="h-10 w-full bg-muted rounded" />
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-48 w-full bg-muted rounded-lg" />
+        ))}
       </div>
     );
   }
 
-  if (loadError) {
+  if (loadError || !draft || !saved) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">App Settings</h1>
-          <p className="text-sm sm:text-base text-gray-600">Configure submission rules and periods</p>
-        </div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Settings</h1>
         <Card className="border-red-200 bg-red-50">
           <CardContent className="py-8">
             <div className="flex flex-col items-center text-center">
@@ -239,7 +263,7 @@ export default function SettingsPage() {
                 <Settings className="h-6 w-6 text-red-500" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Unable to Load Settings</h3>
-              <p className="text-gray-600 mb-4">{loadError}</p>
+              <p className="text-gray-600 mb-4">{loadError ?? "No settings found."}</p>
               <Button onClick={() => window.location.reload()}>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Retry
@@ -251,284 +275,313 @@ export default function SettingsPage() {
     );
   }
 
+  const currentCalendarMonth = new Date().getMonth() + 1;
+  const showingCurrentYear = saved.currentYear === new Date().getFullYear();
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">App Settings</h1>
-        <p className="text-sm sm:text-base text-gray-600">Configure submission rules and periods</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Settings</h1>
+        <p className="text-sm sm:text-base text-gray-600">
+          Game configuration for the {saved.currentYear} challenge
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Global Settings
-            </CardTitle>
-            <CardDescription>
-              Default settings that apply when no monthly override is set
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Max Birds */}
-            <div className="space-y-2">
+      {/* Sticky section nav */}
+      <nav className="sticky top-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-background/95 backdrop-blur border-b">
+        <div className="flex gap-1 overflow-x-auto">
+          {SECTIONS.map(({ id, label, icon: Icon }) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              className="flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-purple-50 hover:text-purple-700"
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {label}
+            </a>
+          ))}
+        </div>
+      </nav>
+
+      {/* 1 — Game settings */}
+      <Card id="game" className="scroll-mt-16">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Game Settings
+          </CardTitle>
+          <CardDescription>
+            Defaults for every month — individual months can override the cap below
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
               <Label htmlFor="maxBirds" className="flex items-center gap-2">
                 <Bird className="h-4 w-4" />
-                Default Maximum Birds Per Month
+                Birds per month
               </Label>
               <Input
                 id="maxBirds"
                 type="number"
+                inputMode="numeric"
                 min={1}
                 max={100}
-                value={maxBirds}
-                onChange={(e) => setMaxBirds(parseInt(e.target.value) || 31)}
+                value={draft.maxBirdsPerPeriod}
+                onChange={(e) => set("maxBirdsPerPeriod", Number(e.target.value))}
               />
-              <p className="text-xs sm:text-sm text-gray-500">
-                Default limit used when no monthly override is set
-              </p>
+              <p className="text-xs text-gray-500">Submission cap (shared across regions)</p>
             </div>
 
-            {/* Reset Period */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <RefreshCw className="h-4 w-4" />
-                Greying Reset Period
-              </Label>
-              <div className="grid grid-cols-3 gap-2">
-                {(["MONTHLY", "YEARLY", "NEVER"] as const).map((period) => (
-                  <Button
-                    key={period}
-                    type="button"
-                    variant={resetPeriod === period ? "default" : "outline"}
-                    onClick={() => setResetPeriod(period)}
-                    className="w-full"
-                  >
-                    {period === "MONTHLY" && "Monthly"}
-                    {period === "YEARLY" && "Yearly"}
-                    {period === "NEVER" && "Never"}
-                  </Button>
-                ))}
-              </div>
-              <p className="text-xs sm:text-sm text-gray-500">
-                How often twitched birds become available again
-              </p>
-            </div>
-
-            {/* Current Year */}
-            <div className="space-y-2">
-              <Label htmlFor="currentYear" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Current Submission Year
-              </Label>
-              <Input
-                id="currentYear"
-                type="number"
-                min={2020}
-                max={2100}
-                value={currentYear}
-                onChange={(e) => setCurrentYear(parseInt(e.target.value) || new Date().getFullYear())}
-              />
-              <p className="text-xs sm:text-sm text-gray-500">
-                The year used for tracking submissions
-              </p>
-            </div>
-
-            {/* Elimination Threshold */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="eliminationThreshold" className="flex items-center gap-2">
                 <Shield className="h-4 w-4" />
-                Default Elimination Threshold
+                Elimination threshold
               </Label>
               <Input
                 id="eliminationThreshold"
                 type="number"
+                inputMode="numeric"
                 min={1}
                 max={100}
-                value={eliminationThreshold}
-                onChange={(e) => setEliminationThreshold(parseInt(e.target.value) || 30)}
+                value={draft.eliminationThreshold}
+                onChange={(e) => set("eliminationThreshold", Number(e.target.value))}
               />
-              <p className="text-xs sm:text-sm text-gray-500">
-                Minimum birds per month to avoid elimination
-              </p>
+              <p className="text-xs text-gray-500">Minimum birds to stay in the game</p>
             </div>
+          </div>
 
-            <Button type="submit" disabled={isPending} className="w-full">
-              {isPending ? (
-                <>
-                  <span className="animate-spin mr-2">⏳</span>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Global Settings
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-      </form>
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Bird reset period
+            </Label>
+            <div className="grid grid-cols-3 gap-2">
+              {(
+                [
+                  { value: "MONTHLY", label: "Monthly", hint: "birds reusable each month" },
+                  { value: "YEARLY", label: "Yearly", hint: "one tick per bird per year" },
+                  { value: "NEVER", label: "Never", hint: "birds never reset" },
+                ] as const
+              ).map(({ value, label, hint }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => set("resetPeriod", value)}
+                  className={`rounded-lg border p-2.5 text-left transition-colors ${
+                    draft.resetPeriod === value
+                      ? "border-purple-400 bg-purple-50 ring-1 ring-purple-300"
+                      : "border-gray-200 hover:border-purple-200"
+                  }`}
+                >
+                  <span className="block text-sm font-medium">{label}</span>
+                  <span className="block text-[11px] text-gray-500 leading-tight">{hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
-      {/* Monthly golden/photo birds */}
-      <SpecialBirdsAdmin year={currentYear} />
+          <div className="space-y-1.5 sm:max-w-[50%]">
+            <Label htmlFor="currentYear" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Competition year
+            </Label>
+            <Input
+              id="currentYear"
+              type="number"
+              inputMode="numeric"
+              min={2020}
+              max={2100}
+              value={draft.currentYear}
+              onChange={(e) => set("currentYear", Number(e.target.value))}
+            />
+            {draft.currentYear !== saved.currentYear && (
+              <p className="text-xs text-amber-600">
+                ⚠ Changing the year affects submissions, jokers and eliminations app-wide.
+              </p>
+            )}
+          </div>
 
-      {/* Monthly Settings */}
-      <Card>
+          <SectionSaveButton
+            dirty={isDirty(GAME_FIELDS)}
+            saving={isPending}
+            onClick={() => persist(GAME_FIELDS)}
+          />
+        </CardContent>
+      </Card>
+
+      {/* 2 — Monthly bonus birds */}
+      <div id="bonus-birds" className="scroll-mt-16">
+        <SpecialBirdsAdmin year={saved.currentYear} />
+      </div>
+
+      {/* 3 — Monthly caps */}
+      <Card id="monthly-caps" className="scroll-mt-16">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Monthly Requirements for {currentYear}
+            Monthly Caps · {saved.currentYear}
           </CardTitle>
           <CardDescription>
-            Set custom submission requirements for each month. Click a month to edit.
+            Tap a month to override the default cap ({saved.maxBirdsPerPeriod} birds).{" "}
+            <Badge className="bg-purple-100 text-purple-700 border-purple-200 align-middle">custom</Badge>{" "}
+            months keep their value even if the default changes.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
-            {monthlySettings.map((setting) => (
-              <div
-                key={setting.month}
-                className={`relative p-3 sm:p-4 rounded-lg border ${
-                  setting.isCustom
-                    ? "border-purple-300 bg-purple-50"
-                    : "border-gray-200 bg-gray-50"
-                }`}
-              >
-                <div className="text-sm font-medium text-gray-900">
-                  {MONTH_NAMES[setting.month - 1]}
-                </div>
-                <div className="text-xs text-gray-500 mb-2">
-                  {setting.daysInMonth} days
-                </div>
-
-                {editingMonth === setting.month ? (
-                  <div className="space-y-2">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={100}
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      className="h-8 text-sm"
-                      autoFocus
-                    />
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        className="flex-1 h-7 text-xs"
-                        onClick={() => handleMonthSave(setting.month)}
-                        disabled={isMonthPending}
-                      >
-                        Save
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        onClick={() => setEditingMonth(null)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                    {setting.isCustom && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="w-full h-7 text-xs text-gray-500"
-                        onClick={() => handleMonthReset(setting.month)}
-                        disabled={isMonthPending}
-                      >
-                        <RotateCcw className="h-3 w-3 mr-1" />
-                        Reset to default
-                      </Button>
+            {monthlySettings.map((setting) => {
+              const isCurrent = showingCurrentYear && setting.month === currentCalendarMonth;
+              return (
+                <div
+                  key={setting.month}
+                  className={`relative p-3 rounded-lg border ${
+                    setting.isCustom
+                      ? "border-purple-300 bg-purple-50"
+                      : "border-gray-200 bg-gray-50"
+                  } ${isCurrent ? "ring-2 ring-purple-400" : ""}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-900">
+                      {MONTH_NAMES[setting.month - 1].slice(0, 3)}
+                    </span>
+                    {isCurrent && (
+                      <span className="text-[10px] font-semibold text-purple-600">NOW</span>
                     )}
                   </div>
-                ) : (
-                  <div
-                    className="cursor-pointer hover:bg-white rounded p-1 -m-1 transition-colors"
-                    onClick={() => handleMonthEdit(setting.month)}
-                  >
-                    <div className="text-lg font-semibold text-purple-600">
-                      {setting.maxBirdsPerPeriod}
+                  <div className="text-xs text-gray-500 mb-1">{setting.daysInMonth} days</div>
+
+                  {editingMonth === setting.month ? (
+                    <div className="space-y-1.5">
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        max={100}
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleMonthSave(setting.month);
+                          if (e.key === "Escape") setEditingMonth(null);
+                        }}
+                        className="h-8 text-sm"
+                        autoFocus
+                      />
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          className="flex-1 h-7 text-xs"
+                          onClick={() => handleMonthSave(setting.month)}
+                          disabled={isMonthPending}
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={() => setEditingMonth(null)}
+                        >
+                          ✕
+                        </Button>
+                      </div>
+                      {setting.isCustom && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="w-full h-7 text-xs text-gray-500"
+                          onClick={() => handleMonthReset(setting.month)}
+                          disabled={isMonthPending}
+                        >
+                          <RotateCcw className="h-3 w-3 mr-1" />
+                          Use default
+                        </Button>
+                      )}
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {setting.isCustom ? "custom" : "default"}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                  ) : (
+                    <button
+                      type="button"
+                      className="w-full text-left cursor-pointer hover:bg-white rounded p-1 -m-1 transition-colors"
+                      onClick={() => {
+                        setEditingMonth(setting.month);
+                        setEditValue(setting.maxBirdsPerPeriod.toString());
+                      }}
+                    >
+                      <span className="block text-lg font-semibold text-purple-600">
+                        {setting.maxBirdsPerPeriod}
+                      </span>
+                      <span className="block text-xs text-gray-500">
+                        {setting.isCustom ? "custom" : "default"}
+                      </span>
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
 
-      {/* Google Form */}
-      <Card>
+      {/* 4 — Google Form */}
+      <Card id="form" className="scroll-mt-16">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ClipboardList className="h-5 w-5" />
-            Google Form
+            Monthly Google Form
           </CardTitle>
           <CardDescription>
-            Google Form embed URL that users can access from the Google Form page.
+            Embedded on the Monthly Form page; responses feed the nightly bonus-joker cron
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          <Label htmlFor="monthlyFormEmbedUrl">Google Form embed URL</Label>
+          <Label htmlFor="monthlyFormEmbedUrl">Embed URL</Label>
           <Input
             id="monthlyFormEmbedUrl"
             type="url"
             placeholder="https://docs.google.com/forms/d/e/XXXX/viewform?embedded=true"
-            value={monthlyFormEmbedUrl}
-            onChange={(e) => setMonthlyFormEmbedUrl(e.target.value)}
+            value={draft.monthlyFormEmbedUrl}
+            onChange={(e) => set("monthlyFormEmbedUrl", e.target.value)}
           />
-          <p className="text-xs sm:text-sm text-gray-500">
-            Paste the embed URL from Google Forms (Share → Embed HTML, or use …/viewform?embedded=true).
+          <p className="text-xs text-gray-500">
+            Google Forms → Share → Embed HTML, or append <code>?embedded=true</code> to the viewform link.
           </p>
-          <Button
-            type="button"
-            onClick={handleSaveForm}
-            disabled={isPending}
-            className="w-full mt-4"
-          >
-            {isPending ? "Saving..." : "Save Google Form URL"}
-          </Button>
+          <SectionSaveButton
+            dirty={isDirty(["monthlyFormEmbedUrl"])}
+            saving={isPending}
+            onClick={() => persist(["monthlyFormEmbedUrl"])}
+            label="Save form URL"
+          />
         </CardContent>
       </Card>
 
-      {/* Game Rules */}
-      <Card>
+      {/* 5 — Game rules */}
+      <Card id="rules" className="scroll-mt-16">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5" />
             Game Rules
           </CardTitle>
           <CardDescription>
-            Edit the game rules displayed on the dashboard. Use ** for bold headings (e.g., **Heading:**).
+            Shown on every player&apos;s dashboard. Use **Heading:** for bold section titles;
+            each line renders separately. Empty = built-in default rules.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          <Label htmlFor="rules">Game Rules</Label>
           <Textarea
             id="rules"
-            placeholder="Enter game rules here..."
-            value={rules}
-            onChange={(e) => setRules(e.target.value)}
-            rows={8}
+            placeholder={"**Monthly Goal:** Twitch 31 birds each month\n**Jokers:** 3+ birds of a family earn jokers..."}
+            value={draft.rules}
+            onChange={(e) => set("rules", e.target.value)}
+            rows={10}
             className="font-mono text-xs sm:text-sm"
           />
-          <p className="text-xs sm:text-sm text-gray-500">
-            Format: Use **Bold:** for headings. Each line will be displayed separately. Leave empty to show default rules.
-          </p>
-          <Button
-            type="button"
-            onClick={handleSaveRules}
-            disabled={isPending}
-            className="w-full mt-4"
-          >
-            {isPending ? "Saving..." : "Save Game Rules"}
-          </Button>
+          <SectionSaveButton
+            dirty={isDirty(["rules"])}
+            saving={isPending}
+            onClick={() => persist(["rules"])}
+            label="Save rules"
+          />
         </CardContent>
       </Card>
     </div>
