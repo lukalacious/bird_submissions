@@ -133,6 +133,8 @@ model Submission {
   isCustomBird      Boolean  @default(false) // True if bird was not in predefined list
   isJokerSubmission Boolean  @default(false) // True if this is a joker immunity submission
   photoUrl          String?  // Vercel Blob URL — proof photo for golden/photo bonus birds
+  photoYear         Int?     // Challenge month the photo was submitted (null = same as year/month)
+  photoMonth        Int?     // e.g. bird twitched in March, photographed in July as a photo bird
   photoAwardJokers  Float    @default(0) // Manually awarded by admin for this photo
   photoAwardedAt    DateTime? // When the admin awarded (null = not yet reviewed)
   createdAt         DateTime @default(now())

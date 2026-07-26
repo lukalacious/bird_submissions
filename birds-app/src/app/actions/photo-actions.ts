@@ -32,8 +32,8 @@ export async function getBonusBirdPhotos(year: number): Promise<BonusBirdPhoto[]
     id: s.id,
     birdName: s.birdName,
     photoUrl: s.photoUrl!,
-    year: s.year,
-    month: s.month,
+    year: s.photoYear ?? s.year,
+    month: s.photoMonth ?? s.month,
     userName: s.user.username || s.user.name,
     userImage: s.user.image,
     awardedJokers: s.photoAwardJokers,
@@ -62,8 +62,8 @@ export async function getPhotosForReview(year: number): Promise<AdminPhotoEntry[
     id: s.id,
     birdName: s.birdName,
     photoUrl: s.photoUrl!,
-    year: s.year,
-    month: s.month,
+    year: s.photoYear ?? s.year,
+    month: s.photoMonth ?? s.month,
     userName: s.user.username || s.user.name,
     userImage: s.user.image,
     userEmail: s.user.email,
@@ -99,6 +99,12 @@ export async function awardPhotoJokers(
 
     const delta = jokers - submission.photoAwardJokers;
 
+    // Jokers land in the month the PHOTO was submitted (photoYear/photoMonth),
+    // which differs from the submission month for photo-only re-twitches of
+    // birds ticked earlier in the year.
+    const awardYear = submission.photoYear ?? submission.year;
+    const awardMonth = submission.photoMonth ?? submission.month;
+
     await prisma.$transaction(async (tx) => {
       await tx.submission.update({
         where: { id: submissionId },
@@ -110,8 +116,8 @@ export async function awardPhotoJokers(
         where: {
           userId_year_month: {
             userId: submission.userId,
-            year: submission.year,
-            month: submission.month,
+            year: awardYear,
+            month: awardMonth,
           },
         },
       });
@@ -128,14 +134,14 @@ export async function awardPhotoJokers(
         where: {
           userId_year_month: {
             userId: submission.userId,
-            year: submission.year,
-            month: submission.month,
+            year: awardYear,
+            month: awardMonth,
           },
         },
         create: {
           userId: submission.userId,
-          year: submission.year,
-          month: submission.month,
+          year: awardYear,
+          month: awardMonth,
           jokers: 0,
           bonusJokers: jokers,
           totalJokers: jokers,

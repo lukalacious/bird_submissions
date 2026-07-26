@@ -168,7 +168,8 @@ export default async function ProtectedLayout({
       </header>
 
       {/* Main Content */}
-      <main className="pb-20 md:pb-0">
+      {/* Bottom padding must clear the fixed nav (3.5rem) + iOS safe-area inset */}
+      <main className="pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
         <AnimatedPage>{children}</AnimatedPage>
       </main>
 

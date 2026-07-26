@@ -4,7 +4,11 @@ import prisma from "@/lib/prisma";
 import { syncToGoogleSheets } from "@/lib/google-sheets";
 import { revalidatePath } from "next/cache";
 import { recalculateJokers, getUserJokerInfo } from "./joker-actions";
-import { getMonthlySettings, getCurrentChallengeMonth } from "@/lib/settings-utils";
+import {
+  getMonthlySettings,
+  getCurrentChallengeMonth,
+  getSpecialBirdSpecies,
+} from "@/lib/settings-utils";
 import { requireSession } from "@/lib/auth-helpers";
 import {
   checkCap,
@@ -21,6 +25,13 @@ interface SubmitBirdsInput {
   customBirds?: string[]; // Birds not in the predefined list
   /** Proof photos for photo birds: birdName -> Vercel Blob URL */
   photos?: Record<string, string>;
+  /**
+   * Bonus birds already twitched in a previous month, re-opened for a
+   * photo-only submission. No new Submission row is created (doesn't count
+   * toward the monthly cap) — the photo is attached to the existing
+   * submission, tagged with this month via photoYear/photoMonth.
+   */
+  photoOnlyBirds?: string[];
 }
 
 // Only accept photo URLs from our own Blob store
@@ -33,15 +44,99 @@ function isOwnBlobUrl(url: string): boolean {
   }
 }
 
+/**
+ * Validate photo-only birds and resolve each to the user's EXISTING
+ * submission of that species (any region, any month in the reset window).
+ * Returns the submission updates to apply, or a user-facing error.
+ */
+async function resolvePhotoOnlyUpdates(params: {
+  userId: string;
+  regionId: string;
+  year: number;
+  month: number;
+  photoOnlyBirds: string[];
+  photos: Record<string, string>;
+}): Promise<{ updates: { id: string; photoUrl: string }[]; error?: string }> {
+  const { userId, regionId, year, month, photoOnlyBirds, photos } = params;
+
+  // 1. Must be this month's announced golden/photo birds
+  const special = await getSpecialBirdSpecies(year, month);
+  const allowedSpecies = new Set([...special.goldenSpecies, ...special.photoSpecies]);
+
+  const regionBirds = await prisma.bird.findMany({
+    where: { regionId, fullName: { in: photoOnlyBirds } },
+    select: { fullName: true, scientificName: true },
+  });
+  const sciByName = new Map(regionBirds.map((b) => [b.fullName, b.scientificName]));
+
+  for (const name of photoOnlyBirds) {
+    const sci = sciByName.get(name);
+    if (!sci) {
+      return { updates: [], error: `Unknown bird: ${name}` };
+    }
+    if (!allowedSpecies.has(sci)) {
+      return { updates: [], error: `${name} is not a bonus bird this month` };
+    }
+    const url = photos[name];
+    if (!url || !isOwnBlobUrl(url)) {
+      return { updates: [], error: `Please attach a photo for ${name}` };
+    }
+  }
+
+  // 2. Find the existing submission per species — the bird may have been
+  // twitched in another region under a different common name
+  const speciesBirds = await prisma.bird.findMany({
+    where: { scientificName: { in: [...sciByName.values()] } },
+    select: { fullName: true, regionId: true, scientificName: true },
+  });
+
+  const settings = await prisma.settings.findUnique({ where: { id: "default" } });
+  const resetPeriod = settings?.resetPeriod ?? "YEARLY";
+  const windowFilter =
+    resetPeriod === "MONTHLY" ? { year, month } : resetPeriod === "YEARLY" ? { year } : {};
+
+  const updates: { id: string; photoUrl: string }[] = [];
+  for (const name of photoOnlyBirds) {
+    const sci = sciByName.get(name)!;
+    const namePairs = speciesBirds
+      .filter((b) => b.scientificName === sci)
+      .map((b) => ({ regionId: b.regionId, birdName: b.fullName }));
+
+    const existing = await prisma.submission.findFirst({
+      where: { userId, isCustomBird: false, ...windowFilter, OR: namePairs },
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    });
+    if (!existing) {
+      return {
+        updates: [],
+        error: `You haven't twitched ${name} yet — select it from the list instead`,
+      };
+    }
+    updates.push({ id: existing.id, photoUrl: photos[name] });
+  }
+
+  return { updates };
+}
+
 interface SubmitBirdsResult {
   success: boolean;
   count?: number;
   jokersEarned?: number;
+  photosAttached?: number;
   error?: string;
 }
 
 export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsResult> {
-  const { regionId, birdNames, year, month, customBirds = [], photos = {} } = input;
+  const {
+    regionId,
+    birdNames,
+    year,
+    month,
+    customBirds = [],
+    photos = {},
+    photoOnlyBirds = [],
+  } = input;
 
   try {
     // SECURITY: identity comes from the session, never from the client
@@ -51,8 +146,8 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
     // Combine regular and custom birds
     const allBirdNames = [...birdNames, ...customBirds];
 
-    // Validate input
-    if (allBirdNames.length === 0) {
+    // Validate input (photo-only submissions may come with no new birds)
+    if (allBirdNames.length === 0 && photoOnlyBirds.length === 0) {
       return { success: false, error: "No birds selected" };
     }
 
@@ -210,21 +305,52 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
 
     const jokerCountBefore = jokersBefore?.totalJokers || 0;
 
+    // Photo-only bonus birds: validate + resolve to existing submissions
+    // BEFORE writing anything, so a bad photo-only entry can't leave a
+    // half-applied submission behind.
+    let photoOnlyUpdates: { id: string; photoUrl: string }[] = [];
+    if (photoOnlyBirds.length > 0) {
+      const resolved = await resolvePhotoOnlyUpdates({
+        userId,
+        regionId,
+        year,
+        month,
+        photoOnlyBirds,
+        photos,
+      });
+      if (resolved.error) {
+        return { success: false, error: resolved.error };
+      }
+      photoOnlyUpdates = resolved.updates;
+    }
+
     // ATOMIC: re-check the cap and insert in one transaction so two
     // concurrent submits can't both pass the pre-check and exceed the cap.
+    // Photo-only attachments ride along in the same transaction but are
+    // UPDATEs on existing rows — they never count toward the cap.
     let createdCount: number;
     try {
       createdCount = await prisma.$transaction(async (tx) => {
-        const countInTx = await tx.submission.count({
-          where: { userId, year, month },
-        });
-        if (!checkCap(countInTx, allBirdNames.length, maxBirdsPerPeriod).ok) {
-          throw new Error("CAP_EXCEEDED");
+        let count = 0;
+        if (allBirdNames.length > 0) {
+          const countInTx = await tx.submission.count({
+            where: { userId, year, month },
+          });
+          if (!checkCap(countInTx, allBirdNames.length, maxBirdsPerPeriod).ok) {
+            throw new Error("CAP_EXCEEDED");
+          }
+          const created = await tx.submission.createMany({
+            data: [...regularSubmissions, ...customSubmissions],
+          });
+          count = created.count;
         }
-        const created = await tx.submission.createMany({
-          data: [...regularSubmissions, ...customSubmissions],
-        });
-        return created.count;
+        for (const update of photoOnlyUpdates) {
+          await tx.submission.update({
+            where: { id: update.id },
+            data: { photoUrl: update.photoUrl, photoYear: year, photoMonth: month },
+          });
+        }
+        return count;
       });
     } catch (txError) {
       if (txError instanceof Error && txError.message === "CAP_EXCEEDED") {
@@ -237,7 +363,7 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
     }
 
     // OPTIMIZATION: Fire-and-forget Google Sheets sync (truly non-blocking)
-    syncToGoogleSheets({
+    if (allBirdNames.length > 0) syncToGoogleSheets({
       userId,
       email: user?.email || "",
       userName: user?.name || "",
@@ -249,8 +375,9 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
     });
 
     // Recalculate jokers based on group submissions and get the new count
+    // (photo-only attachments don't change group jokers)
     let jokersEarned = 0;
-    try {
+    if (allBirdNames.length > 0) try {
       await recalculateJokers(userId, year, month);
 
       // Get joker count AFTER submission
@@ -268,8 +395,14 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
     revalidatePath("/dashboard");
     revalidatePath("/twitch");
     revalidatePath("/submissions");
+    if (photoOnlyUpdates.length > 0) revalidatePath("/community");
 
-    return { success: true, count: createdCount, jokersEarned };
+    return {
+      success: true,
+      count: createdCount,
+      jokersEarned,
+      photosAttached: photoOnlyUpdates.length,
+    };
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return { success: false, error: "Please sign in again" };

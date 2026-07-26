@@ -121,12 +121,16 @@ export async function processFormJokersCore(
 
       // Merge in manual photo awards (stored on Submission rows) so the
       // recompute never wipes admin-granted photo jokers
+      // A photo belongs to the month it was SUBMITTED (photoYear/photoMonth
+      // for photo-only re-twitches, else the submission's own month)
       const photoAwards = await prisma.submission.findMany({
         where: {
           userId: user.id,
-          year,
-          month,
           photoAwardJokers: { gt: 0 },
+          OR: [
+            { photoYear: year, photoMonth: month },
+            { photoYear: null, year, month },
+          ],
         },
         select: { birdName: true, photoAwardJokers: true },
       });

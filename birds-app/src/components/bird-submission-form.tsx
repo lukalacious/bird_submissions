@@ -61,7 +61,10 @@ interface BirdCardProps {
   isJokerEligible: boolean;
   /** This month's announced bonus bird (matched by species, any region) */
   specialBadge?: "golden" | "photo" | null;
+  /** Selected as a photo-only re-twitch (already twitched, bonus bird) */
+  isPhotoOnlySelected: boolean;
   onToggle: (birdName: string) => void;
+  onTogglePhotoOnly: (birdName: string) => void;
 }
 
 const BirdCard = memo(function BirdCard({
@@ -70,12 +73,21 @@ const BirdCard = memo(function BirdCard({
   isLimitDisabled,
   isJokerEligible,
   specialBadge,
+  isPhotoOnlySelected,
   onToggle,
+  onTogglePhotoOnly,
 }: BirdCardProps) {
+  // Already-twitched bonus birds re-open for a photo-only submission
+  // (over and above the monthly cap)
+  const isPhotoOnlyAvailable = bird.isDisabled && !!specialBadge;
   return (
     <Card
       className={`relative cursor-pointer transition-all duration-200 ${
-        bird.isDisabled
+        isPhotoOnlyAvailable
+          ? isPhotoOnlySelected
+            ? "ring-2 ring-sky-500 bg-sky-50"
+            : "bg-muted/50 hover:border-sky-400/60 hover:shadow-md"
+          : bird.isDisabled
           ? "opacity-50 bg-muted cursor-not-allowed"
           : isSelected
           ? "ring-2 ring-primary bg-secondary"
@@ -84,7 +96,9 @@ const BirdCard = memo(function BirdCard({
           : "hover:border-primary/40 hover:shadow-md"
       }`}
       onClick={() => {
-        if (!bird.isDisabled && !isLimitDisabled) {
+        if (isPhotoOnlyAvailable) {
+          onTogglePhotoOnly(bird.fullName);
+        } else if (!bird.isDisabled && !isLimitDisabled) {
           onToggle(bird.fullName);
         }
       }}
@@ -92,8 +106,8 @@ const BirdCard = memo(function BirdCard({
       <CardContent className="p-1">
         <div className="flex items-center gap-1 min-h-[40px]">
           <Checkbox
-            checked={isSelected}
-            disabled={bird.isDisabled || isLimitDisabled}
+            checked={isSelected || isPhotoOnlySelected}
+            disabled={(bird.isDisabled && !isPhotoOnlyAvailable) || (!bird.isDisabled && isLimitDisabled)}
             className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
           />
           <div className="flex-1 min-w-0 text-center">
@@ -103,9 +117,14 @@ const BirdCard = memo(function BirdCard({
             <p className="text-xs text-muted-foreground italic truncate">
               {bird.scientificName}
             </p>
-            {bird.isDisabled && (
+            {bird.isDisabled && !isPhotoOnlyAvailable && (
               <Badge variant="stone" className="mt-1 text-xs">
                 Already Twitched
+              </Badge>
+            )}
+            {isPhotoOnlyAvailable && (
+              <Badge className="mt-1 text-xs bg-sky-100 text-sky-800 border-sky-300">
+                📸 {isPhotoOnlySelected ? "Photo selected" : "Twitched — add photo"}
               </Badge>
             )}
             {!bird.isDisabled && specialBadge === "golden" && (
@@ -156,6 +175,9 @@ export function BirdSubmissionForm({
     [goldenSet, photoSet]
   );
   const [selectedBirds, setSelectedBirds] = useState<Set<string>>(new Set());
+  // Already-twitched bonus birds re-selected for a photo-only submission —
+  // over and above the monthly cap, no new twitch is recorded
+  const [photoOnlyBirds, setPhotoOnlyBirds] = useState<Set<string>>(new Set());
   const [customBirds, setCustomBirds] = useState<string[]>([]);
   const [customBirdInput, setCustomBirdInput] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -177,10 +199,15 @@ export function BirdSubmissionForm({
 
   // Guard: if in review with no selection, go back to select
   useEffect(() => {
-    if (step === "review" && selectedBirds.size === 0 && customBirds.length === 0) {
+    if (
+      step === "review" &&
+      selectedBirds.size === 0 &&
+      customBirds.length === 0 &&
+      photoOnlyBirds.size === 0
+    ) {
       setStep("select");
     }
-  }, [step, selectedBirds.size, customBirds.length]);
+  }, [step, selectedBirds.size, customBirds.length, photoOnlyBirds.size]);
 
   const totalSelected = selectedBirds.size + customBirds.length;
   const canSelectMore = totalSelected < maxBirds;
@@ -247,8 +274,21 @@ export function BirdSubmissionForm({
     });
   }, [maxBirds]);
 
+  const togglePhotoOnly = useCallback((birdName: string) => {
+    setPhotoOnlyBirds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(birdName)) {
+        newSet.delete(birdName);
+      } else {
+        newSet.add(birdName);
+      }
+      return newSet;
+    });
+  }, []);
+
   const clearSelection = useCallback(() => {
     setSelectedBirds(new Set());
+    setPhotoOnlyBirds(new Set());
     setCustomBirds([]);
   }, []);
 
@@ -272,9 +312,19 @@ export function BirdSubmissionForm({
     setCustomBirds((prev) => prev.filter((b) => b !== birdName));
   }, []);
 
+  // Photo-only picks MUST have a photo attached before confirming
+  const photoOnlyMissingPhoto = useMemo(
+    () => Array.from(photoOnlyBirds).filter((name) => !photos[name]),
+    [photoOnlyBirds, photos]
+  );
+
   const handleSubmit = () => {
-    if (selectedBirds.size === 0 && customBirds.length === 0) {
+    if (selectedBirds.size === 0 && customBirds.length === 0 && photoOnlyBirds.size === 0) {
       toast.error("Please select at least one bird");
+      return;
+    }
+    if (photoOnlyMissingPhoto.length > 0) {
+      toast.error(`Attach a photo for: ${photoOnlyMissingPhoto.join(", ")}`);
       return;
     }
 
@@ -286,9 +336,18 @@ export function BirdSubmissionForm({
         month: currentMonth,
         customBirds,
         photos,
+        photoOnlyBirds: Array.from(photoOnlyBirds),
       });
 
       if (result.success) {
+        if (!result.count && result.photosAttached) {
+          // Photo-only submission — nothing new twitched
+          toast.success(
+            `Photo${result.photosAttached > 1 ? "s" : ""} submitted for admin review 📸`
+          );
+          router.push("/submissions");
+          return;
+        }
         const jokersParam = result.jokersEarned ? `&jokers=${result.jokersEarned}` : '';
         router.push(`/success?count=${result.count}&region=${region.name}${jokersParam}`);
       } else {
@@ -353,8 +412,20 @@ export function BirdSubmissionForm({
           <CardContent className="space-y-4">
             <h2 className="text-lg font-semibold text-foreground">Review Your Selection</h2>
             <p className="text-sm text-muted-foreground">
-              You're about to twitch {totalSelected} bird
-              {totalSelected !== 1 ? "s" : ""} for {region.label} in {currentYear}.
+              {totalSelected > 0 && (
+                <>
+                  You're about to twitch {totalSelected} bird
+                  {totalSelected !== 1 ? "s" : ""} for {region.label} in {currentYear}.
+                </>
+              )}
+              {photoOnlyBirds.size > 0 && (
+                <>
+                  {totalSelected > 0 ? " Plus " : "You're submitting "}
+                  {photoOnlyBirds.size} bonus-bird photo
+                  {photoOnlyBirds.size !== 1 ? "s" : ""} — over and above your monthly
+                  count.
+                </>
+              )}
             </p>
             <ul className="space-y-2 max-h-60 overflow-y-auto pr-2">
               {/* Regular birds */}
@@ -380,19 +451,27 @@ export function BirdSubmissionForm({
               ))}
             </ul>
 
-            {/* Bonus bird photos — golden + photography birds in this selection */}
+            {/* Bonus bird photos — golden + photography birds in this selection,
+                plus photo-only re-twitches of already-ticked bonus birds */}
             {(() => {
-              const bonusSelected = Array.from(selectedBirds)
-                .map((fullName) => {
-                  const sci = birds.find((b) => b.fullName === fullName)?.scientificName ?? "";
-                  const kind = goldenSet.has(sci)
-                    ? ("golden" as const)
-                    : photoSet.has(sci)
-                      ? ("photo" as const)
-                      : null;
-                  return kind ? { fullName, kind } : null;
-                })
-                .filter((b): b is { fullName: string; kind: "golden" | "photo" } => b !== null)
+              const kindFor = (fullName: string): "golden" | "photo" | null => {
+                const sci = birds.find((b) => b.fullName === fullName)?.scientificName ?? "";
+                return goldenSet.has(sci) ? "golden" : photoSet.has(sci) ? "photo" : null;
+              };
+              const bonusSelected = [
+                ...Array.from(selectedBirds).map((fullName) => {
+                  const kind = kindFor(fullName);
+                  return kind ? { fullName, kind, photoOnly: false } : null;
+                }),
+                ...Array.from(photoOnlyBirds).map((fullName) => {
+                  const kind = kindFor(fullName) ?? ("photo" as const);
+                  return { fullName, kind, photoOnly: true };
+                }),
+              ]
+                .filter(
+                  (b): b is { fullName: string; kind: "golden" | "photo"; photoOnly: boolean } =>
+                    b !== null
+                )
                 .sort((a, b) => a.fullName.localeCompare(b.fullName));
 
               if (bonusSelected.length === 0) return null;
@@ -403,14 +482,20 @@ export function BirdSubmissionForm({
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Attach a photo as proof — admins award bonus jokers for verified
-                    golden and photography birds.
+                    golden and photography birds. Photo-only entries don't count
+                    toward your monthly limit.
                   </p>
                   <ul className="space-y-2">
-                    {bonusSelected.map(({ fullName, kind }) => (
+                    {bonusSelected.map(({ fullName, kind, photoOnly }) => (
                       <li key={fullName} className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm">
                         <span className="flex items-center gap-1.5 min-w-0 flex-1 basis-40">
                           <span className="flex-shrink-0">{kind === "golden" ? "🪙" : "📸"}</span>
                           <span className="font-medium truncate">{fullName}</span>
+                          {photoOnly && (
+                            <Badge className="flex-shrink-0 text-xs bg-sky-100 text-sky-800 border-sky-300">
+                              Photo only
+                            </Badge>
+                          )}
                         </span>
                         <PhotoBirdUpload
                           birdName={fullName}
@@ -442,12 +527,17 @@ export function BirdSubmissionForm({
                 <ChevronLeft className="h-4 w-4 mr-2" />
                 Edit Selection
               </Button>
-              <Button onClick={handleSubmit} disabled={isPending}>
+              <Button
+                onClick={handleSubmit}
+                disabled={isPending || photoOnlyMissingPhoto.length > 0}
+              >
                 {isPending ? (
                   <>
                     <span className="animate-spin mr-2">⏳</span>
                     Submitting...
                   </>
+                ) : photoOnlyMissingPhoto.length > 0 ? (
+                  <>📸 Add photo{photoOnlyMissingPhoto.length > 1 ? "s" : ""} first</>
                 ) : (
                   <>
                     <Check className="h-4 w-4 mr-2" />
@@ -487,22 +577,24 @@ export function BirdSubmissionForm({
                   <Button
                     variant="outline"
                     onClick={clearSelection}
-                    disabled={totalSelected === 0 || isPending}
+                    disabled={(totalSelected === 0 && photoOnlyBirds.size === 0) || isPending}
                   >
                     <X className="h-4 w-4 mr-2" />
                     Clear
                   </Button>
                   <Button
                     onClick={() => setStep("review")}
-                    disabled={totalSelected === 0 || isPending}
+                    disabled={(totalSelected === 0 && photoOnlyBirds.size === 0) || isPending}
                   >
                     <Check className="h-4 w-4 mr-2" />
-                    Twitch {totalSelected} Bird{totalSelected !== 1 ? "s" : ""}
+                    {totalSelected > 0
+                      ? `Twitch ${totalSelected} Bird${totalSelected !== 1 ? "s" : ""}`
+                      : `Submit Photo${photoOnlyBirds.size !== 1 ? "s" : ""}`}
                   </Button>
                 </div>
               </div>
               <AnimatePresence>
-                {totalSelected > 0 && (
+                {(totalSelected > 0 || photoOnlyBirds.size > 0) && (
                   <motion.div
                     className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-border"
                     initial={{ opacity: 0, height: 0 }}
@@ -537,6 +629,32 @@ export function BirdSubmissionForm({
                               }}
                               className="rounded-full p-0.5 hover:bg-primary/20 transition-colors"
                               aria-label={`Remove ${fullName}`}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </motion.span>
+                        ))}
+                      {/* Photo-only bonus birds */}
+                      {Array.from(photoOnlyBirds)
+                        .sort((a, b) => a.localeCompare(b))
+                        .map((birdName) => (
+                          <motion.span
+                            key={`photo-${birdName}`}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-3 py-1 text-sm text-sky-800"
+                          >
+                            📸 {birdName}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                togglePhotoOnly(birdName);
+                              }}
+                              className="rounded-full p-0.5 hover:bg-sky-200 transition-colors"
+                              aria-label={`Remove photo entry ${birdName}`}
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -709,7 +827,9 @@ export function BirdSubmissionForm({
                         isLimitDisabled={!selectedBirds.has(bird1.fullName) && !canSelectMore}
                         isJokerEligible={!!(bird1.groupName && jokerEligibleGroups.has(bird1.groupName))}
                         specialBadge={specialBadgeFor(bird1)}
+                        isPhotoOnlySelected={photoOnlyBirds.has(bird1.fullName)}
                         onToggle={toggleBird}
+                        onTogglePhotoOnly={togglePhotoOnly}
                       />
                     )}
                     {bird2 && (
@@ -719,7 +839,9 @@ export function BirdSubmissionForm({
                         isLimitDisabled={!selectedBirds.has(bird2.fullName) && !canSelectMore}
                         isJokerEligible={!!(bird2.groupName && jokerEligibleGroups.has(bird2.groupName))}
                         specialBadge={specialBadgeFor(bird2)}
+                        isPhotoOnlySelected={photoOnlyBirds.has(bird2.fullName)}
                         onToggle={toggleBird}
+                        onTogglePhotoOnly={togglePhotoOnly}
                       />
                     )}
                   </div>
@@ -738,24 +860,27 @@ export function BirdSubmissionForm({
             </Card>
           )}
 
-          {/* Bottom Actions (for mobile) */}
-          <Card className="sticky bottom-4 sm:hidden shadow-lg">
+          {/* Bottom Actions (for mobile) — sits ABOVE the fixed bottom nav
+              (h-14 = 3.5rem, plus iOS safe-area inset) */}
+          <Card className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom))] sm:hidden shadow-lg">
             <CardContent className="p-4">
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   onClick={clearSelection}
-                  disabled={totalSelected === 0 || isPending}
+                  disabled={(totalSelected === 0 && photoOnlyBirds.size === 0) || isPending}
                   className="flex-1"
                 >
                   Clear
                 </Button>
                 <Button
                   onClick={() => setStep("review")}
-                  disabled={totalSelected === 0 || isPending}
+                  disabled={(totalSelected === 0 && photoOnlyBirds.size === 0) || isPending}
                   className="flex-1"
                 >
-                  Twitch ({totalSelected})
+                  {totalSelected > 0
+                    ? `Twitch (${totalSelected})`
+                    : `Photos (${photoOnlyBirds.size})`}
                 </Button>
               </div>
             </CardContent>
