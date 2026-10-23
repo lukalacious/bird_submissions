@@ -64,6 +64,9 @@ export function calculateFormBonus(response: FormResponse): {
 const EMAIL_ALIASES: Record<string, string> = {
   "davesgear48@gmail.com": "geardave0@gmail.com", // Dave Gear, July 2026
   "shaun.wytske@gmail.com": "chamberlainshaun1@gmail.com", // Shaun Chamberlain, May 2026
+  "colin.jackson@arocha.org": "chwjackson@gmail.com", // Colin Jackson, May/Jul/Aug 2026
+  "steve.spark60@gmail.com": "stevespark60@gmail.com", // Steve Spark, dot variant on form
+  "davegear0@gmail.com": "geardave0@gmail.com", // Dave Gear, another typo, May 2026
 };
 
 export function canonicalEmail(raw: string): string {
