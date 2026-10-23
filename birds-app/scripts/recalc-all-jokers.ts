@@ -14,12 +14,15 @@ import { PrismaClient } from "@prisma/client";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { computeGroupJokers, recalculateGroupJokers } from "../src/lib/joker-groups";
+import { getCurrentChallengeMonth } from "../src/lib/settings-utils";
 
 const prisma = new PrismaClient();
 const APPLY = process.argv.includes("--apply");
 
-const YEAR = 2026;
-const MONTHS = [1, 2, 3, 4, 5, 6, 7];
+// Every month of the challenge year up to the current month (SAST)
+const current = getCurrentChallengeMonth();
+const YEAR = current.year;
+const MONTHS = Array.from({ length: current.month }, (_, i) => i + 1);
 
 async function main() {
   console.log(APPLY ? "=== APPLY MODE ===" : "=== DRY RUN (pass --apply to execute) ===");

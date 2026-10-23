@@ -1,0 +1,1050 @@
+{
+  "cmks8qzdp00bwkko7vf0zdz2a": {
+    "region": "south_africa",
+    "fullName": "Western House Martin",
+    "scientificName": "Delichon urbicum",
+    "from": "House-Martin",
+    "to": "Martin",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdp00g7kko7m06k74iq": {
+    "region": "south_africa",
+    "fullName": "Cape Robin-chat",
+    "scientificName": "Dessonornis caffer",
+    "from": "Robin-chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdp00g8kko72fz4udoe": {
+    "region": "south_africa",
+    "fullName": "Chorister Robin-chat",
+    "scientificName": "Cossypha dichroa",
+    "from": "Robin-chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdp00g9kko7py73b91i": {
+    "region": "south_africa",
+    "fullName": "Red-capped Robin-chat",
+    "scientificName": "Cossypha natalensis",
+    "from": "Robin-chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdp00gakko7fcpk4h6l": {
+    "region": "south_africa",
+    "fullName": "White-browed Robin-chat",
+    "scientificName": "Cossypha heuglini",
+    "from": "Robin-chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdp00gbkko7qvyt40p5": {
+    "region": "south_africa",
+    "fullName": "White-throated Robin-chat",
+    "scientificName": "Dessonornis humeralis",
+    "from": "Robin-chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k8smw02ta5iiqlnhl34c3": {
+    "region": "east_africa",
+    "fullName": "Short-toed Snake Eagle",
+    "scientificName": "Circaetus gallicus",
+    "from": "Snake-Eagle",
+    "to": "Eagle",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdp00cokko74kryozez": {
+    "region": "south_africa",
+    "fullName": "Cape Eagle-Owl",
+    "scientificName": "Bubo capensis",
+    "from": "Eagle-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdp00cskko7yso2i9iq": {
+    "region": "south_africa",
+    "fullName": "Spotted Eagle-Owl",
+    "scientificName": "Bubo africanus",
+    "from": "Eagle-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdp00ctkko7wi00kh3o": {
+    "region": "south_africa",
+    "fullName": "Verreaux’s Eagle-Owl",
+    "scientificName": "Ketupa lactea",
+    "from": "Eagle-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdp00d1kko78g0w5sus": {
+    "region": "south_africa",
+    "fullName": "Greater Painted-snipe",
+    "scientificName": "Rostratula benghalensis",
+    "from": "Painted-snipe",
+    "to": "Snipe",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdp00dbkko7mbopes0w": {
+    "region": "south_africa",
+    "fullName": "Cape Penduline-tit",
+    "scientificName": "Anthoscopus minutus",
+    "from": "Penduline-Tit",
+    "to": "Tit",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdp00dckko7urphqvgj": {
+    "region": "south_africa",
+    "fullName": "Grey Penduline-tit",
+    "scientificName": "Anthoscopus caroli",
+    "from": "Penduline-Tit",
+    "to": "Tit",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kacj204y75iiq7sv9gals": {
+    "region": "west_africa",
+    "fullName": "Shelley's Eagle-Owl",
+    "scientificName": "Ketupa shelleyi",
+    "from": "Eagle-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kan1705cv5iiqlb50jvem": {
+    "region": "west_africa",
+    "fullName": "African Shrike-flycatcher",
+    "scientificName": "Megabyas flammulatus",
+    "from": "Shrike-flycatcher",
+    "to": "Flycatcher",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdn001vkko7zh3rzg80": {
+    "region": "south_africa",
+    "fullName": "Black-fronted Bush-shrike",
+    "scientificName": "Chlorophoneus nigrifrons",
+    "from": "Bush-shrike",
+    "to": "Shrike",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdn001wkko7druepzlq": {
+    "region": "south_africa",
+    "fullName": "Gorgeous Bush-Shrike",
+    "scientificName": "Telophorus viridis",
+    "from": "Bush-shrike",
+    "to": "Shrike",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdn001xkko7pcvmvam5": {
+    "region": "south_africa",
+    "fullName": "Grey-headed Bush-Shrike",
+    "scientificName": "Malaconotus blanchoti",
+    "from": "Bush-shrike",
+    "to": "Shrike",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdn001ykko7c545br7w": {
+    "region": "south_africa",
+    "fullName": "Olive Bush-Shrike",
+    "scientificName": "Chlorophoneus olivaceus",
+    "from": "Bush-shrike",
+    "to": "Shrike",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdn001zkko7bsfzsu3y": {
+    "region": "south_africa",
+    "fullName": "Orange-breasted Bush-Shrike",
+    "scientificName": "Chlorophoneus sulfureopectus",
+    "from": "Bush-shrike",
+    "to": "Shrike",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk2010nkko798x3bw3c": {
+    "region": "netherlands",
+    "fullName": "White-faced Storm-Petrel",
+    "scientificName": "Pelagodroma marina",
+    "from": "Storm-Petrel",
+    "to": "Petrel",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk2010okko7xyp0b96g": {
+    "region": "netherlands",
+    "fullName": "Wilson's Storm-Petrel",
+    "scientificName": "Oceanites oceanicus",
+    "from": "Storm-Petrel",
+    "to": "Petrel",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdq00o3kko78ex8zowc": {
+    "region": "south_africa",
+    "fullName": "Green Wood-hoopoe",
+    "scientificName": "Phoeniculus purpureus",
+    "from": "Wood-hoopoe",
+    "to": "Hoopoe",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdn0028kko785ymwwox": {
+    "region": "south_africa",
+    "fullName": "Crested Honey Buzzard",
+    "scientificName": "Pernis ptilorhynchus",
+    "from": "Honey-buzzard",
+    "to": "Buzzard",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdn0029kko78cvnbjpo": {
+    "region": "south_africa",
+    "fullName": "European Honey Buzzard",
+    "scientificName": "Pernis apivorus",
+    "from": "Honey-buzzard",
+    "to": "Buzzard",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdq00l1kko741snghnw": {
+    "region": "south_africa",
+    "fullName": "Cape Rock Thrush",
+    "scientificName": "Monticola rupestris",
+    "from": "Rock-Thrush",
+    "to": "Thrush",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdq00l8kko7k9qymgtu": {
+    "region": "south_africa",
+    "fullName": "Sentinel Rock Thrush",
+    "scientificName": "Monticola explorator",
+    "from": "Rock-Thrush",
+    "to": "Thrush",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzdq00l9kko7n4ocmn8x": {
+    "region": "south_africa",
+    "fullName": "Short-toed Rock Thrush",
+    "scientificName": "Monticola brevipes",
+    "from": "Rock-Thrush",
+    "to": "Thrush",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk100oikko7fea72mou": {
+    "region": "netherlands",
+    "fullName": "Taiga Bean-Goose",
+    "scientificName": "Anser fabalis",
+    "from": "Bean-Goose",
+    "to": "Goose",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk100ojkko7i027t4aa": {
+    "region": "netherlands",
+    "fullName": "Tundra Bean-Goose",
+    "scientificName": "Anser serrirostris",
+    "from": "Bean-Goose",
+    "to": "Goose",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk100pnkko7z9hr8f0u": {
+    "region": "netherlands",
+    "fullName": "Western Cattle-Egret",
+    "scientificName": "Ardea ibis",
+    "from": "Cattle-Egret",
+    "to": "Egret",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk100pukko7ombaefmg": {
+    "region": "netherlands",
+    "fullName": "Eurasian Collared-Dove",
+    "scientificName": "Streptopelia decaocto",
+    "from": "Collared-Dove",
+    "to": "Dove",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk100pzkko79g8zqgbi": {
+    "region": "netherlands",
+    "fullName": "Eurasian Crag-Martin",
+    "scientificName": "Ptyonoprogne rupestris",
+    "from": "Crag-Martin",
+    "to": "Martin",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk100rckko7soxbgnl3": {
+    "region": "netherlands",
+    "fullName": "Eurasian Eagle-Owl",
+    "scientificName": "Bubo bubo",
+    "from": "Eagle-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk100rtkko7d8lmvm9w": {
+    "region": "netherlands",
+    "fullName": "Pallas's Fish-Eagle",
+    "scientificName": "Haliaeetus leucoryphus",
+    "from": "Fish-Eagle",
+    "to": "Eagle",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk100sbkko7lwp8vozh": {
+    "region": "netherlands",
+    "fullName": "American Golden-Plover",
+    "scientificName": "Pluvialis dominica",
+    "from": "Golden-Plover",
+    "to": "Plover",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk100sckko79fx5j1x1": {
+    "region": "netherlands",
+    "fullName": "European Golden-Plover",
+    "scientificName": "Pluvialis apricaria",
+    "from": "Golden-Plover",
+    "to": "Plover",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk100sdkko73ggbo32a": {
+    "region": "netherlands",
+    "fullName": "Pacific Golden-Plover",
+    "scientificName": "Pluvialis fulva",
+    "from": "Golden-Plover",
+    "to": "Plover",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk100uakko735sl78xj": {
+    "region": "netherlands",
+    "fullName": "European Honey-buzzard",
+    "scientificName": "Pernis apivorus",
+    "from": "Honey-buzzard",
+    "to": "Buzzard",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk100udkko799u8f41g": {
+    "region": "netherlands",
+    "fullName": "Western House-Martin",
+    "scientificName": "Delichon urbicum",
+    "from": "House-Martin",
+    "to": "Martin",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk200wmkko7i6a42sqf": {
+    "region": "netherlands",
+    "fullName": "Eurasian Penduline-Tit",
+    "scientificName": "Remiz pendulinus",
+    "from": "Penduline-Tit",
+    "to": "Tit",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk200xkkko7ixgktkfa": {
+    "region": "netherlands",
+    "fullName": "Eurasian Pygmy-Owl",
+    "scientificName": "Glaucidium passerinum",
+    "from": "Pygmy-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk200y0kko7b0zbceyt": {
+    "region": "netherlands",
+    "fullName": "Blue Rock-Thrush",
+    "scientificName": "Monticola solitarius",
+    "from": "Rock-Thrush",
+    "to": "Thrush",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk200y1kko7gxf5r51p": {
+    "region": "netherlands",
+    "fullName": "Rufous-tailed Rock-Thrush",
+    "scientificName": "Monticola saxatilis",
+    "from": "Rock-Thrush",
+    "to": "Thrush",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk200y7kko7gjwcas61": {
+    "region": "netherlands",
+    "fullName": "Greater Sand-Plover",
+    "scientificName": "Anarhynchus leschenaultii",
+    "from": "Sand-Plover",
+    "to": "Plover",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk200ywkko7rzv6ijt1": {
+    "region": "netherlands",
+    "fullName": "Eurasian Scops-Owl",
+    "scientificName": "Otus scops",
+    "from": "Scops-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk200z3kko7osm1oqds": {
+    "region": "netherlands",
+    "fullName": "Rufous-tailed Scrub-Robin",
+    "scientificName": "Cercotrichas galactotes",
+    "from": "Scrub-Robin",
+    "to": "Robin",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk200z4kko7kzyl315c": {
+    "region": "netherlands",
+    "fullName": "Steller's Sea-Eagle",
+    "scientificName": "Haliaeetus pelagicus",
+    "from": "Sea-Eagle",
+    "to": "Eagle",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk200ztkko7p4hh4asb": {
+    "region": "netherlands",
+    "fullName": "Short-toed Snake-Eagle",
+    "scientificName": "Circaetus gallicus",
+    "from": "Snake-Eagle",
+    "to": "Eagle",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk2010lkko73gim2g9y": {
+    "region": "netherlands",
+    "fullName": "European Storm-Petrel",
+    "scientificName": "Hydrobates pelagicus",
+    "from": "Storm-Petrel",
+    "to": "Petrel",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk2010mkko74s0emkea": {
+    "region": "netherlands",
+    "fullName": "Leach's Storm-Petrel",
+    "scientificName": "Hydrobates leucorhous",
+    "from": "Storm-Petrel",
+    "to": "Petrel",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk20128kko7oycb7td3": {
+    "region": "netherlands",
+    "fullName": "European Turtle-Dove",
+    "scientificName": "Streptopelia turtur",
+    "from": "Turtle-Dove",
+    "to": "Dove",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk20129kko7ll5og8qy": {
+    "region": "netherlands",
+    "fullName": "Oriental Turtle-Dove",
+    "scientificName": "Streptopelia orientalis",
+    "from": "Turtle-Dove",
+    "to": "Dove",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmks8qzk2014fkko7ing1styl": {
+    "region": "netherlands",
+    "fullName": "Common Wood-Pigeon",
+    "scientificName": "Columba palumbus",
+    "from": "Wood-Pigeon",
+    "to": "Pigeon",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k8hw502eg5iiq9vzmp8i9": {
+    "region": "east_africa",
+    "fullName": "Western Yellowbill (Blue Malkoha)",
+    "scientificName": "Ceuthmochares aereus",
+    "from": "Malkoha)",
+    "to": "Malkoha",
+    "source": "bracket cleanup"
+  },
+  "cmn3k8mdp02km5iiqfkaz2l6p": {
+    "region": "east_africa",
+    "fullName": "Greater Painted-snipe",
+    "scientificName": "Rostratula benghalensis",
+    "from": "Painted-snipe",
+    "to": "Snipe",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k8nvk02mq5iiqfd9ylh3d": {
+    "region": "east_africa",
+    "fullName": "Quail-plover",
+    "scientificName": "Ortyxelos meiffrenii",
+    "from": "Quail-plover",
+    "to": "Plover",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k8sb102su5iiqo9o4cdvp": {
+    "region": "east_africa",
+    "fullName": "European Honey Buzzard",
+    "scientificName": "Pernis apivorus",
+    "from": "Honey-buzzard",
+    "to": "Buzzard",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k8scg02sw5iiq2dmuvznq": {
+    "region": "east_africa",
+    "fullName": "Crested (Oriental) Honey Buzzard",
+    "scientificName": "Pernis ptilorhynchus",
+    "from": "Honey-buzzard",
+    "to": "Buzzard",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k8v0z02wi5iiq5ptzhgka": {
+    "region": "east_africa",
+    "fullName": "Eurasian Scops Owl",
+    "scientificName": "Otus scops",
+    "from": "Scops-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k8vbe02ww5iiqnslckqka": {
+    "region": "east_africa",
+    "fullName": "Cape Eagle-Owl",
+    "scientificName": "Bubo capensis",
+    "from": "Eagle-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k8vck02wy5iiq9lfs6j6p": {
+    "region": "east_africa",
+    "fullName": "Spotted Eagle Owl",
+    "scientificName": "Bubo africanus",
+    "from": "Eagle-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k8wcp02ya5iiqzoer1c53": {
+    "region": "east_africa",
+    "fullName": "Forest Wood-hoopoe",
+    "scientificName": "Phoeniculus castaneiceps",
+    "from": "Wood-hoopoe",
+    "to": "Hoopoe",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k8we502yc5iiqvzhhxjnl": {
+    "region": "east_africa",
+    "fullName": "White-headed Wood-hoopoe",
+    "scientificName": "Phoeniculus bollei",
+    "from": "Wood-hoopoe",
+    "to": "Hoopoe",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k8wfi02ye5iiqy6pm6t1s": {
+    "region": "east_africa",
+    "fullName": "Green Wood-hoopoe",
+    "scientificName": "Phoeniculus purpureus",
+    "from": "Wood-hoopoe",
+    "to": "Hoopoe",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k8wgx02yg5iiqqnppwnvi": {
+    "region": "east_africa",
+    "fullName": "Black-billed Wood-hoopoe",
+    "scientificName": "Phoeniculus somaliensis",
+    "from": "Wood-hoopoe",
+    "to": "Hoopoe",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k8wie02yi5iiq6orj6t4o": {
+    "region": "east_africa",
+    "fullName": "Violet Wood-Hoopoe",
+    "scientificName": "Phoeniculus damarensis",
+    "from": "Wood-Hoopoe",
+    "to": "Hoopoe",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k92es036i5iiqavxjbjn8": {
+    "region": "east_africa",
+    "fullName": "African Shrike-flycatcher",
+    "scientificName": "Megabyas flammulatus",
+    "from": "Shrike-flycatcher",
+    "to": "Flycatcher",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k92j5036o5iiq7qgvwo9j": {
+    "region": "east_africa",
+    "fullName": "Grey-headed Bush-Shrike",
+    "scientificName": "Malaconotus blanchoti",
+    "from": "Bush-shrike",
+    "to": "Bushshrike",
+    "source": "dehyphen merge (concatenation exists in region)"
+  },
+  "cmn3k92w403765iiqkj7ugvkc": {
+    "region": "east_africa",
+    "fullName": "Black-fronted Bushshrike",
+    "scientificName": "Chlorophoneus nigrifrons",
+    "from": "Bush-shrike",
+    "to": "Bushshrike",
+    "source": "dehyphen merge (concatenation exists in region)"
+  },
+  "cmn3k92z2037a5iiqylfamhyb": {
+    "region": "east_africa",
+    "fullName": "Sulphur-breasted Bushshrike",
+    "scientificName": "Chlorophoneus sulfureopectus",
+    "from": "Bush-shrike",
+    "to": "Bushshrike",
+    "source": "dehyphen merge (concatenation exists in region)"
+  },
+  "cmn3k93hg037y5iiqfif5n09i": {
+    "region": "east_africa",
+    "fullName": "Gorgeous Bushshrike",
+    "scientificName": "Telophorus viridis",
+    "from": "Bush-shrike",
+    "to": "Bushshrike",
+    "source": "dehyphen merge (concatenation exists in region)"
+  },
+  "cmn3k94sa039s5iiqjj9031ab": {
+    "region": "east_africa",
+    "fullName": "Grey-chested Kakamega (Thrush-babbler)",
+    "scientificName": "Kakamega poliothorax",
+    "from": "(Thrush-babbler)",
+    "to": "Babbler",
+    "source": "bracket cleanup + hyphen merge"
+  },
+  "cmn3k9c7v03k05iiq4sevbkdf": {
+    "region": "east_africa",
+    "fullName": "Reichenow's Seedeater [Yellow-rumped]",
+    "scientificName": "Crithagra reichenowi",
+    "from": "[Yellow-rumped]",
+    "to": "Yellow-rumped",
+    "source": "bracket cleanup"
+  },
+  "cmn3k9d0o03l45iiq90z6e7k8": {
+    "region": "east_africa",
+    "fullName": "Blue Crested-flycatcher",
+    "scientificName": "Elminia longicauda",
+    "from": "Crested-flycatcher",
+    "to": "Flycatcher",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k9dcg03lk5iiqpy3ui85m": {
+    "region": "east_africa",
+    "fullName": "Mouse-coloured Penduline-Tit",
+    "scientificName": "Anthoscopus musculus",
+    "from": "Penduline-Tit",
+    "to": "Tit",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k9ddt03lm5iiqg4ldk4gp": {
+    "region": "east_africa",
+    "fullName": "Penduline Tit",
+    "scientificName": "Anthoscopus caroli",
+    "from": "Penduline-Tit",
+    "to": "Tit",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k9df803lo5iiqkcnuznag": {
+    "region": "east_africa",
+    "fullName": "Grey Penduline Tit",
+    "scientificName": "Anthoscopus caroli",
+    "from": "Penduline-Tit",
+    "to": "Tit",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k9fiq03oi5iiq4be7blnv": {
+    "region": "east_africa",
+    "fullName": "Grey Wren-Warbler",
+    "scientificName": "Calamonastes simplex",
+    "from": "Wren-Warbler",
+    "to": "Warbler",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k9i9t03sa5iiq8bpzt2wr": {
+    "region": "east_africa",
+    "fullName": "Common House Martin",
+    "scientificName": "Delichon urbicum",
+    "from": "House-Martin",
+    "to": "Martin",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k9j3o03tc5iiqj9stc052": {
+    "region": "east_africa",
+    "fullName": "Yellow-throated Greenbul (Leaflove)",
+    "scientificName": "Atimastillas flavicollis",
+    "from": "(Leaflove)",
+    "to": "Leaflove",
+    "source": "bracket cleanup"
+  },
+  "cmn3k9nn103zg5iiq0194einw": {
+    "region": "east_africa",
+    "fullName": "White-browed Robin Chat",
+    "scientificName": "Cossypha heuglini",
+    "from": "Robin-chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k9noi03zi5iiqxzp8yqo0": {
+    "region": "east_africa",
+    "fullName": "Red-capped Robin Chat",
+    "scientificName": "Cossypha natalensis",
+    "from": "Robin-chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k9obq040e5iiqa6qutk1a": {
+    "region": "east_africa",
+    "fullName": "Common Rock Thrush",
+    "scientificName": "Monticola saxatilis",
+    "from": "Rock-Thrush",
+    "to": "Thrush",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k9pm704275iiq7sucxv2b": {
+    "region": "west_africa",
+    "fullName": "Taiga Bean Goose",
+    "scientificName": "Anser fabalis",
+    "from": "Bean-Goose",
+    "to": "Goose",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k9wg704bp5iiqrd8pip44": {
+    "region": "west_africa",
+    "fullName": "Common Wood Pigeon",
+    "scientificName": "Columba palumbus",
+    "from": "Wood-Pigeon",
+    "to": "Pigeon",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k9wx304cd5iiqublmpb9o": {
+    "region": "west_africa",
+    "fullName": "Eurasian Collared Dove",
+    "scientificName": "Streptopelia decaocto",
+    "from": "Collared-Dove",
+    "to": "Dove",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k9z1d04fb5iiqqtyiv6je": {
+    "region": "west_africa",
+    "fullName": "Quail-plover",
+    "scientificName": "Ortyxelos meiffrenii",
+    "from": "Quail-plover",
+    "to": "Plover",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3k9zfj04fv5iiq9zj7f0tg": {
+    "region": "west_africa",
+    "fullName": "European Golden Plover",
+    "scientificName": "Pluvialis apricaria",
+    "from": "Golden-Plover",
+    "to": "Plover",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3ka0jr04hf5iiqzrx2uhor": {
+    "region": "west_africa",
+    "fullName": "Greater Painted-snipe",
+    "scientificName": "Rostratula benghalensis",
+    "from": "Painted-snipe",
+    "to": "Snipe",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3ka8y704t75iiqzf3t95jy": {
+    "region": "west_africa",
+    "fullName": "European Honey Buzzard",
+    "scientificName": "Pernis apivorus",
+    "from": "Honey-buzzard",
+    "to": "Buzzard",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3ka8zp04t95iiql0t0jcpc": {
+    "region": "west_africa",
+    "fullName": "Crested Honey Buzzard",
+    "scientificName": "Pernis ptilorhynchus",
+    "from": "Honey-buzzard",
+    "to": "Buzzard",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3ka9jm04u15iiqysp34yzm": {
+    "region": "west_africa",
+    "fullName": "Short-toed Snake Eagle",
+    "scientificName": "Circaetus gallicus",
+    "from": "Snake-Eagle",
+    "to": "Eagle",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kaa5f04uv5iiqq4r1rfxm": {
+    "region": "west_africa",
+    "fullName": "Cassin's Hawk-Eagle",
+    "scientificName": "Aquila africana",
+    "from": "Hawk-Eagle",
+    "to": "Eagle",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kabxx04xd5iiqn95fpyiv": {
+    "region": "west_africa",
+    "fullName": "Eurasian Scops Owl",
+    "scientificName": "Otus scops",
+    "from": "Scops-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kacad04xv5iiqub1pxepm": {
+    "region": "west_africa",
+    "fullName": "Pharaoh Eagle-Owl",
+    "scientificName": "Bubo ascalaphus",
+    "from": "Eagle-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kacbv04xx5iiqu2f9s965": {
+    "region": "west_africa",
+    "fullName": "Greyish Eagle-Owl",
+    "scientificName": "Bubo cinerascens",
+    "from": "Eagle-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kacdg04xz5iiqzz4b0m3h": {
+    "region": "west_africa",
+    "fullName": "Spotted Eagle-Owl",
+    "scientificName": "Bubo africanus",
+    "from": "Eagle-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kacev04y15iiqx2v2ha7t": {
+    "region": "west_africa",
+    "fullName": "Fraser's Eagle-Owl",
+    "scientificName": "Ketupa poensis",
+    "from": "Eagle-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kacga04y35iiq4w01fabb": {
+    "region": "west_africa",
+    "fullName": "Akun Eagle-Owl",
+    "scientificName": "Ketupa leucosticta",
+    "from": "Eagle-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kachp04y55iiqvzeje6b6": {
+    "region": "west_africa",
+    "fullName": "Verreaux's Eagle-Owl",
+    "scientificName": "Ketupa lactea",
+    "from": "Eagle-Owl",
+    "to": "Owl",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kad4n04z15iiqex5fp18k": {
+    "region": "west_africa",
+    "fullName": "Green Wood Hoopoe",
+    "scientificName": "Phoeniculus purpureus",
+    "from": "Wood-hoopoe",
+    "to": "Hoopoe",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kalap05af5iiqm5uh4vr8": {
+    "region": "west_africa",
+    "fullName": "Grey-headed Bushshrike",
+    "scientificName": "Malaconotus blanchoti",
+    "from": "Bush-shrike",
+    "to": "Bushshrike",
+    "source": "dehyphen merge (concatenation exists in region)"
+  },
+  "cmn3kalhq05ap5iiq6t97z4u5": {
+    "region": "west_africa",
+    "fullName": "Black-fronted Bushshrike",
+    "scientificName": "Chlorophoneus nigrifrons",
+    "from": "Bush-shrike",
+    "to": "Bushshrike",
+    "source": "dehyphen merge (concatenation exists in region)"
+  },
+  "cmn3kall505at5iiqi712i51v": {
+    "region": "west_africa",
+    "fullName": "Orange-breasted Bushshrike",
+    "scientificName": "Chlorophoneus sulfureopectus",
+    "from": "Bush-shrike",
+    "to": "Bushshrike",
+    "source": "dehyphen merge (concatenation exists in region)"
+  },
+  "cmn3kalml05av5iiqn7wlxq1b": {
+    "region": "west_africa",
+    "fullName": "Gorgeous Bushshrike",
+    "scientificName": "Telophorus viridis",
+    "from": "Bush-shrike",
+    "to": "Bushshrike",
+    "source": "dehyphen merge (concatenation exists in region)"
+  },
+  "cmn3kaq2o05h35iiqxlejx2ve": {
+    "region": "west_africa",
+    "fullName": "Grey Penduline Tit",
+    "scientificName": "Anthoscopus caroli",
+    "from": "Penduline-Tit",
+    "to": "Tit",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kaq4305h55iiq4al5w3e1": {
+    "region": "west_africa",
+    "fullName": "Cape Penduline Tit",
+    "scientificName": "Anthoscopus minutus",
+    "from": "Penduline-Tit",
+    "to": "Tit",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kaq9x05hd5iiqf17n28g7": {
+    "region": "west_africa",
+    "fullName": "Greater Hoopoe-Lark",
+    "scientificName": "Alaemon alaudipes",
+    "from": "Hoopoe-Lark",
+    "to": "Lark",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kaqmz05hv5iiqbavpm6h0": {
+    "region": "west_africa",
+    "fullName": "Black-crowned Sparrow-Lark",
+    "scientificName": "Eremopterix nigriceps",
+    "from": "Sparrow-Lark",
+    "to": "Lark",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kaqre05i15iiqwz4i88ml": {
+    "region": "west_africa",
+    "fullName": "Fischer's Sparrow-Lark",
+    "scientificName": "Eremopterix leucopareia",
+    "from": "Sparrow-Lark",
+    "to": "Lark",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kaucf05n15iiq37ijzqo6": {
+    "region": "west_africa",
+    "fullName": "Eurasian Crag Martin",
+    "scientificName": "Ptyonoprogne rupestris",
+    "from": "Crag-Martin",
+    "to": "Martin",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kauyj05nv5iiq5otkyyen": {
+    "region": "west_africa",
+    "fullName": "Western House Martin",
+    "scientificName": "Delichon urbicum",
+    "from": "House-Martin",
+    "to": "Martin",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kb0ol05vj5iiq5lbguqea": {
+    "region": "west_africa",
+    "fullName": "Miombo Wren-Warbler",
+    "scientificName": "Calamonastes undosus",
+    "from": "Wren-Warbler",
+    "to": "Warbler",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kb2oh05y75iiqszgxq25s": {
+    "region": "west_africa",
+    "fullName": "Spotted Thrush-Babbler",
+    "scientificName": "Illadopsis turdina",
+    "from": "Thrush-Babbler",
+    "to": "Babbler",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kb69y06335iiqxcz8gzlt": {
+    "region": "west_africa",
+    "fullName": "Grey-throated Tit-Flycatcher",
+    "scientificName": "Fraseria griseigularis",
+    "from": "Tit-Flycatcher",
+    "to": "Flycatcher",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kb7k7064v5iiqq0hq4jc4": {
+    "region": "west_africa",
+    "fullName": "White-bellied Robin-Chat",
+    "scientificName": "Cossyphicula roberti",
+    "from": "Robin-Chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kb7lo064x5iiqjl34dwdq": {
+    "region": "west_africa",
+    "fullName": "Mountain Robin-Chat",
+    "scientificName": "Cossyphicula isabellae",
+    "from": "Robin-Chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kb7pw06535iiqi50os7rr": {
+    "region": "west_africa",
+    "fullName": "White-crowned Robin-Chat",
+    "scientificName": "Cossypha albicapillus",
+    "from": "Robin-Chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kb7rb06555iiqtrilw6o1": {
+    "region": "west_africa",
+    "fullName": "White-browed Robin-Chat",
+    "scientificName": "Cossypha heuglini",
+    "from": "Robin-chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kb7sq06575iiqx8o8bg4l": {
+    "region": "west_africa",
+    "fullName": "Snowy-crowned Robin-Chat",
+    "scientificName": "Cossypha niveicapilla",
+    "from": "Robin-Chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kb7ua06595iiq5q6s6ys8": {
+    "region": "west_africa",
+    "fullName": "Red-capped Robin-Chat",
+    "scientificName": "Cossypha natalensis",
+    "from": "Robin-chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kb7vx065b5iiqj8c0ad2x": {
+    "region": "west_africa",
+    "fullName": "White-headed Robin-Chat",
+    "scientificName": "Cossypha heinrichi",
+    "from": "Robin-Chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kb7xe065d5iiq1ikn4iuf": {
+    "region": "west_africa",
+    "fullName": "Blue-shouldered Robin-Chat",
+    "scientificName": "Cossypha cyanocampter",
+    "from": "Robin-Chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kb84n065n5iiqo7f22s61": {
+    "region": "west_africa",
+    "fullName": "Cape Robin-Chat",
+    "scientificName": "Dessonornis caffer",
+    "from": "Robin-chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kb8ei06615iiqp5uzg75c": {
+    "region": "west_africa",
+    "fullName": "Grey-winged Robin-Chat",
+    "scientificName": "Sheppardia polioptera",
+    "from": "Robin-Chat",
+    "to": "Chat",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kb8wi066p5iiqqpgf1bn2": {
+    "region": "west_africa",
+    "fullName": "Short-toed Rock Thrush",
+    "scientificName": "Monticola brevipes",
+    "from": "Rock-Thrush",
+    "to": "Thrush",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kb8xx066r5iiqz0yjxb7n": {
+    "region": "west_africa",
+    "fullName": "Common Rock Thrush",
+    "scientificName": "Monticola saxatilis",
+    "from": "Rock-Thrush",
+    "to": "Thrush",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kb8zc066t5iiqj5w4bhe1": {
+    "region": "west_africa",
+    "fullName": "Blue Rock Thrush",
+    "scientificName": "Monticola solitarius",
+    "from": "Rock-Thrush",
+    "to": "Thrush",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kbdkz06d75iiqc0exc79a": {
+    "region": "west_africa",
+    "fullName": "Chestnut-crowned Sparrow-Weaver",
+    "scientificName": "Plocepasser superciliosus",
+    "from": "Sparrow-Weaver",
+    "to": "Weaver",
+    "source": "hyphen merge (tail exists in region)"
+  },
+  "cmn3kbdma06d95iiqhdxoir7f": {
+    "region": "west_africa",
+    "fullName": "Chestnut-backed Sparrow-Weaver",
+    "scientificName": "Plocepasser rufoscapulatus",
+    "from": "Sparrow-Weaver",
+    "to": "Weaver",
+    "source": "hyphen merge (tail exists in region)"
+  }
+}

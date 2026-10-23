@@ -5,6 +5,7 @@
  * Usage:
  *   DATABASE_URL="..." npx tsx scripts/normalize-group-names.ts          # dry run
  *   DATABASE_URL="..." npx tsx scripts/normalize-group-names.ts --apply  # execute
+ *   ... --mapping=hyphen-group-mapping.json                              # alternate mapping file
  */
 import { PrismaClient } from "@prisma/client";
 import * as fs from "node:fs";
@@ -25,7 +26,9 @@ interface MappingEntry {
 async function main() {
   console.log(APPLY ? "=== APPLY MODE ===" : "=== DRY RUN (pass --apply to execute) ===");
 
-  const mappingPath = path.join(__dirname, "group-name-mapping.json");
+  const mappingArg = process.argv.find((a) => a.startsWith("--mapping="))?.split("=")[1];
+  const mappingPath = path.join(__dirname, mappingArg ?? "group-name-mapping.json");
+  console.log(`Mapping file: ${mappingPath}`);
   const mapping: Record<string, MappingEntry> = JSON.parse(fs.readFileSync(mappingPath, "utf8"));
   const entries = Object.entries(mapping);
   console.log(`Mapping entries: ${entries.length}`);

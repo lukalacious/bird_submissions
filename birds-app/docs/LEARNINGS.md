@@ -317,6 +317,23 @@ One-off `scripts/fix-shaun-may.ts` (move submissions + UserJoker, delete duplica
 
 ---
 
+### [2026-10-24] - groupName lives in TWO places: DB and the Excel workbook
+
+**Problem:**
+Hyphenated group names fragment joker families (NL "Common Wood-Pigeon" → group "Wood-Pigeon" while "Rock Pigeon" → "Pigeon"; 57 single-member hyphenated groups across regions can never earn of-a-kind jokers). Worse: the July normalization fixed `Bird.groupName` in the DB only.
+
+**Root Cause:**
+SA/NL groupNames come verbatim from the hand-maintained "Group Name" column in `prisma/Bird Species Database.xlsx` (inconsistent hyphenation at source). The July audit's `lastWord()` splits on whitespace only, so it propagated hyphenated tails into EA/WA and minted new ones. And `upsert-regions.ts` overwrites `groupName` whenever the sheet differs — so the xlsx is a second source of truth that silently REVERTS any DB-only rename on the next `npm run db:upsert-regions` (currently divergent for all 2,735 EA/WA birds).
+
+**Solution:**
+`scripts/audit-hyphen-groups.ts` proposes merges (hyphen-tail → existing group, case folds, bracket junk) into `scripts/hyphen-group-mapping.json`; apply with `normalize-group-names.ts --mapping=... --apply`, then `recalc-all-jokers.ts` (now auto-ranges months 1..current). Pending Dale's rules sign-off before applying mid-season.
+
+**Prevention:**
+- Any groupName change must be mirrored in `prisma/Bird Species Database.xlsx` or it will be reverted by the next upsert
+- Group merges change historical joker balances on recalc — review `joker-recalc-diff.csv` and announce (July precedent)
+
+---
+
 ## Template for New Entries
 
 Copy this template when adding new learnings:

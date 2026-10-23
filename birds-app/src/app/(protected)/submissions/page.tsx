@@ -2,7 +2,8 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Bird, Calendar, Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { FileText, Bird, Calendar, Pencil, Download } from "lucide-react";
 import { getCurrentChallengeMonth } from "@/lib/settings-utils";
 import { DeletableBirdPill } from "@/components/submissions/deletable-bird-pill";
 import { RequestChangePill } from "@/components/submissions/request-change-pill";
@@ -87,12 +88,22 @@ export default async function SubmissionsPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground mb-1 flex items-center gap-2">
-          <FileText className="h-6 w-6 text-primary" />
-          My Submissions
-        </h1>
-        <p className="text-muted-foreground">All regions</p>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground mb-1 flex items-center gap-2">
+            <FileText className="h-6 w-6 text-primary" />
+            My Submissions
+          </h1>
+          <p className="text-muted-foreground">All regions</p>
+        </div>
+        {totalBirds > 0 && (
+          <Button asChild variant="outline" size="sm" className="shrink-0">
+            <a href="/api/export" download>
+              <Download className="h-4 w-4" />
+              Export CSV
+            </a>
+          </Button>
+        )}
       </div>
 
       {/* Editable-month hint */}

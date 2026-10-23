@@ -113,25 +113,35 @@ export default async function CommunityPage({
     orderBy: { birdName: "asc" },
   });
 
-  // Get all bird names and their group info
-  const birdNames = [...new Set(submissions.map((s) => s.birdName))];
-  const birdsWithGroups = await prisma.bird.findMany({
-    where: { fullName: { in: birdNames } },
-    select: { fullName: true, groupName: true },
-  });
-  const birdGroupMap = new Map(birdsWithGroups.map((b) => [b.fullName, b.groupName]));
-
   // Calculate which users have completed which groups (3+ birds from same group)
   // First, get all submissions for this period to calculate group completions per user
   const allSubmissionsForPeriod = await prisma.submission.findMany({
     where: { year, month },
-    select: { userId: true, birdName: true },
+    select: { userId: true, birdName: true, regionId: true },
   });
+
+  // Group info lookup must be region-scoped — the same fullName can exist in
+  // several regions with different groupNames (see LEARNINGS 2026-07-26)
+  const pairKey = (name: string, rId: string) => `${rId}:${name}`;
+  const uniquePairs = new Map<string, { fullName: string; regionId: string }>();
+  for (const s of [...submissions, ...allSubmissionsForPeriod]) {
+    uniquePairs.set(pairKey(s.birdName, s.regionId), {
+      fullName: s.birdName,
+      regionId: s.regionId,
+    });
+  }
+  const birdsWithGroups = await prisma.bird.findMany({
+    where: { OR: [...uniquePairs.values()] },
+    select: { fullName: true, regionId: true, groupName: true },
+  });
+  const birdGroupMap = new Map(
+    birdsWithGroups.map((b) => [pairKey(b.fullName, b.regionId), b.groupName])
+  );
 
   // Map user -> group -> bird count
   const userGroupCounts = new Map<string, Map<string, number>>();
   for (const sub of allSubmissionsForPeriod) {
-    const group = birdGroupMap.get(sub.birdName);
+    const group = birdGroupMap.get(pairKey(sub.birdName, sub.regionId));
     if (!group) continue;
 
     if (!userGroupCounts.has(sub.userId)) {
@@ -163,9 +173,22 @@ export default async function CommunityPage({
     }
   >();
 
+  // Joker submissions have unique names (🃏 Joker #1, #2, ...) — collapse
+  // them into a single summary row instead of one row per joker played
+  let jokerCount = 0;
+  const jokerUsers: { id: string; name: string | null; username: string | null; image: string | null }[] = [];
+
   for (const sub of submissions) {
+    if (sub.isJokerSubmission) {
+      jokerCount++;
+      if (!jokerUsers.find((u) => u.id === sub.user.id)) {
+        jokerUsers.push(sub.user);
+      }
+      continue;
+    }
+
     const existing = birdMap.get(sub.birdName);
-    const groupName = birdGroupMap.get(sub.birdName) || null;
+    const groupName = birdGroupMap.get(pairKey(sub.birdName, sub.regionId)) || null;
     const jokerContribution = groupName ? (groupCompletionCount.get(groupName) || 0) : 0;
 
     if (existing) {
@@ -185,6 +208,15 @@ export default async function CommunityPage({
   }
 
   const aggregatedSubmissions = Array.from(birdMap.values()).sort((a, b) => b.count - a.count);
+  if (jokerCount > 0) {
+    aggregatedSubmissions.push({
+      birdName: `🃏 Jokers played (${jokerCount})`,
+      count: jokerCount,
+      users: jokerUsers,
+      groupName: null,
+      jokerContribution: 0,
+    });
+  }
 
   // Stats
   const stats = {
