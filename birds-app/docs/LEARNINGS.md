@@ -355,6 +355,7 @@ Copy this template when adding new learnings:
 | Prisma P3009 failed migration | Check `_prisma_migrations` table, verify column exists, mark as applied |
 | Blob upload "failed to retrieve client token" | Store connected with custom env prefix → var is `BLOB_READ_WRITE_TOKEN_READ_WRITE_TOKEN`, not the default name. Pass `token: getBlobToken()` (src/lib/blob-token.ts) to `handleUpload`/`del` |
 | Can't read a Vercel env value locally | Sensitive vars pull as empty strings via `vercel env pull` — fix in code instead of copying the secret |
+| `tsc`/`next build` fails after a Next upgrade with `PrefetchForTypeCheckInternal` errors in `.next/dev/types` | Stale dev-server type output from the old version (tsconfig includes `.next/dev/types/**`). Delete `.next/dev/types` (or all of `.next`) and rebuild. Vercel is unaffected — it builds from a clean checkout |
 
 ---
 
