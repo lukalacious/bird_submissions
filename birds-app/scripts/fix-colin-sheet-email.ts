@@ -10,7 +10,8 @@
  *
  * Usage (needs GOOGLE_* env vars, e.g. source .env first):
  *   npx tsx scripts/fix-colin-sheet-email.ts                          # dry run
- *   npx tsx scripts/fix-colin-sheet-email.ts --apply                  # execute
+ *   npx tsx scripts/fix-colin-sheet-email.ts --apply                  # execute (interactive confirm)
+ *   npx tsx scripts/fix-colin-sheet-email.ts --apply --yes            # execute (no prompt, for non-interactive shells)
  *   npx tsx scripts/fix-colin-sheet-email.ts --tab="Form Responses 1" # custom tab
  */
 import { google } from "googleapis";
@@ -22,6 +23,7 @@ const WRONG_EMAIL = "colin.jackson@arocha.org";
 const REAL_EMAIL = "chwjackson@gmail.com";
 
 const APPLY = process.argv.includes("--apply");
+const SKIP_CONFIRM = process.argv.includes("--yes");
 const TAB =
   process.argv.find((a) => a.startsWith("--tab="))?.split("=")[1] ?? "Form Responses 1";
 
@@ -127,7 +129,8 @@ async function main() {
   fs.writeFileSync(backupPath, JSON.stringify(rows, null, 2));
   console.log(`💾 Backup saved to: ${backupPath}`);
 
-  const proceed = await confirm(`Apply ${hits.length} change(s) to "${TAB}"? (yes/no): `);
+  const proceed =
+    SKIP_CONFIRM || (await confirm(`Apply ${hits.length} change(s) to "${TAB}"? (yes/no): `));
   if (!proceed) {
     console.log("❌ Cancelled.");
     return;
