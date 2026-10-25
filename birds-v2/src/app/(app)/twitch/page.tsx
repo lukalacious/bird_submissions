@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { db } from "@/lib/db";
 import { requirePlayer } from "@/lib/dal";
 import { monthEnd, openMonths } from "@/lib/challenge-time";
-import { getPlayerSeason, getRegionBirds, getRegions, getSpecialSpecies } from "@/lib/checklist";
+import { getGoldenSpecies, getPlayerSeason, getRegionBirds, getRegions } from "@/lib/checklist";
 import { getMonthRules, getSettings } from "@/lib/settings";
 import { canTwitchWhileEliminated } from "@/lib/site";
 import { Checklist, type OpenMonth } from "./checklist";
@@ -41,9 +41,9 @@ async function TwitchData({ searchParams }: Pick<PageProps<"/twitch">, "searchPa
   const region =
     regions.find((r) => r.name === regionParam) ?? regions.find((r) => r.id === me?.defaultRegionId) ?? regions[0];
 
-  const [birds, special, season, ...rules] = await Promise.all([
+  const [birds, goldenLists, season, ...rules] = await Promise.all([
     getRegionBirds(region.id),
-    getSpecialSpecies(current),
+    Promise.all(months.map((m) => getGoldenSpecies(m))),
     getPlayerSeason(user.id, current.year),
     ...months.map((m) => getMonthRules(m)),
   ]);
@@ -67,7 +67,8 @@ async function TwitchData({ searchParams }: Pick<PageProps<"/twitch">, "searchPa
       regions={regions}
       regionId={region.id}
       birds={birds}
-      special={special}
+      golden={goldenLists[0]}
+      photoSpecies={[...new Set(goldenLists.flat())]}
       season={[...season.birds, ...previousSeason]}
       months={open}
       isEliminated={season.isEliminated && !canTwitchWhileEliminated(user.role)}

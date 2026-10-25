@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Check, Plus, Sparkles, X } from "lucide-react";
+import { Check, Plus, Sparkles, X } from "lucide-react";
 import { indexBirds, searchBirds } from "@/lib/bird-search";
 import { calculateJokersFromGroup, jokerHint } from "@/lib/rules/jokers";
 import type { ChecklistBird, SeasonBird } from "@/lib/checklist";
@@ -30,7 +30,10 @@ interface Props {
   regions: { id: string; name: string; label: string }[];
   regionId: string;
   birds: ChecklistBird[];
-  special: { golden: string[]; photo: string[] };
+  /** this month's golden birds (badge) */
+  golden: string[];
+  /** species that can take a golden proof photo right now (this month, or last month in grace) */
+  photoSpecies: string[];
   season: SeasonBird[];
   months: OpenMonth[];
   isEliminated: boolean;
@@ -44,7 +47,7 @@ const monthName = (m: number) => MONTH_SHORT.format(new Date(Date.UTC(2026, m - 
 const EMPTY_TRAY: TrayItem[] = [];
 const EMPTY_CUSTOMS: string[] = [];
 
-export function Checklist({ userId, regions, regionId, birds, special, season, months, isEliminated, testingWhileOut }: Props) {
+export function Checklist({ userId, regions, regionId, birds, golden: goldenList, photoSpecies, season, months, isEliminated, testingWhileOut }: Props) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [target, setTarget] = useState<OpenMonth["key"]>("current");
@@ -60,8 +63,8 @@ export function Checklist({ userId, regions, regionId, birds, special, season, m
   const index = useMemo(() => indexBirds(birds), [birds]);
   const results = useMemo(() => searchBirds(index, query), [index, query]);
   const birdById = useMemo(() => new Map(birds.map((b) => [b.id, b])), [birds]);
-  const golden = useMemo(() => new Set(special.golden), [special.golden]);
-  const photo = useMemo(() => new Set(special.photo), [special.photo]);
+  const golden = useMemo(() => new Set(goldenList), [goldenList]);
+  const canPhoto = useMemo(() => new Set(photoSpecies), [photoSpecies]);
 
   const seasonForMonth = season.filter((s) => s.year === month.year);
   const twitchedMonth = new Map(
@@ -251,7 +254,6 @@ export function Checklist({ userId, regions, regionId, birds, special, season, m
                     {golden.has(b.speciesId) && (
                       <span className="rounded-full bg-weaver px-2 py-0.5 text-sm font-semibold text-weaver-ink">Golden</span>
                     )}
-                    {photo.has(b.speciesId) && <Camera aria-label="Photo bird" className="size-5 text-ink-soft" />}
                     {seenIn !== undefined ? (
                       <span className="text-sm text-ink-soft">Twitched in {monthName(seenIn)}</span>
                     ) : selected ? (
@@ -292,15 +294,22 @@ export function Checklist({ userId, regions, regionId, birds, special, season, m
                   <span className="flex-1">
                     {s.label}
                     {s.isLifer && <span className="ml-2 text-sm text-lilac">lifer</span>}
+                    {s.speciesId && golden.has(s.speciesId) && (
+                      <span className="block text-sm text-weaver-ink">
+                        {s.photoUrl ? "Golden bird, proven" : "Golden bird: add a photo to count it"}
+                      </span>
+                    )}
                   </span>
-                  <PhotoButton
-                    userId={userId}
-                    submissionId={s.id}
-                    birdName={s.label}
-                    photoUrl={s.photoUrl}
-                    month={months[0]}
-                    onNotice={setNotice}
-                  />
+                  {(s.photoUrl || (s.speciesId && canPhoto.has(s.speciesId))) && (
+                    <PhotoButton
+                      userId={userId}
+                      submissionId={s.id}
+                      birdName={s.label}
+                      photoUrl={s.photoUrl}
+                      month={months[0]}
+                      onNotice={setNotice}
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() => remove(s.id)}

@@ -6,6 +6,7 @@
 import { getChallengeMonth, type ChallengeMonth } from "@/lib/challenge-time";
 
 export const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+export const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 export const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
 const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
 
@@ -14,20 +15,31 @@ export function photoPath(userId: string, submissionId: string) {
   return `photos/${userId}/${submissionId}.jpg`;
 }
 
-/** Is this a Blob URL this player was allowed to upload for this bird? */
-export function isOwnPhotoUrl(url: string, userId: string, submissionId: string): boolean {
+/** Profile pictures live at avatars/<userId>… */
+export function avatarPath(userId: string) {
+  return `avatars/${userId}.jpg`;
+}
+
+/** Is this a Blob URL holding this player's profile picture? */
+export function isOwnAvatarUrl(url: string, userId: string): boolean {
+  // addRandomSuffix makes avatars/<id>-<random>.jpg; the dash stops u1 matching u10
+  return isBlobUrlUnder(url, `/avatars/${userId}-`);
+}
+
+function isBlobUrlUnder(url: string, prefix: string): boolean {
   let parsed: URL;
   try {
     parsed = new URL(url);
   } catch {
     return false;
   }
-  return (
-    parsed.protocol === "https:" &&
-    parsed.hostname.endsWith(BLOB_HOST_SUFFIX) &&
-    // addRandomSuffix turns <id>.jpg into <id>-<random>.jpg
-    parsed.pathname.startsWith(`/photos/${userId}/${submissionId}`)
-  );
+  return parsed.protocol === "https:" && parsed.hostname.endsWith(BLOB_HOST_SUFFIX) && parsed.pathname.startsWith(prefix);
+}
+
+/** Is this a Blob URL this player was allowed to upload for this bird? */
+export function isOwnPhotoUrl(url: string, userId: string, submissionId: string): boolean {
+  // addRandomSuffix turns <id>.jpg into <id>-<random>.jpg
+  return isBlobUrlUnder(url, `/photos/${userId}/${submissionId}-`);
 }
 
 /** Soft check: was the photo (by its EXIF date) taken in the month it's filed under? */

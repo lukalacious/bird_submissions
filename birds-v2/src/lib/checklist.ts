@@ -1,8 +1,9 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/lib/db";
-import type { ChallengeMonth } from "@/lib/challenge-time";
-import { SETTINGS_TAG } from "@/lib/settings";
+import { openMonths, type ChallengeMonth } from "@/lib/challenge-time";
+import { SETTINGS_TAG, getSettings } from "@/lib/settings";
+import { goldenPhotoMonth } from "@/lib/rules/golden";
 
 /** Bird lists change only when an admin imports — cache for days. */
 export const REFERENCE_TAG = "reference";
@@ -48,16 +49,25 @@ export async function getRegionBirds(regionId: string): Promise<ChecklistBird[]>
   }));
 }
 
-/** This month's golden and photo birds, as species ids (any region). */
-export async function getSpecialSpecies({ year, month }: ChallengeMonth) {
+/** A month's golden birds, as species ids (any region). Photos are proof for these only. */
+export async function getGoldenSpecies({ year, month }: ChallengeMonth): Promise<string[]> {
   "use cache";
   cacheTag(SETTINGS_TAG);
   cacheLife("days");
-  const rows = await db.specialBird.findMany({ where: { year, month }, select: { kind: true, speciesId: true } });
-  return {
-    golden: rows.filter((r) => r.kind === "GOLDEN").map((r) => r.speciesId),
-    photo: rows.filter((r) => r.kind === "PHOTO").map((r) => r.speciesId),
-  };
+  const rows = await db.specialBird.findMany({ where: { year, month, kind: "GOLDEN" }, select: { speciesId: true } });
+  return rows.map((r) => r.speciesId);
+}
+
+/**
+ * The open month a golden-bird photo of this species would count for, or
+ * null when photos aren't allowed (not golden / no golden birds set).
+ */
+export async function goldenPhotoMonthFor(speciesId: string | null) {
+  const settings = await getSettings();
+  const open = openMonths({ graceHours: settings.graceHours, timeZone: settings.timezone });
+  const lists = await Promise.all(open.map((m) => getGoldenSpecies(m)));
+  const byKey = new Map(open.map((m, i) => [`${m.year}-${m.month}`, new Set(lists[i])]));
+  return goldenPhotoMonth(speciesId, open, (m) => byKey.get(`${m.year}-${m.month}`) ?? new Set());
 }
 
 export interface SeasonBird {

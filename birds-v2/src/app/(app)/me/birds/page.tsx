@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { requirePlayer } from "@/lib/dal";
 import { getChallengeMonth, openMonths } from "@/lib/challenge-time";
-import { getPlayerSeason } from "@/lib/checklist";
+import { getGoldenSpecies, getPlayerSeason } from "@/lib/checklist";
 import { getSettings } from "@/lib/settings";
 import { SeasonList } from "./season-list";
 
@@ -27,10 +27,13 @@ async function Season({ searchParams }: Pick<PageProps<"/me/birds">, "searchPara
   const user = await requirePlayer();
   const settings = await getSettings();
   const current = getChallengeMonth(new Date(), settings.timezone);
-  const [{ birds }, { requested }] = await Promise.all([getPlayerSeason(user.id, current.year), searchParams]);
-  const open = openMonths({ graceHours: settings.graceHours, timeZone: settings.timezone })
-    .filter((m) => m.year === current.year)
-    .map((m) => m.month);
+  const months = openMonths({ graceHours: settings.graceHours, timeZone: settings.timezone });
+  const [{ birds }, { requested }, goldenLists] = await Promise.all([
+    getPlayerSeason(user.id, current.year),
+    searchParams,
+    Promise.all(months.map((m) => getGoldenSpecies(m))),
+  ]);
+  const open = months.filter((m) => m.year === current.year).map((m) => m.month);
   return (
     <SeasonList
       userId={user.id}
@@ -38,6 +41,7 @@ async function Season({ searchParams }: Pick<PageProps<"/me/birds">, "searchPara
       current={current}
       birds={birds}
       openMonths={open}
+      photoSpecies={[...new Set(goldenLists.flat())]}
       requested={requested === "1"}
     />
   );

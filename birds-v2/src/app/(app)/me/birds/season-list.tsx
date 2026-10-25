@@ -13,11 +13,14 @@ interface Props {
   current: { year: number; month: number };
   birds: SeasonBird[];
   openMonths: number[];
+  /** species that can take a golden proof photo right now */
+  photoSpecies: string[];
   requested: boolean;
 }
 
 /** The whole season by month. Photos can be added to any bird, any time. */
-export function SeasonList({ userId, year, current, birds, openMonths, requested }: Props) {
+export function SeasonList({ userId, year, current, birds, openMonths, photoSpecies, requested }: Props) {
+  const canPhoto = new Set(photoSpecies);
   const [notice, setNotice] = useState<{ kind: "ok" | "error"; text: string } | null>(
     requested ? { kind: "ok", text: "Request sent. An admin will look at it soon." } : null
   );
@@ -30,7 +33,7 @@ export function SeasonList({ userId, year, current, birds, openMonths, requested
       <header>
         <h1 className="text-3xl font-semibold">My {year} birds</h1>
         <p className="text-ink-soft">
-          {birds.length} birds, {birds.filter((b) => b.photoUrl).length} with photos.
+          {birds.length} birds, {birds.filter((b) => b.photoUrl).length} golden birds proven with a photo.
         </p>
       </header>
       {notice && (
@@ -52,7 +55,9 @@ export function SeasonList({ userId, year, current, birds, openMonths, requested
                   {b.label}
                   {b.isLifer && <span className="ml-2 text-sm text-lilac">lifer</span>}
                 </span>
-                <PhotoButton userId={userId} submissionId={b.id} birdName={b.label} photoUrl={b.photoUrl} month={current} onNotice={setNotice} />
+                {(b.photoUrl || (b.speciesId && canPhoto.has(b.speciesId))) && (
+                  <PhotoButton userId={userId} submissionId={b.id} birdName={b.label} photoUrl={b.photoUrl} month={current} onNotice={setNotice} />
+                )}
                 {!openMonths.includes(m) && (
                   <Link href={`/me/request?submission=${b.id}`} className="text-sm font-semibold text-roller" aria-label={`Request a change to ${b.label}`}>
                     Change

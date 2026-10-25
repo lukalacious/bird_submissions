@@ -96,7 +96,7 @@ async function Today() {
           <p className="text-ink-soft">
             {checkInDone
               ? `Done: ${formatJokers(checkInJokers?.bonusJokers ?? 0)} bonus jokers. You can still change it.`
-              : "Six quick questions for your bonus jokers. This replaces the Google Form."}{" "}
+              : "Four quick questions for your bonus jokers. This replaces the Google Form."}{" "}
             Closes in {timeLeftLabel(checkInDeadline(checkInMonth, settings.checkInDeadlineDay, settings.timezone)).replace(" left", "")}.
           </p>
           <Link

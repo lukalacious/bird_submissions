@@ -83,7 +83,8 @@ Vercel → **twitch-v2** → **Deployments** → the top one → **⋯** → **R
 Open the staging site and sign in. Existing players go straight to Today; nobody
 is asked "are you X?". Then check:
 - [ ] **Me**: your Google account is listed; jokers ledger matches v1
-- [ ] **Me** → *My birds* → take a photo of any bird → it uploads with a progress bar
+- [ ] **Admin → Months**: set a few golden birds for this month, twitch one, then add a proof photo from Twitch ("Golden bird: add a photo") → +1 joker
+- [ ] **Me**: tap your picture to set a profile photo
 - [ ] **Me** → turn **Reminders** on. On iPhone, add the site to your Home Screen first.
 - [ ] Put it on your Home Screen (Today shows how) and open it like an app
 - [ ] **Flock**: leaderboard numbers match the live app
@@ -111,7 +112,7 @@ app does. Anything he decides differently is a setting in **Admin → Settings**
 2. **Half jokers.** 0.5 + 0.5 from two months show as "1 available" but v1 can't spend them. Let halves combine? *(Yes, oldest first.)* → Settings: "Half jokers … can be combined"
 3. **Inactive players.** About 8 players survive only because a joker covers each empty month. Eliminate after N empty months in a row? *(After 2.)* → Settings: "Empty months in a row"
 4. **Deadlines.** Check-in closes on the 7th of the next month? 48 hours after month-end to fix your own list before needing an admin? *(Yes and yes.)* → Settings: Deadlines
-5. **Photo jokers.** Photos can go on any bird. Only designated photo birds earn jokers? *(Yes; admins award them on Admin → Photos.)*
+5. **Golden birds need photo proof (decided by Luke, 25 Oct; tell Dale).** From 2027 a golden bird counts only with a photo: 1 joker each, max 5, counted automatically. There's no separate "photo birds" list and no golden or photo question on the check-in. Months with no golden birds set have no photo uploads. 2026 history keeps v1's self-reported counts.
 6. **"Glossy Starling"** (July's golden bird) matches several species. Which one?
 7. **Same bird twice in 2026**: Dale's Southern Black Flycatcher and African Paradise Flycatcher (Mar and Apr), and Colin's Black-headed Gull (Jan and Mar). Kept, so 2026 totals don't change; repeats are blocked from 2027. OK? *(Yes.)*
 8. **Messy group names** like "(Leaflove)", "Malkoha)", "Seed-cracker"/"Seedcracker". Tidy them with the merge? *(Yes. Only affects 2027.)*

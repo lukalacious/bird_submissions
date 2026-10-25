@@ -1,36 +1,38 @@
 import type { PrismaClient, Prisma } from "@/generated/prisma/client";
 import type { ChallengeMonth } from "@/lib/challenge-time";
-import { calculateCheckInBonus } from "@/lib/rules/check-in-bonus";
+import { calculateMonthBonus } from "@/lib/rules/check-in-bonus";
 
-type Db = Pick<PrismaClient, "monthlyCheckIn" | "photo" | "userJoker">;
+type Db = Pick<PrismaClient, "monthlyCheckIn" | "photo" | "specialBird" | "userJoker">;
 
 /**
- * The ONLY writer of bonusJokers: check-in answers + admin photo awards for
- * one user-month. v1 had two writers that disagreed and wiped photo awards.
- * Group jokers (jokers) and usedJokers are left alone; totalJokers is rebuilt.
+ * The ONLY writer of bonusJokers for one user-month: check-in answers plus
+ * golden birds proven by a photo (pending or approved; an admin reject
+ * removes it). v1 had two writers that disagreed. Group jokers (jokers) and
+ * usedJokers are left alone; totalJokers is rebuilt.
  */
 export async function recalculateBonusJokers(db: Db, userId: string, { year, month }: ChallengeMonth) {
-  const [checkIn, photos] = await Promise.all([
+  const [checkIn, golden, photos] = await Promise.all([
     db.monthlyCheckIn.findUnique({ where: { userId_year_month: { userId, year, month } } }),
+    db.specialBird.findMany({ where: { year, month, kind: "GOLDEN" }, select: { speciesId: true } }),
     db.photo.findMany({
-      where: { userId, year, month, jokerAward: { gt: 0 } },
-      select: { jokerAward: true, submission: { select: { bird: { select: { displayName: true } }, customName: true } } },
+      where: { userId, year, month, status: { not: "REJECTED" } },
+      select: { submission: { select: { speciesId: true } } },
     }),
   ]);
+  const goldenSpecies = new Set(golden.map((g) => g.speciesId));
+  const proven = new Set(
+    photos.map((p) => p.submission.speciesId).filter((s): s is string => !!s && goldenSpecies.has(s))
+  );
 
-  const form = checkIn ? calculateCheckInBonus(checkIn) : { total: 0, breakdown: [] };
-  const awards = photos.map((p) => ({
-    rule: `Photo award: ${p.submission.bird?.displayName ?? p.submission.customName ?? "bird"}`,
-    value: p.jokerAward,
-  }));
-  const bonus = form.total + awards.reduce((sum, a) => sum + a.value, 0);
-  const breakdown = [...form.breakdown, ...awards] as unknown as Prisma.InputJsonValue;
+  const { total, breakdown } = calculateMonthBonus({ year, checkIn, goldenWithPhoto: proven.size });
+  const bonusBreakdown = breakdown as unknown as Prisma.InputJsonValue;
 
   const existing = await db.userJoker.findUnique({ where: { userId_year_month: { userId, year, month } } });
+  if (!existing && total === 0) return 0;
   await db.userJoker.upsert({
     where: { userId_year_month: { userId, year, month } },
-    create: { userId, year, month, bonusJokers: bonus, bonusBreakdown: breakdown, totalJokers: bonus },
-    update: { bonusJokers: bonus, bonusBreakdown: breakdown, totalJokers: (existing?.jokers ?? 0) + bonus },
+    create: { userId, year, month, bonusJokers: total, bonusBreakdown, totalJokers: total },
+    update: { bonusJokers: total, bonusBreakdown, totalJokers: (existing?.jokers ?? 0) + total },
   });
-  return bonus;
+  return total;
 }

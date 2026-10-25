@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Camera, X } from "lucide-react";
 import { attachPhoto, removePhoto } from "@/app/(app)/twitch/photo-actions";
 import { photoPath, takenInMonth } from "@/lib/photos";
+import { readTakenAt, shrinkImage, uploadToBlob } from "@/lib/upload-image";
 
 interface Props {
   userId: string;
@@ -17,17 +18,7 @@ interface Props {
   onNotice: (n: { kind: "ok" | "error"; text: string }) => void;
 }
 
-async function readTakenAt(file: File): Promise<Date | null> {
-  try {
-    const { parse } = await import("exifr");
-    const exif = await parse(file, ["DateTimeOriginal"]);
-    return exif?.DateTimeOriginal instanceof Date ? exif.DateTimeOriginal : null;
-  } catch {
-    return null; // screenshots, PNGs, stripped files
-  }
-}
-
-/** Add a photo to a bird: EXIF date → compress → upload to Blob → save. */
+/** Golden-bird proof photo: EXIF date → shrink → upload to Blob → save. */
 export function PhotoButton({ userId, submissionId, birdName, photoUrl, month, onNotice }: Props) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
@@ -36,32 +27,20 @@ export function PhotoButton({ userId, submissionId, birdName, photoUrl, month, o
 
   async function handle(file: File) {
     try {
-      // Read EXIF before compressing — compression strips it
+      // Read the camera date first: re-encoding strips it
       setProgress("Preparing…");
       const takenAt = await readTakenAt(file);
-      const { default: compress } = await import("browser-image-compression");
-      const small = await compress(file, {
-        maxWidthOrHeight: 2000,
-        maxSizeMB: 1,
-        initialQuality: 0.8,
-        fileType: "image/jpeg",
-        useWebWorker: true,
-      });
-      const bitmap = await createImageBitmap(small);
-      const { upload } = await import("@vercel/blob/client");
-      const blob = await upload(photoPath(userId, submissionId), small, {
-        access: "public",
-        handleUploadUrl: "/api/upload",
-        clientPayload: JSON.stringify({ submissionId }),
-        multipart: true,
-        onUploadProgress: ({ percentage }) => setProgress(`Uploading ${Math.round(percentage)}%`),
-      });
+      const small = await shrinkImage(file, 2000);
+      setProgress("Uploading 0%");
+      const url = await uploadToBlob(photoPath(userId, submissionId), small.blob, { kind: "golden", submissionId }, (pct) =>
+        setProgress(`Uploading ${pct}%`)
+      );
 
       const result = await attachPhoto({
         submissionId,
-        url: blob.url,
-        width: bitmap.width,
-        height: bitmap.height,
+        url,
+        width: small.width || undefined,
+        height: small.height || undefined,
         takenAt: takenAt?.toISOString(),
       });
       if (!result.ok) return onNotice({ kind: "error", text: result.error });
@@ -71,8 +50,8 @@ export function PhotoButton({ userId, submissionId, birdName, photoUrl, month, o
         kind: "ok",
         text:
           inMonth === false
-            ? `Photo added for ${birdName}. Its date says it was taken in a different month, which is fine for the gallery.`
-            : `Photo added for ${birdName}.`,
+            ? `${result.message} Note: the photo's date says it was taken in a different month.`
+            : result.message,
       });
       router.refresh();
     } catch (e) {
@@ -122,7 +101,7 @@ export function PhotoButton({ userId, submissionId, birdName, photoUrl, month, o
         type="button"
         disabled={progress !== null}
         onClick={() => input.current?.click()}
-        aria-label={progress ?? `Add a photo of ${birdName}`}
+        aria-label={progress ?? `Add a proof photo of ${birdName}`}
         className="flex min-h-11 items-center gap-1 rounded-full px-3 text-sm text-ink-soft hover:bg-paper-sunk disabled:opacity-70"
       >
         <Camera aria-hidden className="size-5" />

@@ -13,9 +13,7 @@ const CheckInInput = z.object({
   within15km: z.enum(["yes", "no"]),
   beyond750km: z.enum(["yes", "no"]),
   nonMotorisedCount: count,
-  goldenCount: count,
   liferCount: count,
-  photoCount: count,
   primaryLocation: z.string().trim().max(120).optional(),
 });
 
@@ -42,9 +40,7 @@ export async function saveCheckIn(_prev: ActionResult | null, formData: FormData
     within15km: a.within15km === "yes",
     beyond750km: a.beyond750km === "yes",
     nonMotorisedCount: a.nonMotorisedCount,
-    goldenCount: a.goldenCount,
     liferCount: a.liferCount,
-    photoCount: a.photoCount,
     primaryLocation: a.primaryLocation || null,
   };
   const bonus = await db.$transaction(async (tx) => {

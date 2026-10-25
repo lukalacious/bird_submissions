@@ -4,9 +4,9 @@ import { updateTag } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requirePlayer } from "@/lib/dal";
-import { getChallengeMonth } from "@/lib/challenge-time";
+import { recalculateBonusJokers } from "@/lib/bonus-db";
+import { goldenPhotoMonthFor } from "@/lib/checklist";
 import { isOwnPhotoUrl } from "@/lib/photos";
-import { getSettings } from "@/lib/settings";
 import { feedTag } from "@/lib/tags";
 import type { ActionResult } from "./actions";
 
@@ -18,7 +18,10 @@ const AttachInput = z.object({
   takenAt: z.iso.datetime().optional(),
 });
 
-/** Save an uploaded photo against one of the player's own birds (replaces any earlier one). */
+/**
+ * Save a golden-bird proof photo (replaces any earlier one). Counts toward
+ * the golden bonus of the month whose golden list has this species.
+ */
 export async function attachPhoto(input: z.input<typeof AttachInput>): Promise<ActionResult> {
   const user = await requirePlayer();
   const parsed = AttachInput.safeParse(input);
@@ -26,20 +29,24 @@ export async function attachPhoto(input: z.input<typeof AttachInput>): Promise<A
   const { submissionId, url, width, height, takenAt } = parsed.data;
 
   if (!isOwnPhotoUrl(url, user.id, submissionId)) return { ok: false, error: "That photo couldn't be saved. Try again." };
-  const sub = await db.submission.findFirst({ where: { id: submissionId, userId: user.id }, select: { id: true } });
+  const sub = await db.submission.findFirst({
+    where: { id: submissionId, userId: user.id },
+    select: { id: true, speciesId: true, photo: { select: { year: true, month: true } } },
+  });
   if (!sub) return { ok: false, error: "That bird isn't on your list." };
+  const month = await goldenPhotoMonthFor(sub.speciesId);
+  if (!month) return { ok: false, error: "Photos are for this month's golden birds only." };
 
-  // A photo belongs to the month it was added, which can be after the twitch
-  const settings = await getSettings();
-  const month = getChallengeMonth(new Date(), settings.timezone);
-  const data = { url, width, height, takenAt: takenAt ? new Date(takenAt) : null, ...month, status: "PENDING" as const };
-  await db.photo.upsert({
-    where: { submissionId },
-    create: { submissionId, userId: user.id, ...data },
-    update: { ...data, jokerAward: 0, reviewedAt: null, reviewedById: null },
+  const data = { url, width, height, takenAt: takenAt ? new Date(takenAt) : null, ...month, status: "PENDING" as const, reviewedAt: null, reviewedById: null };
+  const bonus = await db.$transaction(async (tx) => {
+    await tx.photo.upsert({ where: { submissionId }, create: { submissionId, userId: user.id, ...data }, update: data });
+    if (sub.photo && (sub.photo.year !== month.year || sub.photo.month !== month.month)) {
+      await recalculateBonusJokers(tx, user.id, sub.photo);
+    }
+    return recalculateBonusJokers(tx, user.id, month);
   });
   updateTag(feedTag);
-  return { ok: true, message: "Photo added." };
+  return { ok: true, message: `Golden bird proven. Your bonus this month is ${bonus} joker${bonus === 1 ? "" : "s"}.` };
 }
 
 const RemoveInput = z.object({ submissionId: z.string().min(1) });
@@ -49,8 +56,10 @@ export async function removePhoto(input: z.input<typeof RemoveInput>): Promise<A
   const { submissionId } = RemoveInput.parse(input);
   const photo = await db.photo.findFirst({ where: { submissionId, userId: user.id } });
   if (!photo) return { ok: false, error: "No photo to remove." };
-  if (photo.jokerAward > 0) return { ok: false, error: "This photo has earned jokers, so ask an admin to remove it." };
-  await db.photo.delete({ where: { id: photo.id } });
+  await db.$transaction(async (tx) => {
+    await tx.photo.delete({ where: { id: photo.id } });
+    await recalculateBonusJokers(tx, user.id, photo);
+  });
   updateTag(feedTag);
-  return { ok: true, message: "Photo removed." };
+  return { ok: true, message: "Photo removed. That golden bird no longer counts for your bonus." };
 }

@@ -31,6 +31,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await db.user.delete({ where: { id: userId } });
+  await db.specialBird.deleteMany({ where: MONTH });
 });
 
 const request = async (type: "SWAP" | "DELETE", submissionId: string, replacementBirdId?: string) =>
@@ -58,18 +59,24 @@ describe("applyChangeRequest", () => {
 });
 
 describe("reviewPhoto", () => {
-  it("an approved award lands in the month's bonus jokers", async () => {
+  it("rejecting a golden proof photo takes that golden joker away", async () => {
     const sub = await db.submission.findFirstOrThrow({ where: { userId } });
+    await db.specialBird.create({ data: { ...MONTH, kind: "GOLDEN", speciesId: sub.speciesId! } });
     const photo = await db.photo.create({
       data: { submissionId: sub.id, userId, url: "https://x.public.blob.vercel-storage.com/p.jpg", ...MONTH },
     });
-    const form = new FormData();
-    form.set("photoId", photo.id);
-    form.set("decision", "approve");
-    form.set("award", "1.5");
-    await reviewPhoto(form);
-    const joker = await db.userJoker.findUniqueOrThrow({ where: { userId_year_month: { userId, ...MONTH } } });
-    expect(joker.bonusJokers).toBe(1.5);
-    expect(joker.bonusBreakdown).toEqual([{ rule: expect.stringMatching(/^Photo award: /), value: 1.5 }]);
+    const form = (decision: string) => {
+      const f = new FormData();
+      f.set("photoId", photo.id);
+      f.set("decision", decision);
+      return f;
+    };
+    const bonus = async () =>
+      (await db.userJoker.findUniqueOrThrow({ where: { userId_year_month: { userId, ...MONTH } } })).bonusJokers;
+
+    await reviewPhoto(form("approve"));
+    expect(await bonus()).toBe(1);
+    await reviewPhoto(form("reject"));
+    expect(await bonus()).toBe(0);
   }, 30_000);
 });

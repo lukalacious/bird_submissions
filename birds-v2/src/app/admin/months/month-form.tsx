@@ -74,11 +74,10 @@ interface Props {
   defaults: { maxBirds: number; threshold: number };
   overrides: { maxBirds: number | null; threshold: number | null };
   golden: string[];
-  photo: string[];
   species: Species[];
 }
 
-export function MonthForm({ year, month, monthLabel, defaults, overrides, golden, photo, species }: Props) {
+export function MonthForm({ year, month, monthLabel, defaults, overrides, golden, species }: Props) {
   const [state, action, pending] = useActionState(saveMonth, null);
   return (
     <form action={action} key={`${year}-${month}`} className="space-y-8">
@@ -97,7 +96,9 @@ export function MonthForm({ year, month, monthLabel, defaults, overrides, golden
         </label>
       </div>
       <SpeciesPicker name="golden" label="Golden birds" all={species} initial={golden} />
-      <SpeciesPicker name="photo" label="Photo birds" all={species} initial={photo} />
+      <p className="text-sm text-ink-soft">
+        Players prove a golden bird with a photo; each proven golden bird is 1 bonus joker (max 5). No golden birds = no photos that month.
+      </p>
       {state && (
         <p role={state.ok ? "status" : "alert"} className={state.ok ? "rounded-xl bg-roller-wash p-4" : "rounded-xl border border-alarm/40 p-4 text-alarm"}>
           {state.ok ? state.message : state.error}

@@ -23,15 +23,15 @@ export async function GET(request: Request) {
       user: { select: { name: true, username: true, email: true } },
       region: { select: { label: true } },
       bird: { select: { displayName: true, species: { select: { scientificName: true, group: { select: { name: true } } } } } },
-      photo: { select: { url: true, jokerAward: true } },
+      photo: { select: { url: true, status: true } },
     },
   });
   const rows = [
-    ["month", "added", "player", "email", "region", "bird", "scientific name", "group", "lifer", "photo", "photo jokers"],
+    ["month", "added", "player", "email", "region", "bird", "scientific name", "group", "lifer", "golden proof photo", "photo status"],
     ...subs.map((s) => [
       s.month, s.createdAt.toISOString(), s.user.username ?? s.user.name, s.user.email, s.region.label,
       s.bird?.displayName ?? s.customName, s.bird?.species.scientificName ?? "", s.bird?.species.group?.name ?? "",
-      s.isLifer ? "yes" : "", s.photo?.url ?? "", s.photo?.jokerAward ?? "",
+      s.isLifer ? "yes" : "", s.photo?.url ?? "", s.photo?.status.toLowerCase() ?? "",
     ]),
   ];
   return new Response(rows.map((r) => r.map(csv).join(",")).join("\n") + "\n", {

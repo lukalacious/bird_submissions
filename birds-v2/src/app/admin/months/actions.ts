@@ -14,7 +14,6 @@ const MonthInput = z.object({
   maxBirds: optionalCount,
   threshold: optionalCount,
   golden: z.array(z.string().min(1)).max(10),
-  photo: z.array(z.string().min(1)).max(10),
 });
 
 export async function saveMonth(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
@@ -25,10 +24,9 @@ export async function saveMonth(_prev: ActionResult | null, formData: FormData):
     maxBirds: formData.get("maxBirds"),
     threshold: formData.get("threshold"),
     golden: formData.getAll("golden"),
-    photo: formData.getAll("photo"),
   });
   if (!parsed.success) return { ok: false, error: "Some values weren't valid. Numbers must be 0–31." };
-  const { year, month, maxBirds, threshold, golden, photo } = parsed.data;
+  const { year, month, maxBirds, threshold, golden } = parsed.data;
 
   await db.$transaction(async (tx) => {
     if (maxBirds === "" && threshold === "") {
@@ -43,10 +41,8 @@ export async function saveMonth(_prev: ActionResult | null, formData: FormData):
     }
     await tx.specialBird.deleteMany({ where: { year, month } });
     await tx.specialBird.createMany({
-      data: [
-        ...golden.map((speciesId) => ({ year, month, kind: "GOLDEN" as const, speciesId })),
-        ...photo.map((speciesId) => ({ year, month, kind: "PHOTO" as const, speciesId })),
-      ],
+      // photos are proof for golden birds only (no separate photo-bird list)
+      data: golden.map((speciesId) => ({ year, month, kind: "GOLDEN" as const, speciesId })),
       skipDuplicates: true,
     });
   });

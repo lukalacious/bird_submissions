@@ -1,24 +1,23 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { calculateCheckInBonus } from "@/lib/rules/check-in-bonus";
+import { calculateMonthBonus } from "@/lib/rules/check-in-bonus";
 import { saveCheckIn } from "./actions";
 
 export interface CheckInDefaults {
   within15km: boolean | null;
   beyond750km: boolean | null;
   nonMotorisedCount: number;
-  goldenCount: number;
   liferCount: number;
-  photoCount: number;
   primaryLocation: string;
 }
 
 interface Props {
+  year: number;
   monthLabel: string;
   birdCount: number;
   defaults: CheckInDefaults;
-  counted: { golden: number; lifers: number; photos: number };
+  counted: { lifers: number; goldenWithPhoto: number; goldenSet: number };
   isEdit: boolean;
 }
 
@@ -63,18 +62,20 @@ function Count({ name, label, hint, value, max, onChange }: { name: string; labe
   );
 }
 
-export function CheckInForm({ monthLabel, birdCount, defaults, counted, isEdit }: Props) {
+export function CheckInForm({ year, monthLabel, birdCount, defaults, counted, isEdit }: Props) {
   const [state, action, pending] = useActionState(saveCheckIn, null);
   const [a, setA] = useState(defaults);
   const set = <K extends keyof CheckInDefaults>(k: K) => (v: CheckInDefaults[K]) => setA((s) => ({ ...s, [k]: v }));
 
-  const preview = calculateCheckInBonus({
-    within15km: a.within15km === true,
-    beyond750km: a.beyond750km === true,
-    nonMotorisedCount: a.nonMotorisedCount,
-    goldenCount: a.goldenCount,
-    liferCount: a.liferCount,
-    photoCount: a.photoCount,
+  const preview = calculateMonthBonus({
+    year,
+    checkIn: {
+      within15km: a.within15km === true,
+      beyond750km: a.beyond750km === true,
+      nonMotorisedCount: a.nonMotorisedCount,
+      liferCount: a.liferCount,
+    },
+    goldenWithPhoto: counted.goldenWithPhoto,
   });
 
   return (
@@ -89,9 +90,15 @@ export function CheckInForm({ monthLabel, birdCount, defaults, counted, isEdit }
         max={birdCount}
         onChange={set("nonMotorisedCount")}
       />
-      <Count name="goldenCount" label="How many golden birds did you see?" hint={`${counted.golden} are on your list. Add any you saw but didn't list.`} value={a.goldenCount} max={99} onChange={set("goldenCount")} />
       <Count name="liferCount" label="How many lifers?" hint={`You ticked ${counted.lifers} as lifers on your list.`} value={a.liferCount} max={99} onChange={set("liferCount")} />
-      <Count name="photoCount" label="How many photo birds did you photograph?" hint={`You've added ${counted.photos} photo-bird photos.`} value={a.photoCount} max={99} onChange={set("photoCount")} />
+      <div className="space-y-1">
+        <p className="font-semibold">Golden birds</p>
+        <p className="text-ink-soft">
+          {counted.goldenSet === 0
+            ? "No golden birds were set this month."
+            : `${counted.goldenWithPhoto} of ${counted.goldenSet} golden birds proven with a photo. Counted automatically: add photos from your list on Twitch.`}
+        </p>
+      </div>
       <label className="block space-y-1">
         <span className="block font-semibold">Where did you mostly bird? (optional)</span>
         <input
@@ -117,7 +124,7 @@ export function CheckInForm({ monthLabel, birdCount, defaults, counted, isEdit }
             ))}
           </ul>
         )}
-        <p className="mt-2 text-sm text-ink-soft">Usable from next month. Admin photo awards are added on top.</p>
+        <p className="mt-2 text-sm text-ink-soft">Usable from next month.</p>
       </section>
 
       {state && (

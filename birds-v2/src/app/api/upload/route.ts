@@ -3,14 +3,20 @@ import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/dal";
-import { PHOTO_MAX_BYTES, PHOTO_TYPES, photoPath } from "@/lib/photos";
+import { goldenPhotoMonthFor } from "@/lib/checklist";
+import { AVATAR_MAX_BYTES, PHOTO_MAX_BYTES, PHOTO_TYPES, avatarPath, photoPath } from "@/lib/photos";
 
-const Payload = z.object({ submissionId: z.string().min(1) });
+const Payload = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("golden"), submissionId: z.string().min(1) }),
+  z.object({ kind: z.literal("avatar") }),
+]);
 
 /**
- * Hands the browser a short-lived token to upload one photo straight to
- * Blob, only for a bird on the player's own list and only into their folder.
- * The photo is saved to the DB afterwards by attachPhoto().
+ * Hands the browser a short-lived token to upload one image straight to
+ * Blob, only into the player's own folder:
+ *  - golden: proof photo for a golden bird on their own list
+ *  - avatar: their profile picture
+ * The image is saved to the DB afterwards by attachPhoto() / saveAvatar().
  */
 export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as HandleUploadBody;
@@ -23,10 +29,20 @@ export async function POST(request: Request): Promise<NextResponse> {
       onBeforeGenerateToken: async (pathname, clientPayload) => {
         const user = await getCurrentUser();
         if (!user) throw new Error("Sign in to add photos");
-        const { submissionId } = Payload.parse(JSON.parse(clientPayload ?? "{}"));
-        const sub = await db.submission.findFirst({ where: { id: submissionId, userId: user.id }, select: { id: true } });
+        const payload = Payload.parse(JSON.parse(clientPayload ?? "{}"));
+
+        if (payload.kind === "avatar") {
+          if (pathname !== avatarPath(user.id)) throw new Error("Unexpected upload path");
+          return { allowedContentTypes: PHOTO_TYPES, maximumSizeInBytes: AVATAR_MAX_BYTES, addRandomSuffix: true };
+        }
+
+        const sub = await db.submission.findFirst({
+          where: { id: payload.submissionId, userId: user.id },
+          select: { id: true, speciesId: true },
+        });
         if (!sub) throw new Error("That bird isn't on your list");
-        if (pathname !== photoPath(user.id, submissionId)) throw new Error("Unexpected upload path");
+        if (!(await goldenPhotoMonthFor(sub.speciesId))) throw new Error("Photos are for this month's golden birds only");
+        if (pathname !== photoPath(user.id, sub.id)) throw new Error("Unexpected upload path");
         return { allowedContentTypes: PHOTO_TYPES, maximumSizeInBytes: PHOTO_MAX_BYTES, addRandomSuffix: true };
       },
     });

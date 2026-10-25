@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isOwnPhotoUrl, photoPath, takenInMonth } from "./photos";
+import { isOwnAvatarUrl, isOwnPhotoUrl, photoPath, takenInMonth } from "./photos";
 
 const host = "https://abc123.public.blob.vercel-storage.com";
 
@@ -21,6 +21,7 @@ describe("isOwnPhotoUrl", () => {
     expect(isOwnPhotoUrl("https://public.blob.vercel-storage.com.evil.example/photos/u1/s1.jpg", "u1", "s1")).toBe(false);
     expect(isOwnPhotoUrl("http://abc.public.blob.vercel-storage.com/photos/u1/s1.jpg", "u1", "s1")).toBe(false);
     expect(isOwnPhotoUrl("not a url", "u1", "s1")).toBe(false);
+    expect(isOwnPhotoUrl(`${host}/photos/u1/s10-Xy9aB.jpg`, "u1", "s1")).toBe(false);
   });
 
   it("builds paths inside the player's folder", () => {
@@ -38,5 +39,14 @@ describe("takenInMonth", () => {
 
   it("is unknown without an EXIF date", () => {
     expect(takenInMonth(null, oct)).toBeNull();
+  });
+});
+
+describe("isOwnAvatarUrl", () => {
+  it("accepts the player's own profile picture only", () => {
+    expect(isOwnAvatarUrl(`${host}/avatars/u1-Ab12.jpg`, "u1")).toBe(true);
+    expect(isOwnAvatarUrl(`${host}/avatars/u2-Ab12.jpg`, "u1")).toBe(false);
+    expect(isOwnAvatarUrl(`${host}/photos/u1/s1.jpg`, "u1")).toBe(false);
+    expect(isOwnAvatarUrl(`${host}/avatars/u10-Ab12.jpg`, "u1")).toBe(false);
   });
 });

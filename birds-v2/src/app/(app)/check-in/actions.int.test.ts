@@ -27,9 +27,7 @@ const answers = {
   within15km: "yes",
   beyond750km: "no",
   nonMotorisedCount: "0",
-  goldenCount: "2",
   liferCount: "1",
-  photoCount: "0",
 };
 
 beforeAll(async () => {
@@ -38,31 +36,31 @@ beforeAll(async () => {
   player.id = user.id;
   const bird = await db.bird.findFirstOrThrow({ select: { id: true, speciesId: true, regionId: true } });
   const sub = await db.submission.create({ data: { userId: user.id, ...MONTH, ...bird, birdId: bird.id } });
-  // existing group jokers and an admin photo award must both survive
+  // existing group jokers must survive; a golden bird proven by photo counts on top
   await db.userJoker.create({ data: { userId: user.id, ...MONTH, jokers: 1.5, totalJokers: 1.5 } });
-  await db.photo.create({
-    data: { submissionId: sub.id, userId: user.id, url: "https://x.public.blob.vercel-storage.com/p.jpg", ...MONTH, jokerAward: 2 },
-  });
+  await db.specialBird.create({ data: { ...MONTH, kind: "GOLDEN", speciesId: bird.speciesId } });
+  await db.photo.create({ data: { submissionId: sub.id, userId: user.id, url: "https://x.public.blob.vercel-storage.com/p.jpg", ...MONTH } });
 });
 
 afterAll(async () => {
   await db.user.delete({ where: { id: player.id } });
+  await db.specialBird.deleteMany({ where: MONTH });
 });
 
 describe("saveCheckIn", () => {
-  it("adds check-in bonus and photo awards on top of group jokers", async () => {
+  it("adds the check-in bonus and photo-proven golden birds on top of group jokers", async () => {
     const result = await saveCheckIn(null, form(answers));
-    // 5 (15km) + 2 golden + 1 lifer + 2 photo award
-    expect(result).toEqual({ ok: true, message: "Saved. Your bonus for the month is 10 jokers." });
+    // 5 (15km) + 1 lifer + 1 golden bird with a photo
+    expect(result).toEqual({ ok: true, message: "Saved. Your bonus for the month is 7 jokers." });
     const joker = await db.userJoker.findUniqueOrThrow({ where: { userId_year_month: { userId: player.id, ...MONTH } } });
-    expect(joker).toMatchObject({ jokers: 1.5, bonusJokers: 10, totalJokers: 11.5 });
+    expect(joker).toMatchObject({ jokers: 1.5, bonusJokers: 7, totalJokers: 8.5 });
   }, 30_000);
 
   it("updates in place when answered again", async () => {
     await saveCheckIn(null, form({ ...answers, within15km: "no" }));
     expect(await db.monthlyCheckIn.count({ where: { userId: player.id } })).toBe(1);
     const joker = await db.userJoker.findUniqueOrThrow({ where: { userId_year_month: { userId: player.id, ...MONTH } } });
-    expect(joker.bonusJokers).toBe(5);
+    expect(joker.bonusJokers).toBe(2); // 1 lifer + 1 golden
   }, 30_000);
 
   it("rejects more non-motorised birds than the player has", async () => {

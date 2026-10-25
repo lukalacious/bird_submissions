@@ -10,19 +10,20 @@ import { feedTag } from "@/lib/tags";
 const ReviewInput = z.object({
   photoId: z.string().min(1),
   decision: z.enum(["approve", "reject"]),
-  award: z.coerce.number().min(0).max(5).multipleOf(0.5).default(0),
 });
 
-/** Approve (with an optional joker award) or reject; the month's bonus is rebuilt. */
+/**
+ * Golden proof photos count as soon as they're added; rejecting one (wrong
+ * bird, not the player's photo) takes that golden bird out of the bonus.
+ */
 export async function reviewPhoto(formData: FormData) {
   const admin = await requireAdmin();
-  const { photoId, decision, award } = ReviewInput.parse(Object.fromEntries(formData));
+  const { photoId, decision } = ReviewInput.parse(Object.fromEntries(formData));
   await db.$transaction(async (tx) => {
     const photo = await tx.photo.update({
       where: { id: photoId },
       data: {
         status: decision === "approve" ? "APPROVED" : "REJECTED",
-        jokerAward: decision === "approve" ? award : 0,
         reviewedById: admin.id,
         reviewedAt: new Date(),
       },

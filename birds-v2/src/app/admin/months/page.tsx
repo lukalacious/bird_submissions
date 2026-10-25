@@ -57,7 +57,6 @@ async function Month({ searchParams }: Pick<PageProps<"/admin/months">, "searchP
         defaults={{ maxBirds: settings.maxBirdsPerPeriod, threshold: settings.eliminationThreshold }}
         overrides={{ maxBirds: overrides?.maxBirdsPerPeriod ?? null, threshold: overrides?.eliminationThreshold ?? null }}
         golden={special.filter((s) => s.kind === "GOLDEN").map((s) => s.speciesId)}
-        photo={special.filter((s) => s.kind === "PHOTO").map((s) => s.speciesId)}
         species={species}
       />
     </>

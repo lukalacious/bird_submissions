@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { db } from "@/lib/db";
 import { requirePlayer } from "@/lib/dal";
 import { checkInDeadline, openCheckInMonth } from "@/lib/challenge-time";
-import { getSpecialSpecies } from "@/lib/checklist";
+import { getGoldenSpecies } from "@/lib/checklist";
 import { getSettings } from "@/lib/settings";
 import { CheckInForm } from "./check-in-form";
 
@@ -41,22 +41,21 @@ async function CheckIn() {
   }
 
   const monthLabel = MONTH.format(new Date(Date.UTC(month.year, month.month - 1, 15)));
-  const [special, subs, existing] = await Promise.all([
-    getSpecialSpecies(month),
-    db.submission.findMany({
-      where: { userId: user.id, ...month },
-      select: { speciesId: true, isLifer: true },
-    }),
+  const [golden, subs, existing, photos] = await Promise.all([
+    getGoldenSpecies(month),
+    db.submission.findMany({ where: { userId: user.id, ...month }, select: { isLifer: true } }),
     db.monthlyCheckIn.findUnique({ where: { userId_year_month: { userId: user.id, ...month } } }),
+    db.photo.findMany({
+      where: { userId: user.id, ...month, status: { not: "REJECTED" } },
+      select: { submission: { select: { speciesId: true } } },
+    }),
   ]);
-  const photoBirdPhotos = await db.photo.count({
-    where: { userId: user.id, ...month, submission: { speciesId: { in: special.photo } } },
-  });
-  const golden = new Set(special.golden);
+  // same count recalculateBonusJokers uses
+  const goldenSet = new Set(golden);
   const counted = {
-    golden: subs.filter((s) => s.speciesId && golden.has(s.speciesId)).length,
     lifers: subs.filter((s) => s.isLifer).length,
-    photos: photoBirdPhotos,
+    goldenWithPhoto: new Set(photos.map((p) => p.submission.speciesId).filter((s) => s && goldenSet.has(s))).size,
+    goldenSet: goldenSet.size,
   };
 
   return (
@@ -64,11 +63,12 @@ async function CheckIn() {
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold">{monthLabel} check-in</h1>
         <p className="max-w-prose text-ink-soft">
-          Six quick questions for your bonus jokers. You can change your answers until{" "}
+          Four quick questions for your bonus jokers. You can change your answers until{" "}
           {DEADLINE.format(new Date(checkInDeadline(month, settings.checkInDeadlineDay, settings.timezone).getTime() - 1))}.
         </p>
       </header>
       <CheckInForm
+        year={month.year}
         monthLabel={monthLabel}
         birdCount={subs.length}
         counted={counted}
@@ -77,9 +77,7 @@ async function CheckIn() {
           within15km: existing?.within15km ?? null,
           beyond750km: existing?.beyond750km ?? null,
           nonMotorisedCount: existing?.nonMotorisedCount ?? 0,
-          goldenCount: existing?.goldenCount ?? counted.golden,
           liferCount: existing?.liferCount ?? counted.lifers,
-          photoCount: existing?.photoCount ?? Math.min(counted.photos, 3),
           primaryLocation: existing?.primaryLocation ?? "",
         }}
       />

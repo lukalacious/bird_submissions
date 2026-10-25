@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { signIn, signOut } from "@/auth";
@@ -8,6 +7,7 @@ import { getChallengeMonth } from "@/lib/challenge-time";
 import { getJokerLedger } from "@/lib/ledger";
 import { getSettings } from "@/lib/settings";
 import { NotificationsToggle } from "@/components/notifications-toggle";
+import { AvatarUpload } from "@/components/avatar-upload";
 
 const MONTH = new Intl.DateTimeFormat("en-ZA", { month: "long", timeZone: "UTC" });
 const monthName = (year: number, m: number) => MONTH.format(new Date(Date.UTC(year, m - 1, 15)));
@@ -28,19 +28,17 @@ export default function MePage() {
 
 async function Profile() {
   const user = await requirePlayer();
-  const accounts = await db.account.findMany({
-    where: { userId: user.id },
-    select: { id: true, email: true, provider: true },
-  });
+  // picture and name from the DB: the session keeps a copy from sign-in
+  const [accounts, me] = await Promise.all([
+    db.account.findMany({ where: { userId: user.id }, select: { id: true, email: true, provider: true } }),
+    db.user.findUniqueOrThrow({ where: { id: user.id }, select: { image: true, name: true, username: true } }),
+  ]);
 
   return (
     <>
-      <section className="flex items-center gap-4">
-        {user.image && <Image src={user.image} alt="" width={64} height={64} className="size-16 rounded-full" />}
-        <div>
-          <p className="font-display text-xl font-semibold">{user.username ?? user.name}</p>
-          <p className="text-ink-soft">{user.email}</p>
-        </div>
+      <section aria-label="Profile" className="space-y-2">
+        <AvatarUpload userId={user.id} name={me.username ?? me.name ?? "Player"} image={me.image} />
+        <p className="text-ink-soft">{user.email}</p>
       </section>
 
       <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-paper-sunk" />}>
@@ -51,7 +49,7 @@ async function Profile() {
         href="/me/birds"
         className="flex min-h-14 items-center justify-between rounded-2xl border border-rule bg-paper-raised px-5 font-semibold"
       >
-        My birds this season, and photos
+        My birds this season
         <span aria-hidden>›</span>
       </Link>
 
