@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+/*
+ * Twitch v2 — "field guide plate".
+ * Paper and bush-green ink; colour comes from the lilac-breasted roller
+ * (turquoise = action, lilac = jokers) and the weaver (yellow = golden birds).
+ * Dark mode is a night drive: green-black, never pure black.
+ */
+
+:root {
+  --paper: oklch(0.975 0.008 150);
+  --paper-raised: oklch(0.995 0.004 150);
+  --paper-sunk: oklch(0.94 0.012 150);
+  --ink: oklch(0.26 0.035 155);
+  --ink-soft: oklch(0.45 0.03 155);
+  --rule: oklch(0.86 0.015 150);
+
+  --roller: oklch(0.52 0.12 225);
+  --roller-ink: oklch(0.99 0.01 225);
+  --roller-wash: oklch(0.93 0.035 225);
+  --lilac: oklch(0.55 0.13 305);
+  --lilac-wash: oklch(0.94 0.035 305);
+  --weaver: oklch(0.82 0.15 88);
+  --weaver-ink: oklch(0.36 0.08 75);
+  --alarm: oklch(0.55 0.17 30);
+
+  --focus: oklch(0.6 0.15 225);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: oklch(0.2 0.02 160);
+    --paper-raised: oklch(0.24 0.022 160);
+    --paper-sunk: oklch(0.17 0.018 160);
+    --ink: oklch(0.93 0.015 150);
+    --ink-soft: oklch(0.74 0.02 150);
+    --rule: oklch(0.34 0.02 160);
+    --roller: oklch(0.74 0.11 220);
+    --roller-ink: oklch(0.2 0.03 225);
+    --roller-wash: oklch(0.3 0.05 225);
+    --lilac: oklch(0.76 0.11 305);
+    --lilac-wash: oklch(0.3 0.05 305);
+    --weaver: oklch(0.85 0.14 90);
+    --weaver-ink: oklch(0.88 0.12 90);
+    --alarm: oklch(0.72 0.15 30);
+    --focus: oklch(0.78 0.12 220);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: oklch(0.2 0.02 160);
+  --paper-raised: oklch(0.24 0.022 160);
+  --paper-sunk: oklch(0.17 0.018 160);
+  --ink: oklch(0.93 0.015 150);
+  --ink-soft: oklch(0.74 0.02 150);
+  --rule: oklch(0.34 0.02 160);
+  --roller: oklch(0.74 0.11 220);
+  --roller-ink: oklch(0.2 0.03 225);
+  --roller-wash: oklch(0.3 0.05 225);
+  --lilac: oklch(0.76 0.11 305);
+  --lilac-wash: oklch(0.3 0.05 305);
+  --weaver: oklch(0.85 0.14 90);
+  --weaver-ink: oklch(0.88 0.12 90);
+  --alarm: oklch(0.72 0.15 30);
+  --focus: oklch(0.78 0.12 220);
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-paper-sunk: var(--paper-sunk);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-rule: var(--rule);
+  --color-roller: var(--roller);
+  --color-roller-ink: var(--roller-ink);
+  --color-roller-wash: var(--roller-wash);
+  --color-lilac: var(--lilac);
+  --color-lilac-wash: var(--lilac-wash);
+  --color-weaver: var(--weaver);
+  --color-weaver-ink: var(--weaver-ink);
+  --color-alarm: var(--alarm);
+
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-source-sans);
+
+  /* Type scale: 17px base for outdoor reading, ~1.25 ratio */
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.55;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5625rem;
+  --text-2xl: 1.953rem;
+  --text-3xl: 2.441rem;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--paper);
+  font-family: var(--font-source-sans), system-ui, sans-serif;
+  font-size: var(--text-base);
+  line-height: var(--text-base--line-height);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-optical-sizing: auto;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,390 @@
+// Twitch v2 schema. Lives in the Postgres schema "v2" (see prisma.config.ts
+// and src/lib/db.ts) next to v1's "public" tables, so the v1 → v2 migration
+// reads public.* and writes v2.* inside one database, and v1 stays intact
+// for rollback.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Identity ────────────────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  // lowercased, Gmail dots and +tags stripped — duplicate-account detection
+  emailNormalized   String
+  emailVerified     DateTime?
+  name              String?
+  username          String?   @unique
+  image             String?
+  role              Role      @default(USER)
+  // set once the "Are you already playing as X?" check is resolved
+  identityCheckedAt DateTime?
+  defaultRegionId   String?
+  defaultRegion     Region?   @relation(fields: [defaultRegionId], references: [id])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  accounts          Account[]
+  sessions          Session[]
+  submissions       Submission[]
+  photos            Photo[]
+  checkIns          MonthlyCheckIn[]
+  jokers            UserJoker[]
+  jokerSpends       JokerSpend[]
+  challengeStatus   UserChallengeStatus[]
+  changeRequests    ChangeRequest[]
+  pushSubscriptions PushSubscription[]
+  linkRequests      LinkRequest[]         @relation("LinkRequester")
+  linkTargets       LinkRequest[]         @relation("LinkTarget")
+
+  @@index([emailNormalized])
+}
+
+// Auth.js adapter models. One player may have several Google accounts.
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// "Are you already playing as X?" — a new sign-in claims an existing player.
+// Never auto-merged: an admin approves, then the merge runs.
+model LinkRequest {
+  id           String        @id @default(cuid())
+  requesterId  String
+  requester    User          @relation("LinkRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  targetId     String
+  target       User          @relation("LinkTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  status       RequestStatus @default(PENDING)
+  resolvedById String?
+  createdAt    DateTime      @default(now())
+  resolvedAt   DateTime?
+
+  @@index([status])
+}
+
+// Audit trail for admin merges (replaces one-off fix-*-accounts scripts)
+model MergeEvent {
+  id         String   @id @default(cuid())
+  fromUserId String
+  fromEmail  String
+  toUserId   String
+  movedRows  Json // { submissions: n, photos: n, ... }
+  adminId    String
+  createdAt  DateTime @default(now())
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ─── Reference data (DB is the source of truth; the xlsx is import-only) ────
+
+model Region {
+  id          String       @id @default(cuid())
+  name        String       @unique // "south_africa"
+  label       String // "South Africa"
+  birds       Bird[]
+  submissions Submission[]
+  defaultFor  User[]
+  createdAt   DateTime     @default(now())
+}
+
+// One canonical group name across all regions — group jokers key on this
+model Group {
+  id      String    @id @default(cuid())
+  name    String    @unique
+  species Species[]
+}
+
+// A species, independent of region. Cross-region rules match on this.
+model Species {
+  id             String        @id @default(cuid())
+  scientificName String        @unique
+  groupId        String?
+  group          Group?        @relation(fields: [groupId], references: [id])
+  birds          Bird[]
+  submissions    Submission[]
+  specialBirds   SpecialBird[]
+
+  @@index([groupId])
+}
+
+// A species as listed in one region, with that region's common name
+model Bird {
+  id               String       @id @default(cuid())
+  speciesId        String
+  species          Species      @relation(fields: [speciesId], references: [id])
+  regionId         String
+  region           Region       @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  displayName      String // "Amsterdam Albatross"
+  alphabeticalName String // "Albatross, Amsterdam"
+  submissions      Submission[]
+
+  @@unique([regionId, displayName])
+  @@index([speciesId])
+}
+
+// ─── Game ───────────────────────────────────────────────────────────────────
+
+// One bird twitched by one user in one challenge month. year/month are
+// always set by the server from lib/challenge-time.ts, never by the client.
+model Submission {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  regionId   String
+  region     Region   @relation(fields: [regionId], references: [id])
+  birdId     String? // null for custom birds
+  bird       Bird?    @relation(fields: [birdId], references: [id])
+  speciesId  String? // denormalised from bird — enforces once-per-year
+  species    Species? @relation(fields: [speciesId], references: [id])
+  customName String? // custom (unlisted) birds only
+  year       Int
+  month      Int
+  isLifer    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  photo      Photo?
+
+  // A species once per season, in any region. NULLs (custom birds) are distinct.
+  @@unique([userId, speciesId, year])
+  @@unique([userId, customName, year])
+  @@index([userId, year, month])
+  @@index([year, month])
+}
+
+enum PhotoStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Photo {
+  id           String      @id @default(cuid())
+  submissionId String      @unique
+  submission   Submission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url          String
+  width        Int?
+  height       Int?
+  takenAt      DateTime? // from EXIF, when present
+  // challenge month the photo was added (may be later than the twitch)
+  year         Int
+  month        Int
+  status       PhotoStatus @default(PENDING)
+  jokerAward   Float       @default(0)
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime    @default(now())
+
+  @@index([userId, year, month])
+  @@index([status])
+}
+
+// Replaces the Google Form. Tied to the session user — no typed emails.
+model MonthlyCheckIn {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  year              Int
+  month             Int
+  within15km        Boolean  @default(false)
+  beyond750km       Boolean  @default(false)
+  nonMotorisedCount Int      @default(0)
+  liferCount        Int      @default(0)
+  goldenCount       Int      @default(0)
+  photoCount        Int      @default(0)
+  primaryLocation   String?
+  submittedAt       DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([userId, year, month])
+}
+
+model UserJoker {
+  id             String @id @default(cuid())
+  userId         String
+  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  year           Int
+  month          Int
+  jokers         Float  @default(0) // group jokers, recalculated from submissions
+  bonusJokers    Float  @default(0) // check-in bonus + photo awards
+  totalJokers    Float  @default(0) // jokers + bonusJokers
+  usedJokers     Float  @default(0)
+  bonusBreakdown Json?
+
+  @@unique([userId, year, month])
+}
+
+enum JokerSpendReason {
+  AUTO_ELIMINATION
+  MANUAL
+}
+
+// A joker spent to cover a missing bird in (coversYear, coversMonth), drawn
+// from jokers earned in (fromYear, fromMonth). Replaces "🃏 Joker #N" rows.
+model JokerSpend {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coversYear  Int
+  coversMonth Int
+  fromYear    Int
+  fromMonth   Int
+  amount      Float
+  reason      JokerSpendReason
+  createdAt   DateTime         @default(now())
+
+  @@index([userId, coversYear, coversMonth])
+}
+
+model UserChallengeStatus {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  year             Int
+  isEliminated     Boolean   @default(false)
+  eliminatedAt     DateTime?
+  eliminationMonth Int?
+  joinedMonth      Int       @default(1)
+
+  @@unique([userId, year])
+  @@index([year, isEliminated])
+}
+
+// ─── Settings ───────────────────────────────────────────────────────────────
+
+model Settings {
+  id                   String   @id @default("default")
+  currentYear          Int
+  maxBirdsPerPeriod    Int      @default(31)
+  eliminationThreshold Int      @default(30)
+  timezone             String   @default("Africa/Johannesburg")
+  // hours after month-end during which the closed month is still editable
+  graceHours           Int      @default(0)
+  // check-in for month N closes at the end of this day of month N+1
+  checkInDeadlineDay   Int      @default(7)
+  rules                String?
+  updatedAt            DateTime @updatedAt
+}
+
+model MonthlySettings {
+  id                   String @id @default(cuid())
+  year                 Int
+  month                Int
+  maxBirdsPerPeriod    Int
+  eliminationThreshold Int?
+
+  @@unique([year, month])
+}
+
+enum SpecialBirdKind {
+  GOLDEN
+  PHOTO
+}
+
+// This month's golden/photo birds, matched by species in any region
+model SpecialBird {
+  id        String          @id @default(cuid())
+  year      Int
+  month     Int
+  kind      SpecialBirdKind
+  speciesId String
+  species   Species         @relation(fields: [speciesId], references: [id])
+
+  @@unique([year, month, kind, speciesId])
+}
+
+model ChangeRequest {
+  id                String            @id @default(cuid())
+  userId            String
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              ChangeRequestType
+  year              Int
+  month             Int
+  submissionId      String?
+  replacementBirdId String?
+  note              String?
+  status            RequestStatus     @default(PENDING)
+  adminNote         String?
+  resolvedById      String?
+  createdAt         DateTime          @default(now())
+  resolvedAt        DateTime?
+
+  @@index([status])
+  @@index([userId])
+}
+
+enum ChangeRequestType {
+  SWAP
+  DELETE
+  OTHER
+}
+
+// Idempotency lock + audit for crons (elimination, exports, reminders)
+model CronRun {
+  id     String   @id @default(cuid())
+  type   String
+  year   Int
+  month  Int
+  ranAt  DateTime @default(now())
+  result Json?
+
+  @@unique([type, year, month])
+}
