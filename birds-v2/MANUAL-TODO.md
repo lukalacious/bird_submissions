@@ -51,8 +51,8 @@ Vercel. These lines work from any folder:
 cd ~/Documents/code/projects/birds/birds-v2
 pub=$(grep '^NEXT_PUBLIC_VAPID_PUBLIC_KEY=' .env | cut -d= -f2- | tr -d '"'); priv=$(grep '^VAPID_PRIVATE_KEY=' .env | cut -d= -f2- | tr -d '"')
 echo "pub ${#pub} chars, priv ${#priv} chars"   # expect 87 and 43; if 0, you're in the wrong folder
-for t in production preview; do printf '%s' "$pub"  | vercel --scope lukes-projects-65e0b5a0 env add NEXT_PUBLIC_VAPID_PUBLIC_KEY --environment "$t" --project twitch-v2; done
-for t in production preview; do printf '%s' "$priv" | vercel --scope lukes-projects-65e0b5a0 env add VAPID_PRIVATE_KEY --environment "$t" --project twitch-v2 --sensitive; done
+for t in production preview; do printf '%s' "$pub"  | vercel --scope lukes-projects-65e0b5a0 env add NEXT_PUBLIC_VAPID_PUBLIC_KEY --environment "$t" --project twitch-v2 --yes; done
+for t in production preview; do printf '%s' "$priv" | vercel --scope lukes-projects-65e0b5a0 env add VAPID_PRIVATE_KEY --environment "$t" --project twitch-v2 --sensitive --yes; done
 vercel --scope lukes-projects-65e0b5a0 env list --project twitch-v2 | grep VAPID
 ```
 
