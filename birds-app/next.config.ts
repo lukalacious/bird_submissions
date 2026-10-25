@@ -58,8 +58,19 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' https://avatars.githubusercontent.com https://github.com data:; font-src 'self'; connect-src 'self' https://*.neon.tech",
+            // img-src: Google avatars + Vercel Blob photos (and blob: previews)
+            // connect-src: @vercel/blob client uploads go via vercel.com/api/blob
+            // worker-src + jsdelivr: browser-image-compression spawns a blob:
+            // worker that importScripts its own pinned build from jsdelivr
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js",
+              "worker-src 'self' blob:",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https://lh3.googleusercontent.com https://*.public.blob.vercel-storage.com https://avatars.githubusercontent.com https://github.com",
+              "font-src 'self'",
+              "connect-src 'self' https://*.neon.tech https://vercel.com https://*.blob.vercel-storage.com",
+            ].join("; "),
           },
         ],
       },

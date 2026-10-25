@@ -143,6 +143,15 @@ export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsR
     const sessionUser = await requireSession();
     const userId = sessionUser.id!;
 
+    // RULES: only the current challenge month (SAST) is open. A page left
+    // open across month-end would otherwise post into the closed month.
+    if (month !== getCurrentChallengeMonth().month) {
+      return {
+        success: false,
+        error: "This month has closed — refresh the page to twitch for the new month",
+      };
+    }
+
     // Combine regular and custom birds
     const allBirdNames = [...birdNames, ...customBirds];
 

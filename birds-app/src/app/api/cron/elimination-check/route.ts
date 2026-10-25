@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAuthorizedCron } from "@/lib/cron-auth";
 import prisma from "@/lib/prisma";
 import { getMonthlySettings } from "@/lib/settings-utils";
 
@@ -6,12 +7,7 @@ import { getMonthlySettings } from "@/lib/settings-utils";
 // It checks all users for the PREVIOUS month and applies elimination logic
 
 export async function POST(request: NextRequest) {
-  // Verify cron secret or admin authorization
-  const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-
-  // Allow if: valid cron secret OR no secret configured (dev mode)
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -29,11 +25,7 @@ export async function POST(request: NextRequest) {
 
 // Also allow GET for easy testing in development
 export async function GET(request: NextRequest) {
-  // Only allow in development or with proper auth
-  const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (process.env.NODE_ENV === "production" && cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

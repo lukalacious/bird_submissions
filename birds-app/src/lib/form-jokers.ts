@@ -74,6 +74,37 @@ export function canonicalEmail(raw: string): string {
   return EMAIL_ALIASES[normalized] ?? normalized;
 }
 
+/**
+ * Admin photo awards (stored on Submission rows) for a user-month. Every
+ * write of bonusJokers must include these or it wipes them.
+ * A photo belongs to the month it was SUBMITTED (photoYear/photoMonth for
+ * photo-only re-twitches, else the submission's own month).
+ */
+export async function getPhotoAwards(
+  userId: string,
+  year: number,
+  month: number
+): Promise<{ total: number; breakdown: BonusBreakdown[] }> {
+  const awards = await prisma.submission.findMany({
+    where: {
+      userId,
+      photoAwardJokers: { gt: 0 },
+      OR: [
+        { photoYear: year, photoMonth: month },
+        { photoYear: null, year, month },
+      ],
+    },
+    select: { birdName: true, photoAwardJokers: true },
+  });
+  return {
+    total: awards.reduce((sum, p) => sum + p.photoAwardJokers, 0),
+    breakdown: awards.map((p) => ({
+      rule: `Photo award: ${p.birdName}`,
+      value: p.photoAwardJokers,
+    })),
+  };
+}
+
 export async function processFormJokersCore(
   year: number,
   month: number,
@@ -122,30 +153,10 @@ export async function processFormJokersCore(
       });
       const existingGroupJokers = existing?.jokers || 0;
 
-      // Merge in manual photo awards (stored on Submission rows) so the
-      // recompute never wipes admin-granted photo jokers
-      // A photo belongs to the month it was SUBMITTED (photoYear/photoMonth
-      // for photo-only re-twitches, else the submission's own month)
-      const photoAwards = await prisma.submission.findMany({
-        where: {
-          userId: user.id,
-          photoAwardJokers: { gt: 0 },
-          OR: [
-            { photoYear: year, photoMonth: month },
-            { photoYear: null, year, month },
-          ],
-        },
-        select: { birdName: true, photoAwardJokers: true },
-      });
-      const photoTotal = photoAwards.reduce((sum, p) => sum + p.photoAwardJokers, 0);
-      const fullBreakdown = [
-        ...breakdown,
-        ...photoAwards.map((p) => ({
-          rule: `Photo award: ${p.birdName}`,
-          value: p.photoAwardJokers,
-        })),
-      ];
-      const bonusTotal = total + photoTotal;
+      // Merge in manual photo awards so the recompute never wipes them
+      const photo = await getPhotoAwards(user.id, year, month);
+      const fullBreakdown = [...breakdown, ...photo.breakdown];
+      const bonusTotal = total + photo.total;
 
       // Upsert UserJoker — write bonusJokers, bonusBreakdown, and totalJokers;
       // never touch jokers or usedJokers

@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { BirdSubmissionForm } from "@/components/bird-submission-form";
 import { RegionSelector } from "@/components/region-selector";
-import { getMonthlySettings, getSpecialBirdSpecies } from "@/lib/settings-utils";
+import { getMonthlySettings, getSpecialBirdSpecies, getCurrentChallengeMonth } from "@/lib/settings-utils";
 import { getUserJokerInfo } from "@/app/actions/joker-actions";
 import type { ResetPeriod } from "@prisma/client";
 
@@ -118,7 +118,8 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
   }
 
   const currentYear = settings?.currentYear ?? new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
+  // SAST challenge month — must match the check in submitBirds
+  const currentMonth = getCurrentChallengeMonth().month;
   const resetPeriod = settings?.resetPeriod ?? "YEARLY";
 
   // Get monthly-specific settings (falls back to global if no monthly override)

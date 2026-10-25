@@ -4,7 +4,11 @@ import prisma from "@/lib/prisma";
 import { isAdminSession, requireAdmin } from "@/lib/auth-helpers";
 import { type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { processFormJokersCore, type FormJokerResult } from "@/lib/form-jokers";
+import {
+  processFormJokersCore,
+  getPhotoAwards,
+  type FormJokerResult,
+} from "@/lib/form-jokers";
 
 export type { FormJokerResult };
 
@@ -57,6 +61,12 @@ export async function assignBonusToUser(
     });
     const existingGroupJokers = existing?.jokers || 0;
 
+    // Same merge as processFormJokersCore — without it, manually assigning
+    // a form bonus wipes the user's admin photo awards for the month
+    const photo = await getPhotoAwards(userId, year, month);
+    const bonusTotal = bonus + photo.total;
+    const fullBreakdown = [...breakdown, ...photo.breakdown];
+
     await prisma.userJoker.upsert({
       where: { userId_year_month: { userId, year, month } },
       create: {
@@ -64,15 +74,15 @@ export async function assignBonusToUser(
         year,
         month,
         jokers: 0,
-        bonusJokers: bonus,
-        bonusBreakdown: breakdown as unknown as Prisma.InputJsonValue,
-        totalJokers: bonus,
+        bonusJokers: bonusTotal,
+        bonusBreakdown: fullBreakdown as unknown as Prisma.InputJsonValue,
+        totalJokers: bonusTotal,
         usedJokers: 0,
       },
       update: {
-        bonusJokers: bonus,
-        bonusBreakdown: breakdown as unknown as Prisma.InputJsonValue,
-        totalJokers: existingGroupJokers + bonus,
+        bonusJokers: bonusTotal,
+        bonusBreakdown: fullBreakdown as unknown as Prisma.InputJsonValue,
+        totalJokers: existingGroupJokers + bonusTotal,
       },
     });
 
