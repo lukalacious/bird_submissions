@@ -374,6 +374,9 @@ async function main() {
         maxBirdsPerPeriod: v1.settings.maxBirdsPerPeriod,
         eliminationThreshold: v1.settings.eliminationThreshold,
         rules: v1.settings.rules,
+        // recommended defaults, pending Dale (see MANUAL-TODO.md)
+        graceHours: 48,
+        checkInDeadlineDay: 7,
       },
     });
     await insert("monthly settings", v1.monthly, (rows) =>

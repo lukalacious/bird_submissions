@@ -9,7 +9,7 @@ const DEFAULTS = {
   maxBirdsPerPeriod: 31,
   eliminationThreshold: 30,
   timezone: DEFAULT_TIMEZONE,
-  graceHours: 0,
+  graceHours: 48,
   checkInDeadlineDay: 7,
 };
 

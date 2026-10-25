@@ -112,3 +112,16 @@ export function timeUntil(end: Date, now: Date = new Date()) {
     minutes: Math.floor((ms % 3_600_000) / 60_000),
   };
 }
+
+/**
+ * Months a player can add to right now: the current month, plus last month
+ * while its grace window runs. Newest first.
+ */
+export function openMonths(
+  opts: { now?: Date; graceHours?: number; timeZone?: string } = {}
+): ChallengeMonth[] {
+  const { now = new Date(), timeZone = DEFAULT_TIMEZONE } = opts;
+  const current = getChallengeMonth(now, timeZone);
+  const previous = previousMonth(current);
+  return isMonthOpen(previous, opts) ? [current, previous] : [current];
+}

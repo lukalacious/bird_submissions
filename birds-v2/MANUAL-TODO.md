@@ -130,6 +130,14 @@ latest run → summary).
 - [ ] **Uncommitted v1 changes.** `birds-app/package.json` and
   `package-lock.json` had uncommitted changes before this work started. Commit
   them or discard them. Claude hasn't touched them.
+- [ ] **Move the project out of iCloud** *(recommended)*. `~/Documents` is
+  synced by iCloud, which leaves "file 2.ts" conflict copies in folders the build
+  rewrites quickly (`.next/`, `src/generated/`). v2 now ignores them, but the
+  real fix is moving the repo, e.g. `mv ~/Documents/code ~/code`, then updating
+  the paths in `~/.claude/CLAUDE.md`. Do this between sessions, not during one.
+- [ ] **Delete leftover build junk** (safe, all regenerated): from `birds-v2/` run
+  `rm -rf birds-v2 .next src/generated && npm install`. The nested `birds-v2/birds-v2/`
+  folder was a one-off from a build before the fix.
 - [ ] **Stop v1 rebuilding on v2 commits** *(optional)*. Vercel →
   **bird-submissions** → Settings → Git → **Ignored Build Step** → custom command
   `git diff --quiet HEAD^ HEAD -- .`. Right now every v2 commit also redeploys v1

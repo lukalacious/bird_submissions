@@ -6,6 +6,7 @@ import {
   isMonthOpen,
   monthEnd,
   nextMonth,
+  openMonths,
   previousMonth,
   timeUntil,
 } from "./challenge-time";
@@ -98,5 +99,18 @@ describe("timeUntil", () => {
     const end = utc("2026-10-31T22:00:00");
     expect(timeUntil(end, utc("2026-10-30T20:30:00"))).toMatchObject({ days: 1, hours: 1, minutes: 30 });
     expect(timeUntil(end, utc("2026-11-01T00:00:00")).ms).toBe(0);
+  });
+});
+
+describe("openMonths", () => {
+  it("is just the current month outside the grace window", () => {
+    expect(openMonths({ now: utc("2026-11-10T10:00:00"), graceHours: 48 })).toEqual([{ year: 2026, month: 11 }]);
+  });
+
+  it("includes last month during the grace window, newest first", () => {
+    expect(openMonths({ now: utc("2026-12-31T23:00:00"), graceHours: 48 })).toEqual([
+      { year: 2027, month: 1 },
+      { year: 2026, month: 12 },
+    ]);
   });
 });

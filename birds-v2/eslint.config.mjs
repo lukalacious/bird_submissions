@@ -20,7 +20,8 @@ const eslintConfig = defineConfig([
       ],
     },
   },
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", "src/generated/**"]),
+  // "* 2.*" = iCloud conflict copies (the repo sits in iCloud-synced ~/Documents)
+  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", "src/generated/**", "**/* 2.*", "**/* 2/**", "birds-v2/**"]),
 ]);
 
 export default eslintConfig;

@@ -17,6 +17,9 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
+    // birds/ also has a package-lock.json — without this Turbopack treats the
+    // repo root as the workspace and writes build output to birds-v2/birds-v2/
+    root: process.cwd(),
     rules: {
       "*.css": {
         loaders: ["@tailwindcss/turbopack"],
