@@ -117,17 +117,20 @@ function LeaderboardItem({
         </div>
       </div>
 
-      {/* Score - Jokers Earned */}
+      {/* Score - birds seen (primary rank), jokers earned (tie-breaker) */}
       <div className="flex-shrink-0 text-right">
         <motion.span
-          key={entry.totalJokersEarned}
+          key={entry.submissionCount}
           initial={{ scale: 1.2 }}
           animate={{ scale: 1 }}
           className="font-bold text-lg text-gray-900"
         >
-          {entry.totalJokersEarned}
+          {entry.submissionCount}
         </motion.span>
-        <p className="text-xs text-gray-500">jokers</p>
+        <p className="text-xs text-gray-500 leading-tight">birds</p>
+        <p className="text-xs text-gray-500 leading-tight">
+          🃏 {entry.totalJokersEarned}
+        </p>
       </div>
     </motion.div>
   );
@@ -254,7 +257,7 @@ export function Leaderboard({
                 <Trophy className="h-10 w-10 mx-auto mb-2 text-gray-300" />
                 <p className="text-sm">
                   {activeTab === "month" && selectedMonth !== currentMonth
-                    ? `No jokers recorded for ${MONTH_NAMES[selectedMonth - 1]}`
+                    ? `No birds recorded for ${MONTH_NAMES[selectedMonth - 1]}`
                     : "No submissions yet"}
                 </p>
                 {activeTab === "month" && selectedMonth === currentMonth && (

@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { getLevelByPercentile, isInInitialPeriod, LEVELS } from "@/lib/gamification-constants";
+import { rankLeaderboard } from "@/lib/leaderboard-rank";
 
 export interface FeedEntry {
   id: string;
@@ -264,24 +265,33 @@ export async function getLeaderboard(
   });
   const eliminatedUserIds = new Set(eliminatedStatuses.map((s) => s.userId));
 
-  // Get total jokers earned per user (sorted by jokers descending)
-  const jokerTotals = await prisma.userJoker.groupBy({
-    by: ["userId"],
-    where: jokerWhereClause,
-    _sum: { totalJokers: true },
-  });
+  // Birds seen per user and jokers earned per user, both for ALL users so the
+  // ranking can use them. Joker immunity rows are not real birds, so exclude.
+  const [submissionCounts, jokerTotals] = await Promise.all([
+    prisma.submission.groupBy({
+      by: ["userId"],
+      where: { ...submissionWhereClause, isJokerSubmission: false },
+      _count: { _all: true },
+    }),
+    prisma.userJoker.groupBy({
+      by: ["userId"],
+      where: jokerWhereClause,
+      _sum: { totalJokers: true },
+    }),
+  ]);
 
-  // Sort by total jokers earned (descending)
-  const sortedByJokers = jokerTotals
-    .map((j) => ({ userId: j.userId, totalJokers: j._sum.totalJokers || 0 }))
-    .sort((a, b) => b.totalJokers - a.totalJokers);
+  // Rank: most birds first, then most jokers as the tie-breaker
+  const ranked = rankLeaderboard(
+    submissionCounts.map((s) => ({ userId: s.userId, birds: s._count._all })),
+    jokerTotals.map((j) => ({ userId: j.userId, jokers: j._sum.totalJokers || 0 }))
+  );
 
   // Filter based on challenge filter
-  let filteredUsers = sortedByJokers;
+  let filteredUsers = ranked;
   if (challengeFilter === "active") {
-    filteredUsers = sortedByJokers.filter((u) => !eliminatedUserIds.has(u.userId));
+    filteredUsers = ranked.filter((u) => !eliminatedUserIds.has(u.userId));
   } else if (challengeFilter === "eliminated") {
-    filteredUsers = sortedByJokers.filter((u) => eliminatedUserIds.has(u.userId));
+    filteredUsers = ranked.filter((u) => eliminatedUserIds.has(u.userId));
   }
 
   // Take top 10 after filtering
@@ -301,17 +311,6 @@ export async function getLeaderboard(
 
   const userMap = new Map(users.map((u) => [u.id, u]));
 
-  // Get submission counts for the users (for reference)
-  const submissionCounts = await prisma.submission.groupBy({
-    by: ["userId"],
-    where: {
-      ...submissionWhereClause,
-      userId: { in: userIds },
-    },
-    _count: { _all: true },
-  });
-  const submissionMap = new Map(submissionCounts.map((s) => [s.userId, s._count._all]));
-
   // Get user levels based on quartile ranking
   const userLevelMap = await calculateUserLevels();
 
@@ -324,8 +323,8 @@ export async function getLeaderboard(
       userName: user?.username || user?.name || null,
       userImage: user?.image || null,
       level: userLevelMap.get(u.userId)?.level || 1,
-      submissionCount: submissionMap.get(u.userId) || 0,
-      totalJokersEarned: u.totalJokers,
+      submissionCount: u.birds,
+      totalJokersEarned: u.jokers,
       isCurrentUser: u.userId === currentUserId,
       isEliminated: eliminatedUserIds.has(u.userId),
     };
