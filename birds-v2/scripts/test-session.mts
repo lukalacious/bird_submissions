@@ -1,5 +1,6 @@
 // Throwaway test player for local render checks against v2-staging.
 //   npx tsx scripts/test-session.mts create <email> [https]   → prints a session cookie value
+//   npx tsx scripts/test-session.mts token <email> [https]    → session for an existing test player
 //   npx tsx scripts/test-session.mts delete <email>
 // Dev/E2E only: works against whatever DATABASE_URL .env points at (v2-staging).
 import "dotenv/config";
@@ -16,12 +17,16 @@ const db = new PrismaClient({ adapter: new PrismaNeon({ connectionString: proces
 if (cmd === "delete") {
   await db.user.deleteMany({ where: { email } });
 } else {
-  const u = await db.user.create({ data: { email, emailNormalized: email, name: "Render Test", identityCheckedAt: new Date() } });
+  // "create" makes a fresh player; "token" signs in as an existing test player (keeps its role)
+  const u =
+    cmd === "token"
+      ? await db.user.findUniqueOrThrow({ where: { email } })
+      : await db.user.create({ data: { email, emailNormalized: email, name: "Render Test", identityCheckedAt: new Date() } });
   process.stdout.write(
     await encode({
       secret: process.env.AUTH_SECRET!,
       salt: cookieName,
-      token: { sub: u.id, id: u.id, name: u.name, email: u.email, role: "USER", username: null, refreshedAt: Date.now() },
+      token: { sub: u.id, id: u.id, name: u.name, email: u.email, role: u.role, username: u.username, refreshedAt: Date.now() },
     })
   );
 }
