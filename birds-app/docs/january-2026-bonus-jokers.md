@@ -35,7 +35,7 @@ The following respondents could not be matched to a user account and their bonus
 | William & Annette | 8 | Duplicate of above with different separator |
 | Ant P | 7 | Nickname — no email match (Anthony?) |
 
-These require manual override via `scripts/overrides.json` — see `scripts/unmatched-users.md`.
+These require manual override via `scripts/data/overrides.json` — see `scripts/data/unmatched-users.md`.
 
 ## Rules Applied
 

@@ -1,6 +1,6 @@
 /**
  * C2 (July 2026): Apply the reviewed group-name mapping produced by
- * audit-group-names.ts (scripts/group-name-mapping.json) to Bird.groupName.
+ * audit-group-names.ts (scripts/data/group-name-mapping.json) to Bird.groupName.
  *
  * Usage:
  *   DATABASE_URL="..." npx tsx scripts/normalize-group-names.ts          # dry run
@@ -27,7 +27,7 @@ async function main() {
   console.log(APPLY ? "=== APPLY MODE ===" : "=== DRY RUN (pass --apply to execute) ===");
 
   const mappingArg = process.argv.find((a) => a.startsWith("--mapping="))?.split("=")[1];
-  const mappingPath = path.join(__dirname, mappingArg ?? "group-name-mapping.json");
+  const mappingPath = path.join(__dirname, "data", mappingArg ?? "group-name-mapping.json");
   console.log(`Mapping file: ${mappingPath}`);
   const mapping: Record<string, MappingEntry> = JSON.parse(fs.readFileSync(mappingPath, "utf8"));
   const entries = Object.entries(mapping);

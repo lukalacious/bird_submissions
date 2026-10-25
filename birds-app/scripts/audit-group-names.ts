@@ -9,7 +9,7 @@
  *   1. Same species (scientificName) exists in SA, else NL -> adopt that groupName
  *   2. Otherwise -> last word of the bird's fullName
  *
- * Writes scripts/group-name-mapping.json (birdId -> { from, to, ... })
+ * Writes scripts/data/group-name-mapping.json (birdId -> { from, to, ... })
  * for manual review; normalize-group-names.ts applies it.
  *
  * Usage: DATABASE_URL="..." npx tsx scripts/audit-group-names.ts
@@ -79,7 +79,7 @@ async function main() {
     };
   }
 
-  const outPath = path.join(__dirname, "group-name-mapping.json");
+  const outPath = path.join(__dirname, "data", "group-name-mapping.json");
   fs.writeFileSync(outPath, JSON.stringify(mapping, null, 2));
 
   console.log(`Birds needing change: ${Object.keys(mapping).length}`);

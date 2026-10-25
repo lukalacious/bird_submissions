@@ -1,6 +1,6 @@
 # Unmatched / Ambiguous Form Entries
 
-These entries from "Form Responses 1" could not be confidently matched to a database user. Please fill in the correct email address for each, then add them to `scripts/overrides.json`.
+These entries from "Form Responses 1" could not be confidently matched to a database user. Please fill in the correct email address for each, then add them to `scripts/data/overrides.json`.
 
 | Row | Form Name | Matched To | Issue | Correct Email |
 |-----|-----------|------------|-------|---------------|
@@ -10,7 +10,7 @@ These entries from "Form Responses 1" could not be confidently matched to a data
 
 ## How to apply once resolved
 
-Create `scripts/overrides.json`:
+Create `scripts/data/overrides.json`:
 ```json
 {
   "William and Annette": "actual@email.com",
@@ -21,5 +21,5 @@ Create `scripts/overrides.json`:
 
 Then run:
 ```bash
-npx tsx scripts/backfill-form-emails.ts --apply --overrides=scripts/overrides.json
+npx tsx scripts/backfill-form-emails.ts --apply --overrides=scripts/data/overrides.json
 ```

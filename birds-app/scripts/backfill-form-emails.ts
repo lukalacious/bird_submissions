@@ -353,6 +353,7 @@ async function backupFormResponses(
 
   const backupPath = path.join(
     __dirname,
+    "data",
     `form-responses-backup-${Date.now()}.json`
   );
   fs.writeFileSync(backupPath, JSON.stringify(response.data.values || [], null, 2));

@@ -12,7 +12,7 @@
  *      (Robin-Chat vs Robin-chat) -> the globally most common spelling.
  *   3. Junk cleanup: strip wrapping brackets/parens from group names.
  *
- * Read-only: writes scripts/hyphen-group-mapping.json (same format as
+ * Read-only: writes scripts/data/hyphen-group-mapping.json (same format as
  * group-name-mapping.json) and prints a review table for Dale. Apply later
  * with: npx tsx scripts/normalize-group-names.ts --mapping=hyphen-group-mapping.json --apply
  * then recalc-all-jokers.ts, and mirror the changes into
@@ -146,7 +146,7 @@ async function main() {
     renameSummary.get(key)!.birds++;
   }
 
-  const outPath = path.join(__dirname, "hyphen-group-mapping.json");
+  const outPath = path.join(__dirname, "data", "hyphen-group-mapping.json");
   fs.writeFileSync(outPath, JSON.stringify(mapping, null, 2));
 
   console.log(`Birds needing change: ${Object.keys(mapping).length}`);

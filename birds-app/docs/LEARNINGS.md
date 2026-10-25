@@ -115,7 +115,7 @@ When you encounter a problem and solve it, add an entry:
 
 **Solution:**
 1. Added `parseTimestamp()` helper in `src/lib/google-sheets.ts` that regex-matches `DD/MM/YYYY HH:mm:ss` and constructs Date via `new Date(year, month-1, day, ...)`, with fallback to native parsing
-2. Created `scripts/overrides.json` for 3 unmatched users whose names couldn't be auto-resolved
+2. Created `scripts/data/overrides.json` for 3 unmatched users whose names couldn't be auto-resolved
 3. Ran `scripts/backfill-form-emails.ts` to replace names with emails in the Google Sheet
 4. Reprocessed January via `/admin/form-jokers`
 
@@ -326,7 +326,7 @@ Hyphenated group names fragment joker families (NL "Common Wood-Pigeon" → grou
 SA/NL groupNames come verbatim from the hand-maintained "Group Name" column in `prisma/Bird Species Database.xlsx` (inconsistent hyphenation at source). The July audit's `lastWord()` splits on whitespace only, so it propagated hyphenated tails into EA/WA and minted new ones. And `upsert-regions.ts` overwrites `groupName` whenever the sheet differs — so the xlsx is a second source of truth that silently REVERTS any DB-only rename on the next `npm run db:upsert-regions` (currently divergent for all 2,735 EA/WA birds).
 
 **Solution:**
-`scripts/audit-hyphen-groups.ts` proposes merges (hyphen-tail → existing group, case folds, bracket junk) into `scripts/hyphen-group-mapping.json`; apply with `normalize-group-names.ts --mapping=... --apply`, then `recalc-all-jokers.ts` (now auto-ranges months 1..current). Pending Dale's rules sign-off before applying mid-season.
+`scripts/audit-hyphen-groups.ts` proposes merges (hyphen-tail → existing group, case folds, bracket junk) into `scripts/data/hyphen-group-mapping.json`; apply with `normalize-group-names.ts --mapping=... --apply`, then `recalc-all-jokers.ts` (now auto-ranges months 1..current). Pending Dale's rules sign-off before applying mid-season.
 
 **Prevention:**
 - Any groupName change must be mirrored in `prisma/Bird Species Database.xlsx` or it will be reverted by the next upsert

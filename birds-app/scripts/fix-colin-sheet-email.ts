@@ -125,7 +125,7 @@ async function main() {
     return;
   }
 
-  const backupPath = path.join(__dirname, `form-responses-backup-${Date.now()}.json`);
+  const backupPath = path.join(__dirname, "data", `form-responses-backup-${Date.now()}.json`);
   fs.writeFileSync(backupPath, JSON.stringify(rows, null, 2));
   console.log(`💾 Backup saved to: ${backupPath}`);
 

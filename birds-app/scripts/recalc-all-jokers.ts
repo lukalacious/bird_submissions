@@ -3,7 +3,7 @@
  * the current year, after the region-scoping fix and group-name
  * normalization. Preserves bonusJokers (form-based) by design.
  *
- * Emits a before/after diff CSV (scripts/joker-recalc-diff.csv) so changes
+ * Emits a before/after diff CSV (scripts/data/joker-recalc-diff.csv) so changes
  * can be reviewed/announced.
  *
  * Usage:
@@ -62,7 +62,7 @@ async function main() {
     }
   }
 
-  const outPath = path.join(__dirname, "joker-recalc-diff.csv");
+  const outPath = path.join(__dirname, "data", "joker-recalc-diff.csv");
   fs.writeFileSync(outPath, rows.join("\n"));
   console.log(`User-months with changed group jokers: ${changed}`);
   console.log(`Diff written to ${outPath}`);
