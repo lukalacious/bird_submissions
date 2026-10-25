@@ -19,13 +19,44 @@ Plan: `~/.claude/plans/pasted-content-id-b528-build-me-dreamy-sutherland.md`.
 - **Cache Components** are on: anything that reads the session or the clock
   renders inside `<Suspense>`.
 
+## What's where
+
+| Area | Code | Notes |
+|---|---|---|
+| Today | `src/app/(app)/page.tsx` | tally, check-in card, jokers |
+| Twitch (checklist) | `src/app/(app)/twitch/` | search-first, tray in localStorage, `submitBirds` / `removeBird` |
+| Photos | `src/components/photo-button.tsx`, `src/app/api/upload/` | EXIF → compress → direct Blob upload → `attachPhoto` |
+| Check-in (replaces Google Form) | `src/app/(app)/check-in/` | pre-filled from the player's data |
+| Flock | `src/app/(app)/flock/`, `src/lib/flock.ts` | cached, one tab loaded at a time |
+| Me, ledger, my birds, change requests | `src/app/(app)/me/` | |
+| Identity | `src/app/welcome/`, `src/lib/identity.ts`, `src/lib/merge-*.ts` | "Are you already playing?", linking, merges |
+| Admin | `src/app/admin/` | claims, players/merge, changes, photos, check-ins, months, settings, CSV |
+| Game rules (pure, tested) | `src/lib/rules/` | jokers, submission, check-in bonus, elimination, reminders |
+| Joker writers | `src/lib/jokers-db.ts` (group), `src/lib/bonus-db.ts` (bonus) | the **only** writers of those columns |
+| Crons | `src/app/api/cron/`, `vercel.json` | month-end (daily, after grace), reminders |
+| Time | `src/lib/challenge-time.ts` | the only code allowed to decide the month |
+
+Dale's pending rulings are **settings** (Admin → Settings), defaulted to the
+recommendations in `MANUAL-TODO.md`: 48h grace, check-in closes on the 7th,
+half jokers combine, 2 empty months eliminates.
+
+## Tests
+
+```bash
+npm test            # unit (pure rules) — fast, no DB
+npm run test:int    # integration: real transactions against v2-staging
+npm run build && npm run test:e2e   # Playwright on a phone viewport + axe accessibility
+```
+
+Integration and E2E tests create throwaway `@example.test` players and delete
+them afterwards (`scripts/test-session.mts`).
+
 ## Develop
 
 ```bash
 cp .env.example .env    # fill in from the Neon v2-staging branch and Google OAuth
 npm install             # also runs prisma generate
 npm run dev
-npm test                # vitest
 npm run lint && npm run typecheck
 ```
 

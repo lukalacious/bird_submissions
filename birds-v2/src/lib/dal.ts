@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
@@ -13,6 +14,9 @@ import { db } from "@/lib/db";
  * (Cache Components).
  */
 export const getCurrentUser = cache(async () => {
+  // auth() may re-issue the session cookie (random IV), so it must never run
+  // while prerendering — this marks every session read as request-time
+  await connection();
   const session = await auth();
   return session?.user?.id ? session.user : null;
 });
