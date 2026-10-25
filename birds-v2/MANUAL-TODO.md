@@ -29,9 +29,15 @@ Without this, "Continue with Google" on staging fails with `redirect_uri_mismatc
 - [ ] Both secrets added
 
 ### A3. Photo storage
-Vercel → **Storage** → **Create** → **Blob** → name it `twitch-v2-photos` → connect it to **twitch-v2** (Production and Preview). That adds `BLOB_READ_WRITE_TOKEN` itself.
+Vercel → **twitch-v2** → **Storage** → **Create** → **Blob** → name it `twitch-v2-photos`.
+Creating it from inside the project connects it (Production and Preview) in one
+step. Created from the team-level Storage tab instead, you must also click
+**Connect Project**. Either way Vercel adds `BLOB_READ_WRITE_TOKEN`,
+`BLOB_STORE_ID` and `BLOB_WEBHOOK_PUBLIC_KEY` itself. To check:
+`vercel env list --project twitch-v2` should show all three. They only reach
+deployments built after they exist, so the next push picks them up.
 
-- [ ] Done
+- [x] Done (2026-10-25, verified with `vercel env list`)
 
 ### A4. Reminder keys
 Vercel → **bird-submissions** → Settings → Environment Variables. Copy
