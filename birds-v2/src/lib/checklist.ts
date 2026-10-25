@@ -68,7 +68,7 @@ export interface SeasonBird {
   year: number;
   month: number;
   isLifer: boolean;
-  hasPhoto: boolean;
+  photoUrl: string | null;
 }
 
 /**
@@ -87,7 +87,7 @@ export async function getPlayerSeason(userId: string, year: number) {
         year: true,
         month: true,
         isLifer: true,
-        photo: { select: { id: true } },
+        photo: { select: { url: true } },
         bird: { select: { displayName: true, species: { select: { group: { select: { name: true } } } } } },
       },
     }),
@@ -102,7 +102,7 @@ export async function getPlayerSeason(userId: string, year: number) {
     year: s.year,
     month: s.month,
     isLifer: s.isLifer,
-    hasPhoto: Boolean(s.photo),
+    photoUrl: s.photo?.url ?? null,
   }));
   return { birds, isEliminated: status?.isEliminated ?? false };
 }

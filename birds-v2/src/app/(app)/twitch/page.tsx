@@ -62,6 +62,7 @@ async function TwitchData({ searchParams }: Pick<PageProps<"/twitch">, "searchPa
 
   return (
     <Checklist
+      userId={user.id}
       regions={regions}
       regionId={region.id}
       birds={birds}

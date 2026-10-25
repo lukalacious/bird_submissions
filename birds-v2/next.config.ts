@@ -4,7 +4,8 @@ import type { NextConfig } from "next";
 // Blob and Google avatars, and photo uploads silently failed for months.
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  // browser-image-compression's worker importScripts its own pinned build
+  "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js",
   "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://lh3.googleusercontent.com https://*.public.blob.vercel-storage.com",

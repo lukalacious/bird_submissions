@@ -7,6 +7,7 @@ import { indexBirds, searchBirds } from "@/lib/bird-search";
 import { calculateJokersFromGroup, jokerHint } from "@/lib/rules/jokers";
 import type { ChecklistBird, SeasonBird } from "@/lib/checklist";
 import { useStoredState } from "@/lib/use-stored-state";
+import { PhotoButton } from "@/components/photo-button";
 import { removeBird, submitBirds } from "./actions";
 
 export interface OpenMonth {
@@ -24,6 +25,7 @@ interface TrayItem {
 }
 
 interface Props {
+  userId: string;
   regions: { id: string; name: string; label: string }[];
   regionId: string;
   birds: ChecklistBird[];
@@ -39,7 +41,7 @@ const monthName = (m: number) => MONTH_SHORT.format(new Date(Date.UTC(2026, m - 
 const EMPTY_TRAY: TrayItem[] = [];
 const EMPTY_CUSTOMS: string[] = [];
 
-export function Checklist({ regions, regionId, birds, special, season, months, isEliminated }: Props) {
+export function Checklist({ userId, regions, regionId, birds, special, season, months, isEliminated }: Props) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [target, setTarget] = useState<OpenMonth["key"]>("current");
@@ -280,6 +282,14 @@ export function Checklist({ regions, regionId, birds, special, season, months, i
                     {s.label}
                     {s.isLifer && <span className="ml-2 text-sm text-lilac">lifer</span>}
                   </span>
+                  <PhotoButton
+                    userId={userId}
+                    submissionId={s.id}
+                    birdName={s.label}
+                    photoUrl={s.photoUrl}
+                    month={months[0]}
+                    onNotice={setNotice}
+                  />
                   <button
                     type="button"
                     onClick={() => remove(s.id)}
