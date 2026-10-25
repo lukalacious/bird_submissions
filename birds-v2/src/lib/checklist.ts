@@ -106,3 +106,17 @@ export async function getPlayerSeason(userId: string, year: number) {
   }));
   return { birds, isEliminated: status?.isEliminated ?? false };
 }
+
+/** Every species once, named by its first regional name — for admin pickers. */
+export async function getAllSpecies() {
+  "use cache";
+  cacheTag(REFERENCE_TAG);
+  cacheLife("days");
+  const species = await db.species.findMany({
+    select: { id: true, scientificName: true, birds: { select: { displayName: true, alphabeticalName: true }, take: 1, orderBy: { displayName: "asc" } } },
+  });
+  return species
+    .filter((s) => s.birds.length > 0)
+    .map((s) => ({ id: s.id, scientificName: s.scientificName, displayName: s.birds[0].displayName, alphabeticalName: s.birds[0].alphabeticalName }))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { PhotoButton } from "@/components/photo-button";
 import type { SeasonBird } from "@/lib/checklist";
 
@@ -11,11 +12,15 @@ interface Props {
   year: number;
   current: { year: number; month: number };
   birds: SeasonBird[];
+  openMonths: number[];
+  requested: boolean;
 }
 
 /** The whole season by month. Photos can be added to any bird, any time. */
-export function SeasonList({ userId, year, current, birds }: Props) {
-  const [notice, setNotice] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+export function SeasonList({ userId, year, current, birds, openMonths, requested }: Props) {
+  const [notice, setNotice] = useState<{ kind: "ok" | "error"; text: string } | null>(
+    requested ? { kind: "ok", text: "Request sent. An admin will look at it soon." } : null
+  );
   const byMonth = new Map<number, SeasonBird[]>();
   for (const b of birds) byMonth.set(b.month, [...(byMonth.get(b.month) ?? []), b]);
   const months = [...byMonth.keys()].sort((a, b) => b - a);
@@ -48,6 +53,11 @@ export function SeasonList({ userId, year, current, birds }: Props) {
                   {b.isLifer && <span className="ml-2 text-sm text-lilac">lifer</span>}
                 </span>
                 <PhotoButton userId={userId} submissionId={b.id} birdName={b.label} photoUrl={b.photoUrl} month={current} onNotice={setNotice} />
+                {!openMonths.includes(m) && (
+                  <Link href={`/me/request?submission=${b.id}`} className="text-sm font-semibold text-roller" aria-label={`Request a change to ${b.label}`}>
+                    Change
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
