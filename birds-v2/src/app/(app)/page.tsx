@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { Tally } from "@/components/tally";
-import { requireUser } from "@/lib/dal";
+import { requirePlayer } from "@/lib/dal";
 import { getChallengeMonth, monthEnd, timeUntil } from "@/lib/challenge-time";
 import { getMonthRules, getSettings } from "@/lib/settings";
 import { getMonthSnapshot } from "@/lib/player";
@@ -33,7 +33,7 @@ export default function TodayPage() {
 
 async function Today() {
   await connection(); // the current month depends on the clock
-  const user = await requireUser();
+  const user = await requirePlayer();
   const settings = await getSettings();
   const current = getChallengeMonth(new Date(), settings.timezone);
   const [rules, snapshot] = await Promise.all([getMonthRules(current), getMonthSnapshot(user.id, current)]);

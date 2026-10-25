@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { db } from "@/lib/db";
 
 /**
  * Data Access Layer: the one place that reads the session. Every Server
@@ -21,6 +22,19 @@ export async function requireUser() {
   if (!user) redirect("/signin");
   return user;
 }
+
+/**
+ * A signed-in user who has cleared the duplicate-account check. Every game
+ * screen uses this, so a possible duplicate can't start a second player's
+ * history before "Are you already playing as X?" is answered.
+ */
+export const requirePlayer = cache(async () => {
+  const user = await requireUser();
+  const row = await db.user.findUnique({ where: { id: user.id }, select: { identityCheckedAt: true } });
+  if (!row) redirect("/signin");
+  if (!row.identityCheckedAt) redirect("/welcome");
+  return user;
+});
 
 export async function requireAdmin() {
   const user = await requireUser();

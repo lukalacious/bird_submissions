@@ -4,6 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { Adapter, AdapterUser } from "next-auth/adapters";
 import { db } from "@/lib/db";
 import { normalizeEmail } from "@/lib/identity";
+import { runSignupIdentityCheck } from "@/lib/players";
 import type { Role } from "@/generated/prisma/enums";
 
 // Role/username are re-read from the DB at most this often per session
@@ -63,6 +64,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.role = token.role ?? "USER";
       session.user.username = token.username ?? null;
       return session;
+    },
+  },
+  events: {
+    async createUser({ user }) {
+      if (user.id) await runSignupIdentityCheck(user.id);
+    },
+    // Record which Google account this is, for Me → Linked accounts
+    async linkAccount({ account, profile }) {
+      if (!profile?.email) return;
+      await db.account.update({
+        where: {
+          provider_providerAccountId: { provider: account.provider, providerAccountId: account.providerAccountId },
+        },
+        data: { email: profile.email },
+      });
     },
   },
   trustHost: true,

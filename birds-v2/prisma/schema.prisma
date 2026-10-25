@@ -59,6 +59,8 @@ model Account {
   type              String
   provider          String
   providerAccountId String
+  // the Google account's email, so players can see which accounts are linked
+  email             String?
   refresh_token     String?
   access_token      String?
   expires_at        Int?
@@ -108,6 +110,7 @@ model LinkRequest {
   resolvedAt   DateTime?
 
   @@index([status])
+  @@index([requesterId, status])
 }
 
 // Audit trail for admin merges (replaces one-off fix-*-accounts scripts)

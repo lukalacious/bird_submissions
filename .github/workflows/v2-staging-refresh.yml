@@ -1,0 +1,59 @@
+name: Nightly v2 staging refresh
+
+# Resets the v2-staging Neon branch to a fresh copy of production, rebuilds
+# the v2 schema and re-runs the v1 → v2 migration. Every night is a full
+# rehearsal of the 31 December cutover.
+#
+# Pause it (e.g. for the December beta) by setting the repository variable
+# V2_STAGING_FROZEN=true under Settings → Secrets and variables → Actions.
+
+on:
+  schedule:
+    - cron: "0 1 * * *" # 03:00 SAST, before players are up
+  workflow_dispatch:
+
+concurrency: v2-staging-refresh
+
+jobs:
+  refresh:
+    if: vars.V2_STAGING_FROZEN != 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: birds-v2
+    env:
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: misty-haze-84035760
+      NEON_BRANCH: v2-staging
+      DATABASE_URL: ${{ secrets.V2_STAGING_DATABASE_URL }}
+      DIRECT_DATABASE_URL: ${{ secrets.V2_STAGING_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: birds-v2/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Reset v2-staging to production
+        run: npx --yes neonctl@2 branches reset "$NEON_BRANCH" --parent --project-id "$NEON_PROJECT_ID"
+
+      - name: Apply v2 schema
+        run: npx prisma migrate deploy
+
+      - name: Migrate v1 → v2
+        run: npx tsx scripts/migrate-v1-to-v2.ts --apply
+
+      - name: Publish report
+        if: always()
+        run: cat scripts/reports/*.md >> "$GITHUB_STEP_SUMMARY" || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: migration-report
+          path: birds-v2/scripts/reports/
