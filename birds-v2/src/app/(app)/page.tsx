@@ -3,7 +3,8 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { Tally } from "@/components/tally";
 import { requirePlayer } from "@/lib/dal";
-import { getChallengeMonth, monthEnd, timeUntil } from "@/lib/challenge-time";
+import { checkInDeadline, getChallengeMonth, monthEnd, openCheckInMonth, timeUntil } from "@/lib/challenge-time";
+import { db } from "@/lib/db";
 import { getMonthRules, getSettings } from "@/lib/settings";
 import { getMonthSnapshot } from "@/lib/player";
 
@@ -36,7 +37,15 @@ async function Today() {
   const user = await requirePlayer();
   const settings = await getSettings();
   const current = getChallengeMonth(new Date(), settings.timezone);
-  const [rules, snapshot] = await Promise.all([getMonthRules(current), getMonthSnapshot(user.id, current)]);
+  const checkInMonth = openCheckInMonth({ deadlineDay: settings.checkInDeadlineDay, timeZone: settings.timezone });
+  const checkInKey = checkInMonth && { userId_year_month: { userId: user.id, ...checkInMonth } };
+  const [rules, snapshot, checkIn, checkInJokers] = await Promise.all([
+    getMonthRules(current),
+    getMonthSnapshot(user.id, current),
+    checkInKey ? db.monthlyCheckIn.findUnique({ where: checkInKey, select: { id: true } }) : null,
+    checkInKey ? db.userJoker.findUnique({ where: checkInKey, select: { bonusJokers: true } }) : null,
+  ]);
+  const checkInDone = Boolean(checkIn);
   const monthName = MONTHS.format(new Date(Date.UTC(current.year, current.month - 1, 15)));
   const remaining = Math.max(0, rules.maxBirds - snapshot.birdCount);
 
@@ -75,6 +84,28 @@ async function Today() {
           )
         )}
       </section>
+
+      {checkInMonth && (
+        <section aria-labelledby="checkin-heading" className="space-y-2 rounded-2xl border border-rule bg-paper-raised p-5">
+          <h2 id="checkin-heading" className="text-xl font-semibold">
+            {MONTHS.format(new Date(Date.UTC(checkInMonth.year, checkInMonth.month - 1, 15)))} check-in
+          </h2>
+          <p className="text-ink-soft">
+            {checkInDone
+              ? `Done: ${formatJokers(checkInJokers?.bonusJokers ?? 0)} bonus jokers. You can still change it.`
+              : "Six quick questions for your bonus jokers. This replaces the Google Form."}{" "}
+            Closes in {timeLeftLabel(checkInDeadline(checkInMonth, settings.checkInDeadlineDay, settings.timezone)).replace(" left", "")}.
+          </p>
+          <Link
+            href="/check-in"
+            className={`inline-flex min-h-12 items-center rounded-full px-6 font-semibold ${
+              checkInDone ? "border border-rule" : "bg-roller text-roller-ink"
+            }`}
+          >
+            {checkInDone ? "Review my check-in" : "Do my check-in"}
+          </Link>
+        </section>
+      )}
 
       <section aria-labelledby="jokers-heading" className="rounded-2xl bg-lilac-wash p-5">
         <h2 id="jokers-heading" className="text-xl font-semibold">

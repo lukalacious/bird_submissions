@@ -6,6 +6,7 @@ import {
   isMonthOpen,
   monthEnd,
   nextMonth,
+  openCheckInMonth,
   openMonths,
   previousMonth,
   timeUntil,
@@ -112,5 +113,18 @@ describe("openMonths", () => {
       { year: 2027, month: 1 },
       { year: 2026, month: 12 },
     ]);
+  });
+});
+
+describe("openCheckInMonth", () => {
+  const opts = { deadlineDay: 7 };
+  it("is this month from the 20th", () => {
+    expect(openCheckInMonth({ ...opts, now: utc("2026-10-25T10:00:00") })).toEqual({ year: 2026, month: 10 });
+  });
+  it("is last month until the 7th", () => {
+    expect(openCheckInMonth({ ...opts, now: utc("2027-01-05T10:00:00") })).toEqual({ year: 2026, month: 12 });
+  });
+  it("is closed between the 8th and the 19th", () => {
+    expect(openCheckInMonth({ ...opts, now: utc("2026-11-12T10:00:00") })).toBeNull();
   });
 });

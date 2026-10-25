@@ -125,3 +125,20 @@ export function openMonths(
   const previous = previousMonth(current);
   return isMonthOpen(previous, opts) ? [current, previous] : [current];
 }
+
+/**
+ * The month whose check-in is open right now, if any: this month from
+ * `opensDay`, or last month until its deadline. The windows never overlap.
+ */
+export function openCheckInMonth(opts: {
+  now?: Date;
+  opensDay?: number;
+  deadlineDay: number;
+  timeZone?: string;
+}): ChallengeMonth | null {
+  const { now = new Date(), timeZone = DEFAULT_TIMEZONE } = opts;
+  const current = getChallengeMonth(now, timeZone);
+  if (isCheckInOpen(current, opts)) return current;
+  const previous = previousMonth(current);
+  return isCheckInOpen(previous, opts) ? previous : null;
+}
