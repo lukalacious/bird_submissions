@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { MediaImage } from "@/components/media-image";
 import { Suspense } from "react";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/dal";
@@ -44,7 +44,7 @@ async function Queue() {
         const golden = p.submission.speciesId && isGolden.has(`${p.year}-${p.month}:${p.submission.speciesId}`);
         return (
           <li key={p.id} className="overflow-hidden rounded-2xl border border-rule bg-paper-raised">
-            <Image src={p.url} alt={`${bird} by ${p.user.username ?? p.user.name}`} width={600} height={450} className="aspect-[4/3] w-full object-cover" />
+            <MediaImage src={p.url} alt={`${bird} by ${p.user.username ?? p.user.name}`} width={600} height={450} className="aspect-[4/3] w-full object-cover" />
             <div className="space-y-3 p-4">
               <p>
                 <strong>{bird}</strong> by {p.user.username ?? p.user.name}, filed {MONTH.format(new Date(Date.UTC(p.year, p.month - 1, 15)))}

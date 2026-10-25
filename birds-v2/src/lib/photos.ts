@@ -8,7 +8,9 @@ import { getChallengeMonth, type ChallengeMonth } from "@/lib/challenge-time";
 export const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 export const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 export const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
-const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
+// public stores are <id>.public.blob…, private ones <id>.private.blob…
+const BLOB_HOST_SUFFIX = ".blob.vercel-storage.com";
+const MEDIA_FOLDERS = ["photos/", "avatars/"];
 
 /** Every photo lives under photos/<userId>/<submissionId>… */
 export function photoPath(userId: string, submissionId: string) {
@@ -40,6 +42,27 @@ function isBlobUrlUnder(url: string, prefix: string): boolean {
 export function isOwnPhotoUrl(url: string, userId: string, submissionId: string): boolean {
   // addRandomSuffix turns <id>.jpg into <id>-<random>.jpg
   return isBlobUrlUnder(url, `/photos/${userId}/${submissionId}-`);
+}
+
+/**
+ * The stores are private: images are served to signed-in players through
+ * /media/<pathname> (app/media/[...path]/route.ts). Other URLs (Google
+ * profile pictures) pass through unchanged.
+ */
+export function mediaUrl(url: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return url;
+  }
+  if (!parsed.hostname.endsWith(BLOB_HOST_SUFFIX)) return url;
+  return `/media${parsed.pathname}`;
+}
+
+/** Only our own folders can be read through /media. */
+export function isMediaPath(pathname: string): boolean {
+  return MEDIA_FOLDERS.some((f) => pathname.startsWith(f)) && !pathname.includes("..");
 }
 
 /** Soft check: was the photo (by its EXIF date) taken in the month it's filed under? */

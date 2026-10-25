@@ -61,7 +61,7 @@ export async function shrinkImage(
 export async function uploadToBlob(path: string, blob: Blob, payload: object, onProgress: (pct: number) => void) {
   const { upload } = await import("@vercel/blob/client");
   const result = await upload(path, blob, {
-    access: "public",
+    access: "private",
     handleUploadUrl: "/api/upload",
     clientPayload: JSON.stringify(payload),
     multipart: blob.size > 1024 * 1024,

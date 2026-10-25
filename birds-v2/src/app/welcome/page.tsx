@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { MediaImage } from "@/components/media-image";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/lib/db";
@@ -73,7 +73,7 @@ async function Welcome() {
                 className="flex min-h-16 w-full items-center gap-4 rounded-2xl border border-rule bg-paper-raised p-4 text-left hover:border-roller"
               >
                 {m.image ? (
-                  <Image src={m.image} alt="" width={48} height={48} className="size-12 rounded-full" />
+                  <MediaImage src={m.image} alt="" width={48} height={48} className="size-12 rounded-full" />
                 ) : (
                   <span aria-hidden className="size-12 rounded-full bg-paper-sunk" />
                 )}

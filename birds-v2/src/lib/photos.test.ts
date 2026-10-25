@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isOwnAvatarUrl, isOwnPhotoUrl, photoPath, takenInMonth } from "./photos";
+import { isMediaPath, isOwnAvatarUrl, isOwnPhotoUrl, mediaUrl, photoPath, takenInMonth } from "./photos";
 
 const host = "https://abc123.public.blob.vercel-storage.com";
 
@@ -48,5 +48,24 @@ describe("isOwnAvatarUrl", () => {
     expect(isOwnAvatarUrl(`${host}/avatars/u2-Ab12.jpg`, "u1")).toBe(false);
     expect(isOwnAvatarUrl(`${host}/photos/u1/s1.jpg`, "u1")).toBe(false);
     expect(isOwnAvatarUrl(`${host}/avatars/u10-Ab12.jpg`, "u1")).toBe(false);
+  });
+});
+
+describe("mediaUrl", () => {
+  it("routes private Blob images through /media", () => {
+    expect(mediaUrl("https://abc.private.blob.vercel-storage.com/photos/u1/s1-x.jpg")).toBe("/media/photos/u1/s1-x.jpg");
+  });
+
+  it("leaves Google profile pictures alone", () => {
+    expect(mediaUrl("https://lh3.googleusercontent.com/a/xyz")).toBe("https://lh3.googleusercontent.com/a/xyz");
+  });
+});
+
+describe("isMediaPath", () => {
+  it("only serves our photo and avatar folders", () => {
+    expect(isMediaPath("photos/u1/s1-x.jpg")).toBe(true);
+    expect(isMediaPath("avatars/u1-x.jpg")).toBe(true);
+    expect(isMediaPath("secrets/x")).toBe(false);
+    expect(isMediaPath("photos/../secrets")).toBe(false);
   });
 });

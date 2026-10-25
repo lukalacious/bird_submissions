@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import Image from "next/image";
+import { MediaImage } from "@/components/media-image";
 import { useRouter } from "next/navigation";
 import { Camera, X } from "lucide-react";
 import { attachPhoto, removePhoto } from "@/app/(app)/twitch/photo-actions";
@@ -64,7 +64,7 @@ export function PhotoButton({ userId, submissionId, birdName, photoUrl, month, o
   if (photoUrl) {
     return (
       <span className="flex items-center gap-1">
-        <Image src={photoUrl} alt={`Your photo of ${birdName}`} width={44} height={44} className="size-11 rounded-lg object-cover" />
+        <MediaImage src={photoUrl} alt={`Your photo of ${birdName}`} width={44} height={44} className="size-11 rounded-lg object-cover" />
         <button
           type="button"
           disabled={pending}

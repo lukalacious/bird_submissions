@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { MediaImage } from "@/components/media-image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
@@ -71,7 +71,7 @@ async function Feed() {
       {items.map((i) => (
         <li key={i.id} className="flex items-center gap-3 px-4 py-3">
           {i.playerImage ? (
-            <Image src={i.playerImage} alt="" width={40} height={40} className="size-10 rounded-full" />
+            <MediaImage src={i.playerImage} alt="" width={40} height={40} className="size-10 rounded-full" />
           ) : (
             <span aria-hidden className="size-10 rounded-full bg-paper-sunk" />
           )}
@@ -84,7 +84,7 @@ async function Feed() {
             </span>
           </p>
           {i.photoUrl && (
-            <Image src={i.photoUrl} alt={`${i.playerName}'s ${i.bird}`} width={56} height={56} className="size-14 rounded-lg object-cover" />
+            <MediaImage src={i.photoUrl} alt={`${i.playerName}'s ${i.bird}`} width={56} height={56} className="size-14 rounded-lg object-cover" />
           )}
         </li>
       ))}
@@ -145,7 +145,7 @@ async function Gallery() {
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {photos.map((p) => (
         <li key={p.id} className="overflow-hidden rounded-2xl bg-paper-raised">
-          <Image
+          <MediaImage
             src={p.url}
             alt={`${p.bird}, photographed by ${p.playerName}`}
             width={p.width ?? 600}

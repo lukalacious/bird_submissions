@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import Image from "next/image";
+import { MediaImage } from "@/components/media-image";
 import { useRouter } from "next/navigation";
 import { Camera } from "lucide-react";
 import { removeAvatar, saveAvatar } from "@/app/(app)/me/avatar-actions";
@@ -42,7 +42,7 @@ export function AvatarUpload({ userId, name, image }: { userId: string; name: st
         className="relative size-20 shrink-0 overflow-hidden rounded-full bg-paper-sunk"
       >
         {image ? (
-          <Image src={image} alt="" width={80} height={80} className="size-20 object-cover" />
+          <MediaImage src={image} alt="" width={80} height={80} className="size-20 object-cover" />
         ) : (
           <span aria-hidden className="grid size-20 place-items-center font-display text-3xl font-semibold text-ink-soft">
             {name.slice(0, 1).toUpperCase()}
