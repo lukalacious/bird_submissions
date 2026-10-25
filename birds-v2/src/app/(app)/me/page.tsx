@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Suspense } from "react";
 import { signIn, signOut } from "@/auth";
 import { db } from "@/lib/db";
@@ -63,6 +64,12 @@ async function Profile() {
           </button>
         </form>
       </section>
+
+      {user.role === "ADMIN" && (
+        <Link href="/admin" className="inline-flex min-h-12 items-center font-semibold text-roller underline underline-offset-4">
+          Open admin
+        </Link>
+      )}
 
       <form
         action={async () => {

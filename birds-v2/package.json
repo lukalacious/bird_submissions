@@ -10,7 +10,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma migrate deploy && next build"
+    "vercel-build": "prisma migrate deploy && next build",
+    "test:int": "VITEST_INTEGRATION=1 vitest run"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
