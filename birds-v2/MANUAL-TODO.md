@@ -96,8 +96,7 @@ Vercel dashboard → **Storage** → **Create** → **Blob** → name `twitch-v2
 - [ ] Done
 
 ### 5. Push notification keys for v2
-Reuse v1's keys: copy `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and
-`NEXT_PUBLIC_VAPID_PUBLIC_KEY` from the **bird-submissions** Vercel project's env
+Reuse v1's keys: copy `NEXT_PUBLIC_VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` from the **bird-submissions** Vercel project's env
 vars into **twitch-v2** (Settings → Environment Variables). Existing phone
 subscriptions then keep working after cutover.
 

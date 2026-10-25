@@ -17,6 +17,6 @@ export function proxy(request: NextRequest) {
 export const config = {
   // Everything except sign-in, auth API, crons, static assets and PWA files
   matcher: [
-    "/((?!signin|api/auth|api/cron|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|icons).*)",
+    "/((?!signin|offline|api/auth|api/cron|_next/static|_next/image|icon|apple-icon|manifest.webmanifest|sw.js).*)",
   ],
 };

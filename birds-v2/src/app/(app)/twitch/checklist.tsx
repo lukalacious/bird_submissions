@@ -7,6 +7,7 @@ import { indexBirds, searchBirds } from "@/lib/bird-search";
 import { calculateJokersFromGroup, jokerHint } from "@/lib/rules/jokers";
 import type { ChecklistBird, SeasonBird } from "@/lib/checklist";
 import { useStoredState } from "@/lib/use-stored-state";
+import { useOnline } from "@/lib/use-online";
 import { PhotoButton } from "@/components/photo-button";
 import { removeBird, submitBirds } from "./actions";
 
@@ -48,6 +49,7 @@ export function Checklist({ userId, regions, regionId, birds, special, season, m
   const [reviewOpen, setReviewOpen] = useState(false);
   const [notice, setNotice] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
+  const online = useOnline();
   // The tray survives reloads and dropped signal in the field
   const [tray, setTray] = useStoredState(`twitch-tray:${regionId}`, EMPTY_TRAY);
   const [customs, setCustoms] = useStoredState(`twitch-customs:${regionId}`, EMPTY_CUSTOMS);
@@ -382,16 +384,16 @@ export function Checklist({ userId, regions, regionId, birds, special, season, m
                   {trayCount} bird{trayCount === 1 ? "" : "s"} ready
                 </span>
                 <span className="block text-sm text-ink-soft">
-                  {reviewOpen ? "Hide list" : "Review"} · {remaining} left this month
+                  {!online ? "Saved on this phone until you have signal" : `${reviewOpen ? "Hide list" : "Review"}, ${remaining} left this month`}
                 </span>
               </button>
               <button
                 type="button"
                 onClick={submit}
-                disabled={pending || thisMonth.length + trayCount > month.cap}
+                disabled={pending || !online || thisMonth.length + trayCount > month.cap}
                 className="min-h-12 rounded-full bg-roller px-6 font-semibold text-roller-ink disabled:opacity-60"
               >
-                {pending ? "Adding…" : `Add to ${month.label}`}
+                {!online ? "Waiting for signal" : pending ? "Adding…" : `Add to ${month.label}`}
               </button>
             </div>
           </div>

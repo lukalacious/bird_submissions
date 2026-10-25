@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { Tally } from "@/components/tally";
+import { InstallHint } from "@/components/install-hint";
 import { requirePlayer } from "@/lib/dal";
 import { checkInDeadline, getChallengeMonth, monthEnd, openCheckInMonth, timeUntil } from "@/lib/challenge-time";
 import { db } from "@/lib/db";
@@ -55,6 +56,8 @@ async function Today() {
         <p className="text-ink-soft">{timeLeftLabel(monthEnd(current, settings.timezone))}</p>
         <h1 className="text-3xl font-semibold">{monthName}</h1>
       </header>
+
+      <InstallHint />
 
       <section aria-labelledby="tally-heading" className="space-y-4">
         <h2 id="tally-heading" className="sr-only">

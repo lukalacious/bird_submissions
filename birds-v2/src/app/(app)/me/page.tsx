@@ -7,6 +7,7 @@ import { requirePlayer } from "@/lib/dal";
 import { getChallengeMonth } from "@/lib/challenge-time";
 import { getJokerLedger } from "@/lib/ledger";
 import { getSettings } from "@/lib/settings";
+import { NotificationsToggle } from "@/components/notifications-toggle";
 
 const MONTH = new Intl.DateTimeFormat("en-ZA", { month: "long", timeZone: "UTC" });
 const monthName = (year: number, m: number) => MONTH.format(new Date(Date.UTC(year, m - 1, 15)));
@@ -83,6 +84,8 @@ async function Profile() {
           </button>
         </form>
       </section>
+
+      <NotificationsToggle publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
 
       {user.role === "ADMIN" && (
         <Link href="/admin" className="inline-flex min-h-12 items-center font-semibold text-roller underline underline-offset-4">
