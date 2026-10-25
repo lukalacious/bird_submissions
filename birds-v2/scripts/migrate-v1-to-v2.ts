@@ -385,6 +385,16 @@ async function main() {
       })
     );
     await insert("special birds", specialBirds, (data) => db.specialBird.createMany({ data, skipDuplicates: true }));
+    // Months v1 already closed must never be closed again by v2 (that would
+    // spend jokers twice). v1 logged elimination runs from July; earlier
+    // months ran before the log existed, so lock 1..latest logged month.
+    const v1Closed = await db.$queryRawUnsafe<{ year: number; month: number }[]>(
+      `select year, max(month)::int as month from public."ProcessingLog" where type = 'elimination_check' group by year`
+    );
+    const closed = v1Closed.flatMap(({ year, month }) =>
+      Array.from({ length: month }, (_, i) => ({ type: "month-end", year, month: i + 1 }))
+    );
+    await insert("closed months", closed, (data) => db.cronRun.createMany({ data }));
     log();
     log(`Applied in ${((Date.now() - started.getTime()) / 1000).toFixed(1)}s`);
   }

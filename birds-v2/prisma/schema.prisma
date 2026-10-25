@@ -320,9 +320,14 @@ model Settings {
   eliminationThreshold Int      @default(30)
   timezone             String   @default("Africa/Johannesburg")
   // hours after month-end during which the closed month is still editable
-  graceHours           Int      @default(0)
+  graceHours           Int      @default(48)
   // check-in for month N closes at the end of this day of month N+1
   checkInDeadlineDay   Int      @default(7)
+  // Dale's rulings, as settings (see lib/rules/elimination.ts)
+  // 0.5 + 0.5 from different months can cover one missing bird
+  poolFractionalJokers Boolean  @default(true)
+  // this many empty months in a row eliminates even with jokers; null = never
+  maxEmptyMonths       Int?     @default(2)
   rules                String?
   updatedAt            DateTime @updatedAt
 }

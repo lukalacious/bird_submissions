@@ -11,6 +11,8 @@ const DEFAULTS = {
   timezone: DEFAULT_TIMEZONE,
   graceHours: 48,
   checkInDeadlineDay: 7,
+  poolFractionalJokers: true,
+  maxEmptyMonths: 2 as number | null,
 };
 
 /** Game settings — read on nearly every page, so cached until an admin edits them. */

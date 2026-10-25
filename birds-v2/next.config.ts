@@ -15,6 +15,10 @@ const csp = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // The repo sits in iCloud-synced ~/Documents, and iCloud blocks or duplicates
+  // files in a build folder it's syncing (a build hung on it). iCloud skips
+  // *.nosync, so local builds use that; Vercel keeps the standard .next.
+  distDir: process.env.VERCEL ? ".next" : ".next.nosync",
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

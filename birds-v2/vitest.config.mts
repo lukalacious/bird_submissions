@@ -10,5 +10,7 @@ export default defineConfig({
     environment: "node",
     include: integration ? ["src/**/*.int.test.ts"] : ["src/**/*.test.ts"],
     exclude: integration ? [] : ["src/**/*.int.test.ts", "node_modules/**"],
+    // integration files share one database — run them one at a time
+    fileParallelism: !integration,
   },
 });
