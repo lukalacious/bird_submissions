@@ -45,12 +45,14 @@ write-only Secrets anyway, so the dashboard can't show them.) Players turn
 reminders on again in v2, which is fine for a new app.
 
 A fresh pair is already in `birds-v2/.env` (generated 2026-10-25). Push it to
-Vercel from the `birds-v2` folder:
+Vercel. These lines work from any folder:
 
 ```bash
+cd ~/Documents/code/projects/birds/birds-v2
 pub=$(grep '^NEXT_PUBLIC_VAPID_PUBLIC_KEY=' .env | cut -d= -f2- | tr -d '"'); priv=$(grep '^VAPID_PRIVATE_KEY=' .env | cut -d= -f2- | tr -d '"')
-for t in production preview; do printf '%s' "$pub"  | vercel --scope lukes-projects-65e0b5a0 env add NEXT_PUBLIC_VAPID_PUBLIC_KEY "$t" --project twitch-v2; done
-for t in production preview; do printf '%s' "$priv" | vercel --scope lukes-projects-65e0b5a0 env add VAPID_PRIVATE_KEY "$t" --project twitch-v2 --sensitive; done
+echo "pub ${#pub} chars, priv ${#priv} chars"   # expect 87 and 43; if 0, you're in the wrong folder
+for t in production preview; do printf '%s' "$pub"  | vercel --scope lukes-projects-65e0b5a0 env add NEXT_PUBLIC_VAPID_PUBLIC_KEY --environment "$t" --project twitch-v2; done
+for t in production preview; do printf '%s' "$priv" | vercel --scope lukes-projects-65e0b5a0 env add VAPID_PRIVATE_KEY --environment "$t" --project twitch-v2 --sensitive; done
 vercel --scope lukes-projects-65e0b5a0 env list --project twitch-v2 | grep VAPID
 ```
 
