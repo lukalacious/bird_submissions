@@ -18,7 +18,7 @@ Without this, "Continue with Google" on staging fails with `redirect_uri_mismatc
 2. **OAuth 2.0 Client IDs** → open v1's client (its ID matches `GOOGLE_CLIENT_ID` in `birds-app/.env`).
 3. **Authorized redirect URIs** → **Add URI** → `https://twitch-v2-seven.vercel.app/api/auth/callback/google` → **Save**.
 
-- [ ] Done
+- [x] Done
 
 ### A2. Neon API key and GitHub secrets (nightly refresh and CI end-to-end tests)
 1. Neon console → profile (top right) → **Account settings** → **API keys** → **Create new API key**, named `github-v2-staging`. Copy it.
@@ -26,7 +26,7 @@ Without this, "Continue with Google" on staging fails with `redirect_uri_mismatc
    - `NEON_API_KEY` = that key
    - `V2_STAGING_DATABASE_URL` = `DIRECT_DATABASE_URL` from `birds-v2/.env` (the one **without** `-pooler`)
 
-- [ ] Both secrets added
+- [x] Both secrets added
 
 ### A3. Photo storage
 Vercel → **twitch-v2** → **Storage** → **Create** → **Blob** → name it `twitch-v2-photos`.
@@ -40,10 +40,23 @@ deployments built after they exist, so the next push picks them up.
 - [x] Done (2026-10-25, verified with `vercel env list`)
 
 ### A4. Reminder keys
-Vercel → **bird-submissions** → Settings → Environment Variables. Copy
-`NEXT_PUBLIC_VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` into **twitch-v2**
-(Production and Preview). Reusing v1's keys means phones that already allow
-reminders keep working after the switch.
+v2 gets its own push keypair; v1's are not reused. (v1 stored them as
+write-only Secrets anyway, so the dashboard can't show them.) Players turn
+reminders on again in v2, which is fine for a new app.
+
+A fresh pair is already in `birds-v2/.env` (generated 2026-10-25). Push it to
+Vercel from the `birds-v2` folder:
+
+```bash
+pub=$(grep '^NEXT_PUBLIC_VAPID_PUBLIC_KEY=' .env | cut -d= -f2- | tr -d '"'); priv=$(grep '^VAPID_PRIVATE_KEY=' .env | cut -d= -f2- | tr -d '"')
+for t in production preview; do printf '%s' "$pub"  | vercel --scope lukes-projects-65e0b5a0 env add NEXT_PUBLIC_VAPID_PUBLIC_KEY "$t" --project twitch-v2; done
+for t in production preview; do printf '%s' "$priv" | vercel --scope lukes-projects-65e0b5a0 env add VAPID_PRIVATE_KEY "$t" --project twitch-v2 --sensitive; done
+vercel --scope lukes-projects-65e0b5a0 env list --project twitch-v2 | grep VAPID
+```
+
+The last line should list both names for Production and Preview. If you ever
+lose `.env`, make a new pair with `npx web-push generate-vapid-keys` and set
+both again; everyone then re-enables reminders once.
 
 - [ ] Done
 
