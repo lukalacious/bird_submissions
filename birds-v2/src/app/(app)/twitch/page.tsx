@@ -5,6 +5,7 @@ import { requirePlayer } from "@/lib/dal";
 import { monthEnd, openMonths } from "@/lib/challenge-time";
 import { getPlayerSeason, getRegionBirds, getRegions, getSpecialSpecies } from "@/lib/checklist";
 import { getMonthRules, getSettings } from "@/lib/settings";
+import { canTwitchWhileEliminated } from "@/lib/site";
 import { Checklist, type OpenMonth } from "./checklist";
 
 export const metadata = { title: "Twitch" };
@@ -69,7 +70,8 @@ async function TwitchData({ searchParams }: Pick<PageProps<"/twitch">, "searchPa
       special={special}
       season={[...season.birds, ...previousSeason]}
       months={open}
-      isEliminated={season.isEliminated}
+      isEliminated={season.isEliminated && !canTwitchWhileEliminated(user.role)}
+      testingWhileOut={season.isEliminated && canTwitchWhileEliminated(user.role)}
     />
   );
 }

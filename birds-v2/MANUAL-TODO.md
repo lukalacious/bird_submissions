@@ -166,7 +166,7 @@ connection strings for twitch-v2. Each is a small, reviewed change.
 | 31 Dec 22:00 | Turn on v1 read-only; v1 crons are already removed | Claude-prepared, you deploy |
 | 31 Dec 22:05 | Neon: create branch `pre-v2-cutover` from production (instant backup) | you |
 | 31 Dec 22:10 | Run the migration on production: dry run, check the report, then `--apply` (exact command in Claude's prep) | you + Claude |
-| 31 Dec 22:30 | Point twitch-v2 at production (env vars), redeploy | you |
+| 31 Dec 22:30 | Point twitch-v2 at production (env vars) **and delete `STAGING_SITE`** (test-site mode: banner, and admins can play while eliminated), then redeploy | you |
 | 31 Dec 22:40 | Alias `bird-submissions.vercel.app` to the twitch-v2 deployment; v1 stays at its own deployment URL as a read-only record. *Not yet verified that a vercel.app alias can move between projects; Claude tests this during prep, with a fallback plan.* | you |
 | 31 Dec 22:45 | Smoke test: sign in, Today shows December, Flock leaderboard right | you |
 | 1 Jan 00:00 | 2027 opens on v2 | — |

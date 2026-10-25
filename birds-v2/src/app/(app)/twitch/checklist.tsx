@@ -34,6 +34,8 @@ interface Props {
   season: SeasonBird[];
   months: OpenMonth[];
   isEliminated: boolean;
+  /** admin on the test site, out of the real season but allowed to test */
+  testingWhileOut?: boolean;
 }
 
 const MONTH_SHORT = new Intl.DateTimeFormat("en-ZA", { month: "long", timeZone: "UTC" });
@@ -42,7 +44,7 @@ const monthName = (m: number) => MONTH_SHORT.format(new Date(Date.UTC(2026, m - 
 const EMPTY_TRAY: TrayItem[] = [];
 const EMPTY_CUSTOMS: string[] = [];
 
-export function Checklist({ userId, regions, regionId, birds, special, season, months, isEliminated }: Props) {
+export function Checklist({ userId, regions, regionId, birds, special, season, months, isEliminated, testingWhileOut }: Props) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [target, setTarget] = useState<OpenMonth["key"]>("current");
@@ -191,6 +193,13 @@ export function Checklist({ userId, regions, regionId, birds, special, season, m
           </label>
         )}
       </header>
+
+      {testingWhileOut && (
+        <p className="rounded-xl border border-weaver bg-paper-raised p-4">
+          Test mode: you&apos;re out of the real season, but as an admin on the test site you can still twitch.
+          Test birds are wiped by the nightly refresh.
+        </p>
+      )}
 
       {notice && (
         <p

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Source_Sans_3 } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/sw-register";
+import { isStagingSite } from "@/lib/site";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -33,6 +34,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${fraunces.variable} ${sourceSans.variable} h-full antialiased`}>
       <body className="min-h-full">
+        {isStagingSite && (
+          <p className="bg-weaver px-4 py-1.5 text-center text-sm font-semibold text-weaver-ink">
+            Test site: data resets every night. The real game is at bird-submissions.vercel.app
+          </p>
+        )}
         {children}
         <ServiceWorkerRegister />
       </body>

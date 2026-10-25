@@ -9,6 +9,7 @@ import { recalculateGroupJokers } from "@/lib/jokers-db";
 import { checkCap, findSpeciesConflicts } from "@/lib/rules/submission";
 import { getMonthRules, getSettings } from "@/lib/settings";
 import { feedTag, leaderboardTag } from "@/lib/tags";
+import { canTwitchWhileEliminated } from "@/lib/site";
 
 export type ActionResult = { ok: true; message: string } | { ok: false; error: string };
 
@@ -59,7 +60,9 @@ export async function submitBirds(input: z.input<typeof SubmitInput>): Promise<A
         where: { userId_year: { userId: user.id, year: month.year } },
         select: { isEliminated: true },
       });
-      if (status?.isEliminated) return { ok: false as const, error: "You're out of this season's challenge." };
+      if (status?.isEliminated && !canTwitchWhileEliminated(user.role)) {
+        return { ok: false as const, error: "You're out of this season's challenge." };
+      }
 
       const [count, twitched] = await Promise.all([
         tx.submission.count({ where: { userId: user.id, ...month } }),
