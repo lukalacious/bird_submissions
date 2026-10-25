@@ -112,11 +112,9 @@ app does. Anything he decides differently is a setting in **Admin → Settings**
      `cp -R ~/.claude/projects/-Users-lukeroberts-Documents-code-projects-birds ~/.claude/projects/-Users-lukeroberts-code-projects-birds`
 - [ ] **D2. Delete leftover build junk** (all regenerated). From `birds-v2/`:
   `rm -rf birds-v2 .next src/generated && npm install`
-- [ ] **D3. Old uncommitted v1 change.** `birds-app/package.json` and its lock file
-  were modified before this work started. Commit or discard them; Claude hasn't touched them.
-- [ ] **D4. Optional: stop v1 rebuilding on v2 commits.** Vercel → **bird-submissions** →
+- [ ] **D3. Optional: stop v1 rebuilding on v2 commits.** Vercel → **bird-submissions** →
   Settings → Git → **Ignored Build Step** → `git diff --quiet HEAD^ HEAD -- .`
-- [ ] **D5. Review:** 17 players have early-2026 "used jokers" with no matching
+- [ ] **D4. Review:** 17 players have early-2026 "used jokers" with no matching
   joker entries (probably spent before v1 logged them). v2 keeps every balance
   exactly as v1 has it; just confirm that matches your memory. The list is in
   the migration report (B1).

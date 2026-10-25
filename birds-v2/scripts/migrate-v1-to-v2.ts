@@ -8,7 +8,7 @@
  *
  *   npx tsx scripts/migrate-v1-to-v2.ts                    # dry run: report only
  *   npx tsx scripts/migrate-v1-to-v2.ts --apply            # write v2
- *   --group-mapping=../birds-app/scripts/hyphen-group-mapping.json
+ *   --group-mapping=scripts/data/hyphen-group-mapping.json
  *                                 # apply Dale's hyphen-group merge (pending ruling)
  *   --allow-host=<neon endpoint id>   # required for any DB other than v2-staging
  *
