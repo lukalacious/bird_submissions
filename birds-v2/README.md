@@ -2,7 +2,6 @@
 
 The 2027 rebuild of the Twitch bird-a-day challenge. Runs in parallel with v1
 (`../birds-app`) until cutover on 1 January 2027.
-Plan: `~/.claude/plans/pasted-content-id-b528-build-me-dreamy-sutherland.md`.
 
 ## How it fits together
 

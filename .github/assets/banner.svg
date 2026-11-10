@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-label="Twitch: a bird a day, all year">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1c3023"/>
+      <stop offset="1" stop-color="#2b4a35"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="300" rx="24" fill="url(#bg)"/>
+  <!-- the app's mark: a birder's tally, four strokes crossed by a fifth -->
+  <g transform="translate(96,66)">
+    <rect x="0"   y="0" width="14" height="168" rx="7" fill="#eef4ee"/>
+    <rect x="38"  y="0" width="14" height="168" rx="7" fill="#eef4ee"/>
+    <rect x="76"  y="0" width="14" height="168" rx="7" fill="#eef4ee"/>
+    <rect x="114" y="0" width="14" height="168" rx="7" fill="#eef4ee"/>
+    <rect x="-20" y="77" width="168" height="14" rx="7" fill="#5fb7d9" transform="rotate(-28 64 84)"/>
+  </g>
+  <text x="300" y="150" fill="#eef4ee" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="88" font-weight="700" letter-spacing="-2">Twitch</text>
+  <text x="300" y="198" fill="#bcd3c3" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="30">A bird a day, all year.</text>
+  <text x="300" y="238" fill="#8fb39b" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="24">The twitching challenge for a bird club.</text>
+</svg>

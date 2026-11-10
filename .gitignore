@@ -40,3 +40,4 @@ birds-app/scripts/data/joker-recalc-diff.csv
 
 # Tool markers
 .work-folder-info
+.claude/settings.local.json

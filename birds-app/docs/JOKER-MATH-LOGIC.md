@@ -3,7 +3,7 @@
 Joker-earning rules for the Twitch Bird-A-Day Challenge. Each rule maps to a question in the monthly Google Form submission.
 
 > **Google Form:** configured in Admin Settings → Google Form embed URL
-> **Google Sheet (responses):** https://docs.google.com/spreadsheets/d/1q1jQRbQlQoFMwCmkRgabg-CjiQTrKSteyKcPS-tC3mI/edit?gid=1953517996
+> **Google Sheet (responses):** the sheet named by `GOOGLE_SHEETS_SPREADSHEET_ID` in `.env`
 
 ---
 
