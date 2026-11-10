@@ -89,6 +89,9 @@ is asked "are you X?". Then check:
 - [ ] Put it on your Home Screen (Today shows how) and open it like an app
 - [ ] **Sightings → Table**: numbers match the live app. **Species**: step back a few months, open a bird to see who saw it
 - [ ] **Me** → *Open admin* (you're an admin): Players, Months, Settings all load
+- [ ] **Today**: the line under the tally says where you stand; "How the game works" opens the rules
+- [ ] **Me → Profile**: set a display name and home region; download your birds as CSV
+- [ ] **Admin → Standing**: the at-risk list looks right. Open a player, add a joker with a reason, then Undo it; both show under **Overview → Done by hand**
 
 You were eliminated in April 2026, so Twitch shows "You're out of this season".
 That's correct. To try twitching, use a beta tester's account, or wait for the
@@ -117,6 +120,8 @@ app does. Anything he decides differently is a setting in **Admin → Settings**
 7. **Same bird twice in 2026**: Dale's Southern Black Flycatcher and African Paradise Flycatcher (Mar and Apr), and Colin's Black-headed Gull (Jan and Mar). Kept, so 2026 totals don't change; repeats are blocked from 2027. OK? *(Yes.)*
 8. **Messy group names** like "(Leaflove)", "Malkoha)", "Seed-cracker"/"Seedcracker". Tidy them with the merge? *(Yes. Only affects 2027.)*
 
+9. **Things v2 does differently from the old app.** Jokers are spent automatically at month-end; there is no "use a joker" button (admins can still eliminate, reinstate and adjust jokers by hand). Levels (Fledgling, Birder, Twitcher) are gone. A bird counts once per season; the monthly and never reset options are gone. The check-in opens on the 20th. OK? *(Yes.)*
+
 - [ ] Sent to Dale
 - [ ] His answers given to Claude
 
@@ -133,7 +138,7 @@ app does. Anything he decides differently is a setting in **Admin → Settings**
   4. Copy Claude's project memory to the new path key:
      `cp -R ~/.claude/projects/-Users-lukeroberts-Documents-code-projects-birds ~/.claude/projects/-Users-lukeroberts-code-projects-birds`
 - [ ] **D2. Delete leftover build junk** (all regenerated). From `birds-v2/`:
-  `rm -rf birds-v2 .next src/generated && npm install`
+  `rm -rf birds-v2 src/generated && npm install` (Claude moved the stale October `.next` out on 10 Nov; it broke type checks after the Flock rename)
 - [ ] **D3. Optional: stop v1 rebuilding on v2 commits.** Vercel → **bird-submissions** →
   Settings → Git → **Ignored Build Step** → `git diff --quiet HEAD^ HEAD -- .`
 - [ ] **D4. Review:** 17 players have early-2026 "used jokers" with no matching

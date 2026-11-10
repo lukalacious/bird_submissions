@@ -28,3 +28,16 @@ export function remindersDue(now: Date, opts: { deadlineDay: number; timeZone: s
 }
 
 const sameMonth = (a: ChallengeMonth, b: ChallengeMonth) => a.year === b.year && a.month === b.month;
+
+const MONTH_NAME = new Intl.DateTimeFormat("en-ZA", { month: "long", timeZone: "UTC" });
+
+/** The push sent when an admin sets or adds to the current month's golden birds. */
+export function goldenAnnouncement(month: number, names: string[], isUpdate: boolean) {
+  const monthName = MONTH_NAME.format(new Date(Date.UTC(2026, month - 1, 15)));
+  const shown = names.slice(0, 4).join(", ") + (names.length > 4 ? ` and ${names.length - 4} more` : "");
+  return {
+    title: isUpdate ? `${monthName}'s golden birds have changed` : `${monthName}'s golden birds are out`,
+    body: `${shown}. Each one is worth a bonus joker.`,
+    url: "/",
+  };
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { remindersDue } from "./reminders";
+import { goldenAnnouncement, remindersDue } from "./reminders";
 
 const opts = { deadlineDay: 7, timeZone: "Africa/Johannesburg" };
 const at = (iso: string) => new Date(`${iso}Z`);
@@ -20,5 +20,19 @@ describe("remindersDue", () => {
 
   it("never nudges about the current month's check-in", () => {
     expect(remindersDue(at("2026-10-25T07:00:00"), opts).checkIn).toBeNull();
+  });
+});
+
+describe("goldenAnnouncement", () => {
+  it("names the birds and says whether the list is new or changed", () => {
+    expect(goldenAnnouncement(11, ["Cape Gannet", "Hamerkop"], false)).toEqual({
+      title: "November's golden birds are out",
+      body: "Cape Gannet, Hamerkop. Each one is worth a bonus joker.",
+      url: "/",
+    });
+    expect(goldenAnnouncement(1, ["A", "B", "C", "D", "E", "F"], true)).toMatchObject({
+      title: "January's golden birds have changed",
+      body: "A, B, C, D and 2 more. Each one is worth a bonus joker.",
+    });
   });
 });

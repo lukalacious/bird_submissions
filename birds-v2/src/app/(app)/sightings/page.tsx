@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { Camera, ChevronLeft, ChevronRight } from "lucide-react";
+import { PhotoWall } from "@/components/photo-wall";
 import { SpeciesList } from "@/components/species-list";
 import { TimeAgo } from "@/components/time-ago";
 import { requirePlayer } from "@/lib/dal";
@@ -324,26 +325,7 @@ async function Gallery() {
       </p>
     );
   }
-  return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      {photos.map((p) => (
-        <li key={p.id} className="overflow-hidden rounded-2xl bg-paper-raised">
-          <MediaImage
-            src={p.url}
-            alt={`${p.bird}, photographed by ${p.playerName}`}
-            width={p.width ?? 600}
-            height={p.height ?? 600}
-            sizes="(min-width: 640px) 33vw, 50vw"
-            className="aspect-square w-full object-cover"
-          />
-          <p className="px-3 py-2 text-sm">
-            <span className="font-semibold">{p.bird}</span>
-            <span className="block text-ink-soft">{p.playerName}</span>
-          </p>
-        </li>
-      ))}
-    </ul>
-  );
+  return <PhotoWall photos={photos} />;
 }
 
 function TabsSkeleton() {

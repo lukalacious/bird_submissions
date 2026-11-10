@@ -96,7 +96,12 @@ export interface GalleryPhoto {
   width: number | null;
   height: number | null;
   bird: string;
+  scientificName: string | null;
   playerName: string;
+  /** the month the photo counts for */
+  year: number;
+  month: number;
+  reviewed: boolean;
 }
 
 export async function getGallery(): Promise<GalleryPhoto[]> {
@@ -113,8 +118,11 @@ export async function getGallery(): Promise<GalleryPhoto[]> {
       url: true,
       width: true,
       height: true,
+      year: true,
+      month: true,
+      status: true,
       user: { select: { name: true, username: true } },
-      submission: { select: { customName: true, bird: { select: { displayName: true } } } },
+      submission: { select: { customName: true, bird: { select: { displayName: true, species: { select: { scientificName: true } } } } } },
     },
   });
   return photos.map((p) => ({
@@ -123,7 +131,11 @@ export async function getGallery(): Promise<GalleryPhoto[]> {
     width: p.width,
     height: p.height,
     bird: p.submission.bird?.displayName ?? p.submission.customName ?? "Unknown bird",
+    scientificName: p.submission.bird?.species.scientificName ?? null,
     playerName: p.user.username ?? p.user.name ?? "Player",
+    year: p.year,
+    month: p.month,
+    reviewed: p.status === "APPROVED",
   }));
 }
 

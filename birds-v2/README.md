@@ -27,11 +27,13 @@ The 2027 rebuild of the Twitch bird-a-day challenge. Runs in parallel with v1
 | Photos | `src/components/photo-button.tsx`, `src/lib/upload-image.ts`, `src/app/api/upload/` | golden-bird proof only (`lib/rules/golden.ts`); canvas shrink → direct Blob upload. Profile pictures: `components/avatar-upload.tsx` |
 | Check-in (replaces Google Form) | `src/app/(app)/check-in/` | pre-filled from the player's data |
 | Sightings (was Flock) | `src/app/(app)/sightings/`, `src/lib/sightings.ts`, `src/lib/species-summary.ts` | Latest, Species, Table, Photos, Jokers; cached, one tab loaded at a time; `?m=2026-11` month or `?m=2026` season |
-| Me, ledger, my birds, change requests | `src/app/(app)/me/` | |
+| Today | `src/lib/rules/standing.ts`, `src/lib/standing.ts` | safe / covered / at-risk line is the month-end planner run on today's numbers; golden birds card |
+| Rules page | `src/app/(app)/rules/` | generated from live settings, plus the admin's extra text |
+| Me, ledger, my birds, change requests | `src/app/(app)/me/` | profile (name, display name, home region), `/me/export` CSV, request outcomes |
 | Identity | `src/app/welcome/`, `src/lib/identity.ts`, `src/lib/merge-*.ts` | "Are you already playing?", linking, merges |
-| Admin | `src/app/admin/` | claims, players/merge, changes, photos, check-ins, months, settings, CSV |
+| Admin | `src/app/admin/` | overview (claims, club numbers, hand-edit log), standing (forecast, eliminate/reinstate), players (`[id]`: joker adjustments, roles, removal; merge), changes (+history), photos, check-ins, months, settings, CSV |
 | Game rules (pure, tested) | `src/lib/rules/` | jokers, submission, check-in bonus, elimination, reminders |
-| Joker writers | `src/lib/jokers-db.ts` (group), `src/lib/bonus-db.ts` (bonus) | the **only** writers of those columns |
+| Joker writers | `src/lib/jokers-db.ts` (group), `src/lib/bonus-db.ts` (bonus) | the **only** writers of those columns; admin corrections are `JokerAdjustment` rows the bonus writer includes |
 | Crons | `src/app/api/cron/`, `vercel.json` | month-end (daily, after grace), reminders |
 | Time | `src/lib/challenge-time.ts` | the only code allowed to decide the month |
 

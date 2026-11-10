@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/dal";
 import { approveLinkRequest, rejectLinkRequest } from "./actions";
+import { ClubStats } from "./club-stats";
 
 export const metadata = { title: "Admin" };
 
@@ -11,6 +12,9 @@ export default function AdminPage() {
       <h1 className="text-3xl font-semibold">Overview</h1>
       <Suspense fallback={<div className="h-32 animate-pulse rounded-2xl bg-paper-sunk" />}>
         <LinkRequests />
+      </Suspense>
+      <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-paper-sunk" />}>
+        <ClubStats />
       </Suspense>
       <Suspense fallback={null}>
         <AdminLog />
