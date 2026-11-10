@@ -31,6 +31,25 @@ test("twitch a bird, see the joker preview, then remove it", async ({ page }) =>
   await expect(page.getByRole("status")).toHaveText("Removed.");
 });
 
+test("browse the regional list by family or A to Z and pick a bird from it", async ({ page }) => {
+  await page.goto("/twitch");
+  await page.getByRole("radio", { name: "Browse the list" }).click();
+  await expect(page.getByText(/^\d+ of \d+ twitched this season$/)).toBeVisible();
+
+  // families are closed until asked for; opening one lists its birds
+  await page.getByRole("button", { name: /^Kingfisher \d/ }).click();
+  const bird = page.getByRole("button", { name: /Malachite Kingfisher/ });
+  await bird.click();
+  await expect(bird).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("1 bird ready")).toBeVisible();
+  await bird.click(); // leave the tray empty for the next test
+
+  // A to Z files birds under the index form of the name
+  await page.getByRole("radio", { name: "A to Z" }).click();
+  await page.getByRole("button", { name: /^K\b/ }).click();
+  await expect(page.getByRole("button", { name: /Kingfisher, Malachite/ })).toBeVisible();
+});
+
 test("a species can't be added twice in a season", async ({ page }) => {
   await page.goto("/twitch");
   await page.getByLabel("Find a bird").fill("hamerkop");
@@ -68,6 +87,15 @@ test("Sightings tabs load one section at a time", async ({ page }) => {
   await expect(page.getByRole("table")).toBeVisible();
   await page.getByRole("link", { name: "Photos" }).click();
   await expect(page).toHaveURL(/tab=photos/);
+});
+
+test("Latest shows one entry per outing, with the birds inside", async ({ page }) => {
+  await page.goto("/sightings");
+  const outing = page.locator("details").first();
+  await expect(outing).toBeVisible();
+  await outing.locator("summary").click();
+  await expect(outing.getByText(/^All \d+ birds$/)).toBeVisible();
+  expect(await outing.getByRole("listitem").count()).toBeGreaterThan(1);
 });
 
 test("Species lists what the club has seen and who saw it", async ({ page }) => {

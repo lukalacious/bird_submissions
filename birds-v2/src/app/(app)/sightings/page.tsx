@@ -9,6 +9,7 @@ import { TimeAgo } from "@/components/time-ago";
 import { requirePlayer } from "@/lib/dal";
 import { getChallengeMonth } from "@/lib/challenge-time";
 import { getRegions } from "@/lib/checklist";
+import { previewNames } from "@/lib/outings";
 import { neighbours, parsePeriod, periodParam, type Period } from "@/lib/period";
 import { getClubJokers, getFeed, getGallery, getLeaderboard, getSpeciesSeen } from "@/lib/sightings";
 import { getSettings } from "@/lib/settings";
@@ -244,30 +245,63 @@ async function ClubJokers({ searchParams }: Search) {
 
 async function Feed() {
   await requirePlayer();
-  const items = await getFeed();
-  if (items.length === 0) return <p className="text-ink-soft">Nobody has twitched anything yet. Be first.</p>;
+  const outings = await getFeed();
+  if (outings.length === 0) return <p className="text-ink-soft">Nobody has twitched anything yet. Be first.</p>;
   return (
     <ul className="divide-y divide-rule rounded-2xl border border-rule bg-paper-raised">
-      {items.map((i) => (
-        <li key={i.id} className="flex items-center gap-3 px-4 py-3">
-          {i.playerImage ? (
-            <MediaImage src={i.playerImage} alt="" width={40} height={40} className="size-10 rounded-full" />
-          ) : (
-            <span aria-hidden className="size-10 rounded-full bg-paper-sunk" />
-          )}
-          <p className="min-w-0 flex-1">
-            <span className="font-semibold">{i.playerName}</span> twitched{" "}
-            <span className="font-semibold">{i.bird}</span>
-            {i.isLifer && <span className="ml-1 text-sm text-lilac">lifer</span>}
-            <span className="block text-sm text-ink-soft">
-              {i.region}, <TimeAgo iso={i.at} />
-            </span>
-          </p>
-          {i.photoUrl && (
-            <MediaImage src={i.photoUrl} alt={`${i.playerName}'s ${i.bird}`} width={56} height={56} className="size-14 rounded-lg object-cover" />
-          )}
-        </li>
-      ))}
+      {outings.map((o) => {
+        const photos = o.birds.filter((b) => b.photoUrl);
+        const many = o.birds.length > 1;
+        return (
+          <li key={o.id} className="flex items-start gap-3 px-4 py-3">
+            {o.playerImage ? (
+              <MediaImage src={o.playerImage} alt="" width={40} height={40} className="size-10 rounded-full" />
+            ) : (
+              <span aria-hidden className="size-10 shrink-0 rounded-full bg-paper-sunk" />
+            )}
+            <div className="min-w-0 flex-1">
+              <p>
+                <span className="font-semibold">{o.playerName}</span> twitched{" "}
+                <span className="font-semibold">{many ? `${o.birds.length} birds` : o.birds[0].name}</span>
+                {o.lifers > 0 && (
+                  <span className="ml-1 text-sm text-lilac">{many ? `${o.lifers} lifer${o.lifers === 1 ? "" : "s"}` : "lifer"}</span>
+                )}
+                <span className="block text-sm text-ink-soft">
+                  {o.region}, <TimeAgo iso={o.at} />
+                </span>
+              </p>
+              {many && (
+                <details className="group mt-1">
+                  <summary className="flex min-h-11 cursor-pointer items-center text-sm text-ink-soft group-open:font-semibold group-open:text-ink">
+                    <span className="group-open:hidden">{previewNames(o.birds.map((b) => b.name))}</span>
+                    <span className="hidden group-open:inline">All {o.birds.length} birds</span>
+                  </summary>
+                  <ul className="columns-1 gap-x-6 pb-1 text-sm sm:columns-2">
+                    {o.birds.map((b) => (
+                      <li key={b.id} className="break-inside-avoid py-0.5">
+                        {b.name}
+                        {b.isLifer && <span className="ml-1 text-lilac">lifer</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+            {photos.length > 0 && (
+              <div className="flex shrink-0 items-center gap-1">
+                <MediaImage
+                  src={photos[0].photoUrl!}
+                  alt={`${o.playerName}'s ${photos[0].name}`}
+                  width={56}
+                  height={56}
+                  className="size-14 rounded-lg object-cover"
+                />
+                {photos.length > 1 && <span className="text-sm text-ink-soft">+{photos.length - 1}</span>}
+              </div>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }

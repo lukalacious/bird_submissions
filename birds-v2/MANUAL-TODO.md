@@ -88,6 +88,9 @@ is asked "are you X?". Then check:
 - [ ] **Me** → turn **Reminders** on. On iPhone, add the site to your Home Screen first.
 - [ ] Put it on your Home Screen (Today shows how) and open it like an app
 - [ ] **Sightings → Table**: numbers match the live app. **Species**: step back a few months, open a bird to see who saw it
+- [ ] **Sightings → Latest**: a big upload shows as one entry ("twitched 31 birds"); tap the names to see them all
+- [ ] **Twitch → Browse the list**: open a family, tap a bird, see it in the tray. Try A to Z too
+- [ ] **Admin → Months**: the table at the bottom shows all twelve months. A month that needs more birds than it has days is flagged in red
 - [ ] **Me** → *Open admin* (you're an admin): Players, Months, Settings all load
 - [ ] **Today**: the line under the tally says where you stand; "How the game works" opens the rules
 - [ ] **Me → Profile**: set a display name and home region; download your birds as CSV

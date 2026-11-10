@@ -62,6 +62,11 @@ export function nextMonth({ year, month }: ChallengeMonth): ChallengeMonth {
   return month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
 }
 
+/** 28 to 31. Day 0 of the next month is the last day of this one. */
+export function daysInMonth({ year, month }: ChallengeMonth): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
 /** Instant the month ends (local midnight starting the next month). */
 export function monthEnd({ year, month }: ChallengeMonth, timeZone = DEFAULT_TIMEZONE): Date {
   return zonedMidnight(year, month + 1, 1, timeZone);

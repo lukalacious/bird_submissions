@@ -5,6 +5,7 @@ import type { ChallengeMonth } from "@/lib/challenge-time";
 import { feedTag, leaderboardTag } from "@/lib/tags";
 import type { Period } from "@/lib/period";
 import { summariseSpecies, type SpeciesSummary } from "@/lib/species-summary";
+import { groupOutings, type Outing } from "@/lib/outings";
 
 /**
  * Community reads. Same for every viewer, so they're cached server-side and
@@ -48,27 +49,24 @@ export async function getLeaderboard(month: ChallengeMonth): Promise<LeaderRow[]
     .sort((a, b) => Number(a.isEliminated) - Number(b.isEliminated) || b.monthBirds - a.monthBirds || b.seasonBirds - a.seasonBirds || a.name.localeCompare(b.name));
 }
 
-export interface FeedItem {
-  id: string;
-  playerName: string;
-  playerImage: string | null;
-  bird: string;
-  region: string;
-  isLifer: boolean;
-  photoUrl: string | null;
-  at: string;
-}
+/** how many recent sightings the feed looks at, and how many outings it shows */
+const FEED_SIGHTINGS = 400;
+const FEED_OUTINGS = 40;
 
-export async function getFeed(): Promise<FeedItem[]> {
+/** The latest outings: one entry per player per sitting, not one per bird. */
+export async function getFeed(): Promise<Outing[]> {
   "use cache";
   cacheTag(feedTag);
   cacheLife("minutes");
 
   const subs = await db.submission.findMany({
     orderBy: { createdAt: "desc" },
-    take: 60,
+    take: FEED_SIGHTINGS,
     select: {
       id: true,
+      userId: true,
+      year: true,
+      month: true,
       createdAt: true,
       isLifer: true,
       customName: true,
@@ -78,16 +76,24 @@ export async function getFeed(): Promise<FeedItem[]> {
       photo: { select: { url: true, status: true } },
     },
   });
-  return subs.map((s) => ({
-    id: s.id,
-    playerName: s.user.username ?? s.user.name ?? "Player",
-    playerImage: s.user.image,
-    bird: s.bird?.displayName ?? s.customName ?? "Unknown bird",
-    region: s.region.label,
-    isLifer: s.isLifer,
-    photoUrl: s.photo && s.photo.status !== "REJECTED" ? s.photo.url : null,
-    at: s.createdAt.toISOString(),
-  }));
+  const outings = groupOutings(
+    subs.map((s) => ({
+      id: s.id,
+      userId: s.userId,
+      playerName: s.user.username ?? s.user.name ?? "Player",
+      playerImage: s.user.image,
+      bird: s.bird?.displayName ?? s.customName ?? "Unknown bird",
+      region: s.region.label,
+      year: s.year,
+      month: s.month,
+      isLifer: s.isLifer,
+      photoUrl: s.photo && s.photo.status !== "REJECTED" ? s.photo.url : null,
+      at: s.createdAt.toISOString(),
+    }))
+  );
+  // the oldest outing may be cut short by the query limit, so it's dropped when there are older rows
+  const complete = subs.length === FEED_SIGHTINGS ? outings.slice(0, -1) : outings;
+  return complete.slice(0, FEED_OUTINGS);
 }
 
 export interface GalleryPhoto {

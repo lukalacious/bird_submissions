@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   checkInDeadline,
+  daysInMonth,
   getChallengeMonth,
   isCheckInOpen,
   isMonthOpen,
@@ -126,5 +127,14 @@ describe("openCheckInMonth", () => {
   });
   it("is closed between the 8th and the 19th", () => {
     expect(openCheckInMonth({ ...opts, now: utc("2026-11-12T10:00:00") })).toBeNull();
+  });
+});
+
+describe("daysInMonth", () => {
+  it("knows short months and leap years", () => {
+    expect(daysInMonth({ year: 2027, month: 2 })).toBe(28);
+    expect(daysInMonth({ year: 2028, month: 2 })).toBe(29);
+    expect(daysInMonth({ year: 2027, month: 4 })).toBe(30);
+    expect(daysInMonth({ year: 2027, month: 12 })).toBe(31);
   });
 });

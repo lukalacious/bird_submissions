@@ -2,8 +2,9 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Plus, Sparkles, X } from "lucide-react";
+import { Check, ChevronDown, Plus, Sparkles, X } from "lucide-react";
 import { indexBirds, searchBirds } from "@/lib/bird-search";
+import { groupBirds, type BrowseMode } from "@/lib/bird-browse";
 import { calculateJokersFromGroup, jokerHint } from "@/lib/rules/jokers";
 import type { ChecklistBird, SeasonBird } from "@/lib/checklist";
 import { useStoredState } from "@/lib/use-stored-state";
@@ -52,6 +53,9 @@ export function Checklist({ userId, regions, regionId, birds, golden: goldenList
   const [query, setQuery] = useState("");
   const [target, setTarget] = useState<OpenMonth["key"]>("current");
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [view, setView] = useState<"mine" | "browse">("mine");
+  const [browseMode, setBrowseMode] = useStoredState<BrowseMode>("twitch-browse-mode", "family");
+  const [openSection, setOpenSection] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const online = useOnline();
@@ -64,6 +68,8 @@ export function Checklist({ userId, regions, regionId, birds, golden: goldenList
   const results = useMemo(() => searchBirds(index, query), [index, query]);
   const birdById = useMemo(() => new Map(birds.map((b) => [b.id, b])), [birds]);
   const golden = useMemo(() => new Set(goldenList), [goldenList]);
+  // built only once someone opens the list: up to 1,700 birds in the largest region
+  const sections = useMemo(() => (view === "browse" ? groupBirds(birds, browseMode) : []), [view, birds, browseMode]);
   const canPhoto = useMemo(() => new Set(photoSpecies), [photoSpecies]);
 
   const seasonForMonth = season.filter((s) => s.year === month.year);
@@ -72,6 +78,7 @@ export function Checklist({ userId, regions, regionId, birds, golden: goldenList
   );
   const thisMonth = season.filter((s) => s.year === month.year && s.month === month.month);
   const inTray = new Set(tray.map((t) => t.birdId));
+  const twitchedHere = birds.filter((b) => twitchedMonth.has(b.speciesId)).length;
   const trayCount = tray.length + customs.length;
   const remaining = Math.max(0, month.cap - thisMonth.length - trayCount);
 
@@ -139,6 +146,40 @@ export function Checklist({ userId, regions, regionId, birds, golden: goldenList
           Sightings.
         </p>
       </div>
+    );
+  }
+
+  /** One bird as a tap target: used by search results and by the browsable list. */
+  function birdRow(b: ChecklistBird, name: string) {
+    const seenIn = twitchedMonth.get(b.speciesId);
+    const selected = inTray.has(b.id);
+    return (
+      <li key={b.id}>
+        <button
+          type="button"
+          disabled={seenIn !== undefined}
+          aria-pressed={selected}
+          onClick={() => toggle(b)}
+          className={`flex min-h-14 w-full items-center gap-3 rounded-xl border px-4 py-2 text-left disabled:opacity-60 ${
+            selected ? "border-roller bg-roller-wash" : "border-rule bg-paper-raised"
+          }`}
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold">{name}</span>
+            <span className="block truncate text-sm text-ink-soft italic">{b.scientificName}</span>
+          </span>
+          {golden.has(b.speciesId) && (
+            <span className="rounded-full bg-weaver px-2 py-0.5 text-sm font-semibold text-weaver-ink">Golden</span>
+          )}
+          {seenIn !== undefined ? (
+            <span className="text-sm text-ink-soft">Twitched in {monthName(seenIn)}</span>
+          ) : selected ? (
+            <Check aria-hidden className="size-6 text-roller" />
+          ) : (
+            <Plus aria-hidden className="size-6 text-ink-soft" />
+          )}
+        </button>
+      </li>
     );
   }
 
@@ -233,38 +274,7 @@ export function Checklist({ userId, regions, regionId, birds, golden: goldenList
         <section aria-label="Search results" className="space-y-2">
           {results.length === 0 && <p className="text-ink-soft">No bird in this region matches “{query.trim()}”.</p>}
           <ul className="space-y-2">
-            {results.map((b) => {
-              const seenIn = twitchedMonth.get(b.speciesId);
-              const selected = inTray.has(b.id);
-              return (
-                <li key={b.id}>
-                  <button
-                    type="button"
-                    disabled={seenIn !== undefined}
-                    aria-pressed={selected}
-                    onClick={() => toggle(b)}
-                    className={`flex min-h-14 w-full items-center gap-3 rounded-xl border px-4 py-2 text-left disabled:opacity-60 ${
-                      selected ? "border-roller bg-roller-wash" : "border-rule bg-paper-raised"
-                    }`}
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-semibold">{b.displayName}</span>
-                      <span className="block truncate text-sm text-ink-soft italic">{b.scientificName}</span>
-                    </span>
-                    {golden.has(b.speciesId) && (
-                      <span className="rounded-full bg-weaver px-2 py-0.5 text-sm font-semibold text-weaver-ink">Golden</span>
-                    )}
-                    {seenIn !== undefined ? (
-                      <span className="text-sm text-ink-soft">Twitched in {monthName(seenIn)}</span>
-                    ) : selected ? (
-                      <Check aria-hidden className="size-6 text-roller" />
-                    ) : (
-                      <Plus aria-hidden className="size-6 text-ink-soft" />
-                    )}
-                  </button>
-                </li>
-              );
-            })}
+            {results.map((b) => birdRow(b, b.displayName))}
           </ul>
           {results.length === 40 && <p className="text-sm text-ink-soft">Keep typing to narrow it down.</p>}
           {canAddCustom && (
@@ -281,49 +291,139 @@ export function Checklist({ userId, regions, regionId, birds, golden: goldenList
           )}
         </section>
       ) : (
-        <section aria-labelledby="month-heading" className="space-y-2">
-          <h2 id="month-heading" className="text-xl font-semibold">
-            Your {month.label}
-          </h2>
-          {thisMonth.length === 0 ? (
-            <p className="text-ink-soft">Nothing yet. Search above to add the birds you&apos;ve seen.</p>
-          ) : (
-            <ul className="divide-y divide-rule rounded-xl border border-rule bg-paper-raised">
-              {thisMonth.map((s) => (
-                <li key={s.id} className="flex min-h-14 items-center gap-3 px-4">
-                  <span className="flex-1">
-                    {s.label}
-                    {s.isLifer && <span className="ml-2 text-sm text-lilac">lifer</span>}
-                    {s.speciesId && golden.has(s.speciesId) && (
-                      <span className="block text-sm text-weaver-ink">
-                        {s.photoUrl ? "Golden bird, proven" : "Golden bird: add a photo to count it"}
-                      </span>
+        <>
+          <div role="radiogroup" aria-label="What to show" className="grid grid-cols-2 gap-1 rounded-xl bg-paper-sunk p-1">
+            {(
+              [
+                ["mine", `Your ${month.label}`],
+                ["browse", "Browse the list"],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                role="radio"
+                aria-checked={view === key}
+                onClick={() => setView(key)}
+                className={`min-h-11 rounded-lg text-sm font-semibold sm:text-base ${
+                  view === key ? "bg-paper-raised text-ink shadow-sm" : "text-ink-soft"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {view === "mine" ? (
+          <section aria-labelledby="month-heading" className="space-y-2">
+            <h2 id="month-heading" className="text-xl font-semibold">
+              Your {month.label}
+            </h2>
+            {thisMonth.length === 0 ? (
+              <p className="text-ink-soft">Nothing yet. Search above to add the birds you&apos;ve seen.</p>
+            ) : (
+              <ul className="divide-y divide-rule rounded-xl border border-rule bg-paper-raised">
+                {thisMonth.map((s) => (
+                  <li key={s.id} className="flex min-h-14 items-center gap-3 px-4">
+                    <span className="flex-1">
+                      {s.label}
+                      {s.isLifer && <span className="ml-2 text-sm text-lilac">lifer</span>}
+                      {s.speciesId && golden.has(s.speciesId) && (
+                        <span className="block text-sm text-weaver-ink">
+                          {s.photoUrl ? "Golden bird, proven" : "Golden bird: add a photo to count it"}
+                        </span>
+                      )}
+                    </span>
+                    {(s.photoUrl || (s.speciesId && canPhoto.has(s.speciesId))) && (
+                      <PhotoButton
+                        userId={userId}
+                        submissionId={s.id}
+                        birdName={s.label}
+                        photoUrl={s.photoUrl}
+                        month={months[0]}
+                        onNotice={setNotice}
+                      />
                     )}
-                  </span>
-                  {(s.photoUrl || (s.speciesId && canPhoto.has(s.speciesId))) && (
-                    <PhotoButton
-                      userId={userId}
-                      submissionId={s.id}
-                      birdName={s.label}
-                      photoUrl={s.photoUrl}
-                      month={months[0]}
-                      onNotice={setNotice}
-                    />
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => remove(s.id)}
+                      disabled={pending}
+                      aria-label={`Remove ${s.label}`}
+                      className="grid size-11 place-items-center rounded-full text-ink-soft hover:bg-paper-sunk"
+                    >
+                      <X aria-hidden className="size-5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          ) : (
+            <section aria-labelledby="browse-heading" className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 id="browse-heading" className="text-xl font-semibold">
+                  {regions.find((r) => r.id === regionId)?.label} list
+                </h2>
+                <p className="text-sm text-ink-soft">
+                  {twitchedHere} of {birds.length} twitched this season
+                </p>
+              </div>
+              <div role="radiogroup" aria-label="Order the list" className="flex gap-2">
+                {(
+                  [
+                    ["family", "By family"],
+                    ["az", "A to Z"],
+                  ] as const
+                ).map(([key, label]) => (
                   <button
+                    key={key}
                     type="button"
-                    onClick={() => remove(s.id)}
-                    disabled={pending}
-                    aria-label={`Remove ${s.label}`}
-                    className="grid size-11 place-items-center rounded-full text-ink-soft hover:bg-paper-sunk"
+                    role="radio"
+                    aria-checked={browseMode === key}
+                    onClick={() => {
+                      setBrowseMode(key);
+                      setOpenSection(null);
+                    }}
+                    className={`min-h-11 rounded-full border px-4 text-sm font-semibold ${
+                      browseMode === key ? "border-roller bg-roller-wash text-ink" : "border-rule text-ink-soft"
+                    }`}
                   >
-                    <X aria-hidden className="size-5" />
+                    {label}
                   </button>
-                </li>
-              ))}
-            </ul>
+                ))}
+              </div>
+              <ul className="divide-y divide-rule rounded-xl border border-rule bg-paper-raised">
+                {sections.map((sec) => {
+                  const isOpen = openSection === sec.key;
+                  const seen = sec.birds.filter((b) => twitchedMonth.has(b.speciesId)).length;
+                  const picked = sec.birds.filter((b) => inTray.has(b.id)).length;
+                  return (
+                    <li key={sec.key}>
+                      <button
+                        type="button"
+                        aria-expanded={isOpen}
+                        onClick={() => setOpenSection(isOpen ? null : sec.key)}
+                        className="flex min-h-14 w-full items-center gap-3 px-4 text-left"
+                      >
+                        <span className="flex-1 font-semibold">{sec.label}</span>
+                        {picked > 0 && <span className="text-sm font-semibold text-roller">{picked} ready</span>}
+                        <span className="text-sm text-ink-soft tabular-nums">
+                          {seen} of {sec.birds.length}
+                        </span>
+                        <ChevronDown aria-hidden className={`size-5 text-ink-soft ${isOpen ? "rotate-180" : ""}`} />
+                      </button>
+                      {/* rows exist only while the section is open */}
+                      {isOpen && (
+                        <ul className="space-y-2 px-2 pb-3">
+                          {sec.birds.map((b) => birdRow(b, browseMode === "az" ? b.alphabeticalName : b.displayName))}
+                        </ul>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
           )}
-        </section>
+        </>
       )}
 
       {trayCount > 0 && (

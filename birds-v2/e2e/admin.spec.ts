@@ -32,6 +32,17 @@ test("adjust a player's jokers, undo it, and see both in the log", async ({ page
   await expect(page.getByText("Removed a joker adjustment").first()).toBeVisible();
 });
 
+test("Months shows the whole season's caps at a glance", async ({ page }) => {
+  await page.goto("/admin/months?m=2027-04");
+  const table = page.getByRole("table");
+  await expect(table.getByRole("row")).toHaveCount(13);
+  // April has 30 days, and the selected month is marked
+  await expect(table.getByRole("row", { name: /^April/ }).getByRole("cell").first()).toHaveText("30");
+  await expect(table.getByRole("link", { name: "April" })).toHaveAttribute("aria-current", "true");
+  await table.getByRole("link", { name: "June" }).click();
+  await expect(page).toHaveURL(/m=2027-06/);
+});
+
 test("put a player out by hand and bring them back", async ({ page }) => {
   await page.goto("/admin/players");
   await page.getByRole("row", { name: new RegExp(playerEmail()) }).getByRole("link").click();
@@ -51,7 +62,7 @@ test("removing a player needs their email typed", async ({ page }) => {
   await expect(page.getByRole("alert").filter({ hasText: "Not done" })).toHaveText(/doesn't match this player. Nothing was removed/);
 });
 
-for (const path of ["/admin", "/admin/standing", "/admin/players", "/admin/changes"]) {
+for (const path of ["/admin", "/admin/standing", "/admin/players", "/admin/changes", "/admin/months"]) {
   test(`no serious accessibility problems on ${path}`, async ({ page }) => {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
