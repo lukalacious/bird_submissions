@@ -65,6 +65,15 @@ production callback URL to the Google OAuth client. A pre-push hook
 (`.githooks/pre-push`) refuses to push schema changes that have no migration,
 because Vercel deploys `main` automatically.
 
+### Read-only mode (after the cutover to v2)
+
+Set `READ_ONLY=1` on the Production environment and redeploy. The app then
+shows a banner pointing at `NEW_APP_URL`, refuses every write (twitches,
+jokers, change requests, profile edits, admin tools, photo uploads) and the
+three crons return `skipped`. Nothing is deleted; players can still sign in
+and browse the 2026 season. Remove the variable and redeploy to roll back.
+The switch lives in `src/lib/read-only.ts`.
+
 ## Docs
 
 | | |

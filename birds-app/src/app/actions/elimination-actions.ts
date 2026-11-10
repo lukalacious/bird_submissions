@@ -1,5 +1,6 @@
 "use server";
 
+import { isReadOnly, readOnlyError } from "@/lib/read-only";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -233,6 +234,7 @@ export async function getEliminationLeaderboard(year?: number) {
 
 // Admin: manually eliminate a user
 export async function adminEliminateUser(userId: string, year: number, month: number) {
+  if (isReadOnly()) return readOnlyError();
   if (!(await isAdminSession())) {
     return { success: false, error: "Unauthorized" };
   }
@@ -264,6 +266,7 @@ export async function adminEliminateUser(userId: string, year: number, month: nu
 
 // Admin: reinstate a user
 export async function adminReinstateUser(userId: string, year: number) {
+  if (isReadOnly()) return readOnlyError();
   if (!(await isAdminSession())) {
     return { success: false, error: "Unauthorized" };
   }

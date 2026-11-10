@@ -1,5 +1,6 @@
 "use server";
 
+import { isReadOnly, readOnlyError, READ_ONLY_MESSAGE } from "@/lib/read-only";
 import prisma from "@/lib/prisma";
 import { isAdminSession, requireAdmin } from "@/lib/auth-helpers";
 import { type Prisma } from "@prisma/client";
@@ -18,6 +19,7 @@ export async function processFormJokers(
   year: number,
   month: number
 ): Promise<{ success: boolean; results: FormJokerResult[]; error?: string }> {
+  if (isReadOnly()) return { success: false, results: [], error: READ_ONLY_MESSAGE };
   let admin;
   try {
     admin = await requireAdmin();
@@ -51,6 +53,7 @@ export async function assignBonusToUser(
   year: number,
   month: number
 ): Promise<{ success: boolean; error?: string }> {
+  if (isReadOnly()) return readOnlyError();
   if (!(await isAdminSession())) {
     return { success: false, error: "Unauthorized" };
   }

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Bird } from "lucide-react";
 import Link from "next/link";
+import { isReadOnly, NEW_APP_URL } from "@/lib/read-only";
 
 export default async function LoginPage() {
   const session = await auth();
@@ -26,6 +27,15 @@ export default async function LoginPage() {
             <p className="text-slate-400 text-sm">
               Bird tracking
             </p>
+            {isReadOnly() && (
+              <p className="mt-4 text-sm text-amber-200">
+                This is the 2026 record. The game now lives at{" "}
+                <Link href={NEW_APP_URL} className="underline underline-offset-2 hover:text-white">
+                  the new app
+                </Link>
+                .
+              </p>
+            )}
           </div>
 
           {/* Sign In Button */}

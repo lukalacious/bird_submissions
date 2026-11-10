@@ -7,6 +7,7 @@ import { FileText, Bird, Calendar, Pencil, Download } from "lucide-react";
 import { getCurrentChallengeMonth } from "@/lib/settings-utils";
 import { DeletableBirdPill } from "@/components/submissions/deletable-bird-pill";
 import { RequestChangePill } from "@/components/submissions/request-change-pill";
+import { isReadOnly } from "@/lib/read-only";
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -40,6 +41,8 @@ export default async function SubmissionsPage() {
   const userId = session!.user.id!;
 
   const current = getCurrentChallengeMonth();
+  // After cutover nothing is editable here; the pills become plain labels
+  const readOnly = isReadOnly();
 
   // All of the user's submissions, across every region (mixed-region months
   // are allowed — the monthly cap is shared)
@@ -70,9 +73,9 @@ export default async function SubmissionsPage() {
       month: s.month,
       // Current month is freely editable until month end (SAST);
       // joker submissions represent spent jokers and can't be removed here
-      deletable: isCurrentMonth && !s.isJokerSubmission,
+      deletable: !readOnly && isCurrentMonth && !s.isJokerSubmission,
       // Past months are locked — changes go through an admin request
-      requestable: !isCurrentMonth && !s.isJokerSubmission,
+      requestable: !readOnly && !isCurrentMonth && !s.isJokerSubmission,
       photoUrl: s.photoUrl,
     });
   }

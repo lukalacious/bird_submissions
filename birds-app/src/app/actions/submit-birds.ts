@@ -1,5 +1,6 @@
 "use server";
 
+import { isReadOnly, readOnlyError } from "@/lib/read-only";
 import prisma from "@/lib/prisma";
 import { syncToGoogleSheets } from "@/lib/google-sheets";
 import { revalidatePath } from "next/cache";
@@ -128,6 +129,7 @@ interface SubmitBirdsResult {
 }
 
 export async function submitBirds(input: SubmitBirdsInput): Promise<SubmitBirdsResult> {
+  if (isReadOnly()) return readOnlyError();
   const {
     regionId,
     birdNames,
@@ -427,6 +429,7 @@ export async function deleteSubmission(input: {
   year: number;
   month: number;
 }): Promise<{ success: boolean; error?: string }> {
+  if (isReadOnly()) return readOnlyError();
   const { birdName, year, month } = input;
 
   try {

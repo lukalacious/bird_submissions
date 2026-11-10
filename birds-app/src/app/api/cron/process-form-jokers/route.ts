@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthorizedCron } from "@/lib/cron-auth";
+import { isReadOnly } from "@/lib/read-only";
 import { processFormJokersCore } from "@/lib/form-jokers";
 import { getCurrentChallengeMonth } from "@/lib/settings-utils";
 
@@ -44,6 +45,9 @@ export async function POST(request: NextRequest) {
   if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (isReadOnly()) {
+    return NextResponse.json({ success: true, skipped: true, reason: "read-only" });
+  }
   try {
     return NextResponse.json(await run());
   } catch (error) {
@@ -55,6 +59,9 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (isReadOnly()) {
+    return NextResponse.json({ success: true, skipped: true, reason: "read-only" });
   }
   try {
     return NextResponse.json(await run());

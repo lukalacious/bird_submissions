@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ReadOnlyBanner } from "@/components/read-only-banner";
 import { Bird, Users, UserPlus, Settings, ArrowLeft, Shield, ClipboardCheck, MailQuestion, Camera } from "lucide-react";
 
 const adminNavItems = [
@@ -34,6 +35,7 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ReadOnlyBanner />
       {/* Admin Header */}
       <header className="bg-purple-900 text-white sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

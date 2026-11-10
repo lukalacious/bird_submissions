@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getCurrentChallengeMonth, getSpecialBirdSpecies } from "@/lib/settings-utils";
 import { getBlobToken } from "@/lib/blob-token";
+import { isReadOnly, READ_ONLY_MESSAGE } from "@/lib/read-only";
 
 /**
  * Client-upload token endpoint for proof photos of the month's designated
@@ -19,6 +20,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       request,
       token: getBlobToken(),
       onBeforeGenerateToken: async (pathname, clientPayload) => {
+        if (isReadOnly()) throw new Error(READ_ONLY_MESSAGE);
         const session = await auth();
         if (!session?.user?.id) {
           throw new Error("Not signed in");

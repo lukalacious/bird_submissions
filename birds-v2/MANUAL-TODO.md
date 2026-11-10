@@ -155,26 +155,91 @@ app does. Anything he decides differently is a setting in **Admin → Settings**
 
 ## F. Cutover runbook (29 Dec – 3 Jan)
 
-Before 29 Dec, **ask Claude to prepare**: (1) a v1 read-only switch (banner, and
-submissions turned off), (2) removal of v1's crons, (3) the production
-connection strings for twitch-v2. Each is a small, reviewed change.
+**Prepared (10 Nov):** v1 now has a read-only switch. Setting `READ_ONLY=1`
+on the **bird-submissions** project and redeploying shows the banner, refuses
+every write (twitches, jokers, change requests, profile edits, admin tools,
+photo uploads) and makes v1's three crons return `skipped`, so there is no
+separate "remove crons" step. Unset, nothing changes, so the code is already
+safe to merge. Rollback is deleting the variable and redeploying. Code:
+`birds-app/src/lib/read-only.ts`.
+
+### F0. Before 29 Dec (~15 min, any day)
+
+- [ ] Merge the branch with the read-only switch (it is inert until `READ_ONLY` is set).
+- [ ] **Give v1 its retirement address.** Vercel → **bird-submissions** →
+  Settings → **Domains** → Add `twitch-2026.vercel.app`. Then add
+  `https://twitch-2026.vercel.app/api/auth/callback/google` to the Google
+  OAuth client (A1). Harmless now; essential once the main domain moves.
+- [ ] **Rehearse the domain move (2 min).** On **bird-submissions** → Domains
+  → Add `twitch-move-test.vercel.app`. Then on **twitch-v2** → Domains → Add
+  the same name. Vercel should say it belongs to another project and offer
+  to **move** it (documented for custom domains; expected but not yet seen
+  for `.vercel.app` names). Delete the throwaway from whichever project ends
+  up holding it. If Vercel refuses, plan on fallback B below.
+- [ ] Confirm which Neon endpoint v1 production uses: Vercel →
+  **bird-submissions** → Settings → Environment Variables → `DATABASE_URL`
+  (Production). Expected host `ep-holy-brook-agperaph…` (v1's `.env` names it
+  `DATABASE_URL_PRODUCTION`). The migration below must target that endpoint.
+- [ ] D3 (ignored build step on bird-submissions), so a v2 commit can't
+  redeploy v1 during the window.
+
+### F1. The night
 
 | When (SAST) | Step | Who |
 |---|---|---|
 | 29 Dec | Dale signs off the rules; set them in Admin → Settings on staging | you + Dale |
 | 29 Dec | Final rehearsal: run the refresh (B1), check the report is identical | you |
 | 31 Dec 18:00 | Tell players: "New Twitch from midnight. Same Google sign-in, no more Google Form." | you |
-| 31 Dec 22:00 | Turn on v1 read-only; v1 crons are already removed | Claude-prepared, you deploy |
-| 31 Dec 22:05 | Neon: create branch `pre-v2-cutover` from production (instant backup) | you |
-| 31 Dec 22:10 | Run the migration on production: dry run, check the report, then `--apply` (exact command in Claude's prep) | you + Claude |
-| 31 Dec 22:30 | Point twitch-v2 at production (env vars) **and delete `STAGING_SITE`** (test-site mode: banner, and admins can play while eliminated), then redeploy | you |
-| 31 Dec 22:40 | Alias `bird-submissions.vercel.app` to the twitch-v2 deployment; v1 stays at its own deployment URL as a read-only record. *Not yet verified that a vercel.app alias can move between projects; Claude tests this during prep, with a fallback plan.* | you |
-| 31 Dec 22:45 | Smoke test: sign in, Today shows December, Flock leaderboard right | you |
+| 31 Dec 22:00 | **v1 read-only:** Vercel → bird-submissions → Settings → Environment Variables → add `READ_ONLY` = `1` (Production) → Deployments → ⋯ → Redeploy. Check: banner shows, Twitch says "Twitching has moved" | you |
+| 31 Dec 22:05 | Neon → Branches → **Create branch** `pre-v2-cutover` from `production` (instant backup) | you |
+| 31 Dec 22:10 | Migrate production (commands in F2): dry run, read the report, then `--apply` | you + Claude |
+| 31 Dec 22:30 | **Point twitch-v2 at production:** Vercel → twitch-v2 → Settings → Environment Variables (Production): `DATABASE_URL` = production *pooled* URL (`-pooler` host), `DIRECT_DATABASE_URL` = production direct URL, **delete `STAGING_SITE`**. Deployments → Redeploy (its build runs `prisma migrate deploy`, now a no-op) | you |
+| 31 Dec 22:40 | **Move the domain** (F3). Then on bird-submissions, if `NEXTAUTH_URL` is set, change it to `https://twitch-2026.vercel.app` and redeploy, or v1 sign-ins bounce to v2 | you |
+| 31 Dec 22:45 | Smoke test on v2 at bird-submissions.vercel.app: sign in, Today shows December, Flock leaderboard right, no test-site banner. On twitch-2026.vercel.app: banner, read-only | you |
 | 1 Jan 00:00 | 2027 opens on v2 | — |
 | 3 Jan 02:15 | v2 closes December (after the 48h grace); check Admin → Overview and the jokers ledger | you |
 | 7 Feb | First in-app check-in closes (January's) | — |
 
-**Rollback** (any time on 31 Dec / 1 Jan): alias the domain back to the v1
-deployment and turn v1 read-only off. v1's tables were never modified. Birds
-added in v2 after cutover would need re-adding in v1, so decide within the
-first hours.
+### F2. Migration commands (31 Dec 22:10)
+
+The script refuses any database other than v2-staging unless told the
+endpoint, so a typo can't hit production by accident. Replace the URL with
+the production branch's **direct** connection string from the Neon console.
+
+```bash
+cd ~/Documents/code/projects/birds/birds-v2
+export DATABASE_URL='postgresql://…@ep-holy-brook-agperaph.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require'
+export DIRECT_DATABASE_URL="$DATABASE_URL"
+
+npx prisma migrate deploy        # creates the v2 schema beside v1's public; v1 untouched
+npx tsx scripts/migrate-v1-to-v2.ts --allow-host=ep-holy-brook-agperaph            # dry run
+cat scripts/reports/*.md | tail -40                                                 # "identical"?
+npx tsx scripts/migrate-v1-to-v2.ts --allow-host=ep-holy-brook-agperaph --apply
+```
+
+If Dale said yes to the hyphen-group merge (C1), add
+`--group-mapping=scripts/data/hyphen-group-mapping.json` to both script runs.
+
+### F3. Moving `bird-submissions.vercel.app` to v2
+
+**A (preferred):** Vercel → **twitch-v2** → Settings → Domains → Add
+`bird-submissions.vercel.app` → confirm the **move** from bird-submissions.
+Vercel documents this for domains already on another project in the same
+team, and the F0 rehearsal proves it for a `.vercel.app` name.
+
+**B (if A is refused):** rename the projects. bird-submissions → Settings →
+General → rename to `twitch-2026`; then twitch-v2 → rename to
+`bird-submissions`. Each project gets `<new name>.vercel.app`; Vercel does not
+guarantee the old generated URL keeps working, which is what we want here. Git
+deploys follow the project ID, so nothing else changes. Check both URLs.
+
+**C (stopgap only):** from a signed-in Vercel CLI,
+`vercel alias set <twitch-v2 production deployment URL> bird-submissions.vercel.app`.
+Works while the domain still belongs to v1, but every later v1 deploy takes it
+back, so only with D3 in place and only until A or B is done.
+
+**Rollback** (any time on 31 Dec / 1 Jan): move the domain back (A in
+reverse, or undo the renames), delete `READ_ONLY` from bird-submissions and
+redeploy, restore `NEXTAUTH_URL` if you changed it. v1's tables were never
+modified. Birds added in v2 after cutover would need re-adding in v1, so decide
+within the first hours.

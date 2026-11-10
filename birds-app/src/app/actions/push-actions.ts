@@ -1,5 +1,6 @@
 "use server";
 
+import { isReadOnly, readOnlyError } from "@/lib/read-only";
 import prisma from "@/lib/prisma";
 import { requireSession } from "@/lib/auth-helpers";
 
@@ -8,6 +9,7 @@ export async function savePushSubscription(input: {
   p256dh: string;
   auth: string;
 }): Promise<{ success: boolean; error?: string }> {
+  if (isReadOnly()) return readOnlyError();
   try {
     const user = await requireSession();
     await prisma.pushSubscription.upsert({

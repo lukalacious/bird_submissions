@@ -1,5 +1,6 @@
 "use server";
 
+import { isReadOnly, readOnlyError } from "@/lib/read-only";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Role, ResetPeriod } from "@prisma/client";
@@ -11,6 +12,7 @@ export async function addUser(input: {
   name?: string;
   isAdmin: boolean;
 }) {
+  if (isReadOnly()) return readOnlyError();
   try {
     const admin = await requireAdmin();
 
@@ -42,6 +44,7 @@ export async function addUser(input: {
 
 // Toggle user role between ADMIN and USER
 export async function toggleUserRole(userId: string) {
+  if (isReadOnly()) return readOnlyError();
   try {
     await requireAdmin();
 
@@ -70,6 +73,7 @@ export async function toggleUserRole(userId: string) {
 
 // Delete a user
 export async function deleteUser(userId: string) {
+  if (isReadOnly()) return readOnlyError();
   try {
     const admin = await requireAdmin();
 
@@ -124,6 +128,7 @@ export async function updateSettings(input: {
   eliminationThreshold?: number;
   rules?: string | null;
 }) {
+  if (isReadOnly()) return readOnlyError();
   try {
     await requireAdmin();
 
@@ -173,6 +178,7 @@ export async function updateMonthlySettings(input: {
   maxBirdsPerPeriod: number;
   eliminationThreshold?: number | null;
 }) {
+  if (isReadOnly()) return readOnlyError();
   try {
     await requireAdmin();
 
@@ -234,6 +240,7 @@ export async function updateMonthlySpecialBirds(input: {
   goldenBirds: string[];
   photoBirds: string[];
 }) {
+  if (isReadOnly()) return readOnlyError();
   try {
     await requireAdmin();
 
@@ -305,6 +312,7 @@ export async function updateMonthlySpecialBirds(input: {
 
 // Reset monthly settings to use global defaults
 export async function resetMonthlySettings(year: number, month: number) {
+  if (isReadOnly()) return readOnlyError();
   try {
     await requireAdmin();
 

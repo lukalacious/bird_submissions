@@ -15,6 +15,7 @@ import Link from "next/link";
 import { AnimatedPage } from "@/components/ui/animated-page";
 import { BottomNav } from "@/components/ui/bottom-nav";
 import { HamburgerMenu } from "@/components/ui/hamburger-menu";
+import { ReadOnlyBanner } from "@/components/read-only-banner";
 
 export default async function ProtectedLayout({
   children,
@@ -43,6 +44,7 @@ export default async function ProtectedLayout({
 
   return (
     <div className="min-h-screen bg-background">
+      <ReadOnlyBanner />
       {/* Header */}
       <header className="bg-card/80 backdrop-blur-sm border-b border-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

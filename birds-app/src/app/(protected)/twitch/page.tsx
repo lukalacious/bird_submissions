@@ -6,6 +6,8 @@ import { RegionSelector } from "@/components/region-selector";
 import { getMonthlySettings, getSpecialBirdSpecies, getCurrentChallengeMonth } from "@/lib/settings-utils";
 import { getUserJokerInfo } from "@/app/actions/joker-actions";
 import type { ResetPeriod } from "@prisma/client";
+import { isReadOnly } from "@/lib/read-only";
+import { ReadOnlyNotice } from "@/components/read-only-banner";
 
 interface SubmitPageProps {
   searchParams: Promise<{ region?: string }>;
@@ -72,9 +74,11 @@ async function getSettings() {
 }
 
 export default async function SubmitPage({ searchParams }: SubmitPageProps) {
+  if (isReadOnly()) return <ReadOnlyNotice title="Twitching has moved" />;
+
   const session = await auth();
   const params = await searchParams;
-  let regionName = params.region;
+  const regionName = params.region;
 
   // If no region specified, try to use user's default region
   if (!regionName) {

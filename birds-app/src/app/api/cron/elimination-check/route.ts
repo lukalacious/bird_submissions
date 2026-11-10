@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthorizedCron } from "@/lib/cron-auth";
+import { isReadOnly } from "@/lib/read-only";
 import prisma from "@/lib/prisma";
 import { getMonthlySettings } from "@/lib/settings-utils";
 
@@ -9,6 +10,9 @@ import { getMonthlySettings } from "@/lib/settings-utils";
 export async function POST(request: NextRequest) {
   if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (isReadOnly()) {
+    return NextResponse.json({ success: true, skipped: true, reason: "read-only" });
   }
 
   try {
@@ -27,6 +31,9 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (isReadOnly()) {
+    return NextResponse.json({ success: true, skipped: true, reason: "read-only" });
   }
 
   try {

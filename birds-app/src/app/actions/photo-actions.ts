@@ -1,5 +1,6 @@
 "use server";
 
+import { isReadOnly, readOnlyError } from "@/lib/read-only";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth-helpers";
@@ -83,6 +84,7 @@ export async function awardPhotoJokers(
   submissionId: string,
   jokers: number
 ): Promise<{ success: boolean; error?: string }> {
+  if (isReadOnly()) return readOnlyError();
   try {
     await requireAdmin();
 

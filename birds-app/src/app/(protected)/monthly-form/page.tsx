@@ -3,8 +3,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ClipboardList, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { isReadOnly } from "@/lib/read-only";
+import { ReadOnlyNotice } from "@/components/read-only-banner";
 
 export default async function MonthlyFormPage() {
+  if (isReadOnly()) return <ReadOnlyNotice title="The monthly check-in has moved" />;
+
   const settings = await prisma.settings.findUnique({
     where: { id: "default" },
     select: { monthlyFormEmbedUrl: true },

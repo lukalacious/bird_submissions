@@ -1,10 +1,12 @@
 "use server";
 
+import { isReadOnly, readOnlyError } from "@/lib/read-only";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export async function updateUsername(username: string) {
+  if (isReadOnly()) return readOnlyError();
   const session = await auth();
   if (!session?.user?.id) {
     return { success: false, error: "Not authenticated" };
@@ -86,6 +88,7 @@ export async function getDisplayName(user: { name?: string | null; username?: st
 }
 
 export async function updateUserProfile(data: { name?: string; username?: string; defaultRegionId?: string | null }) {
+  if (isReadOnly()) return readOnlyError();
   const session = await auth();
   if (!session?.user?.id) {
     return { success: false, error: "Not authenticated" };

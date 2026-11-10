@@ -1,5 +1,6 @@
 "use server";
 
+import { isReadOnly, readOnlyError } from "@/lib/read-only";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireSession, requireAdmin } from "@/lib/auth-helpers";
@@ -17,6 +18,7 @@ export async function createChangeRequest(input: {
   replacementBird?: string;
   note?: string;
 }): Promise<{ success: boolean; error?: string }> {
+  if (isReadOnly()) return readOnlyError();
   try {
     const user = await requireSession();
     const userId = user.id!;
@@ -123,6 +125,7 @@ export async function approveChangeRequest(
   requestId: string,
   adminNote?: string
 ): Promise<{ success: boolean; error?: string }> {
+  if (isReadOnly()) return readOnlyError();
   try {
     const admin = await requireAdmin();
 
@@ -179,6 +182,7 @@ export async function rejectChangeRequest(
   requestId: string,
   adminNote?: string
 ): Promise<{ success: boolean; error?: string }> {
+  if (isReadOnly()) return readOnlyError();
   try {
     const admin = await requireAdmin();
 
