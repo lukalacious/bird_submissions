@@ -43,6 +43,25 @@ test("a species can't be added twice in a season", async ({ page }) => {
   await expect(page.getByText(/^Twitched in /).first()).toBeVisible();
 });
 
+test("a player can set a display name and home region, and download their birds", async ({ page }) => {
+  await page.goto("/me");
+  await page.getByLabel("Display name (optional)").fill("no spaces allowed");
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page.getByText(/letters, numbers, hyphens and underscores, with no spaces/)).toBeVisible();
+
+  const handle = `e2e_${Date.now()}`;
+  await page.getByLabel("Display name (optional)").fill(handle);
+  await page.getByLabel("Home region").selectOption({ index: 1 });
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Profile saved." })).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Display name (optional)")).toHaveValue(handle);
+
+  const csv = await page.request.get("/me/export");
+  expect(csv.headers()["content-type"]).toContain("text/csv");
+  expect(await csv.text()).toContain("year,month,bird,scientific name,family");
+});
+
 test("Sightings tabs load one section at a time", async ({ page }) => {
   await page.goto("/sightings?tab=table");
   await expect(page.getByRole("link", { name: "Table" })).toHaveAttribute("aria-current", "page");

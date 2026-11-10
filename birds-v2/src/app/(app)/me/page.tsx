@@ -8,6 +8,8 @@ import { getJokerLedger } from "@/lib/ledger";
 import { getSettings } from "@/lib/settings";
 import { NotificationsToggle } from "@/components/notifications-toggle";
 import { AvatarUpload } from "@/components/avatar-upload";
+import { getRegions } from "@/lib/checklist";
+import { ProfileForm } from "./profile-form";
 
 const MONTH = new Intl.DateTimeFormat("en-ZA", { month: "long", timeZone: "UTC" });
 const monthName = (year: number, m: number) => MONTH.format(new Date(Date.UTC(year, m - 1, 15)));
@@ -29,9 +31,10 @@ export default function MePage() {
 async function Profile() {
   const user = await requirePlayer();
   // picture and name from the DB: the session keeps a copy from sign-in
-  const [accounts, me] = await Promise.all([
+  const [accounts, me, regions] = await Promise.all([
     db.account.findMany({ where: { userId: user.id }, select: { id: true, email: true, provider: true } }),
-    db.user.findUniqueOrThrow({ where: { id: user.id }, select: { image: true, name: true, username: true } }),
+    db.user.findUniqueOrThrow({ where: { id: user.id }, select: { image: true, name: true, username: true, defaultRegionId: true } }),
+    getRegions(),
   ]);
 
   return (
@@ -52,6 +55,13 @@ async function Profile() {
         My birds this season
         <span aria-hidden>›</span>
       </Link>
+
+      <section aria-labelledby="profile-heading" className="space-y-4">
+        <h2 id="profile-heading" className="text-xl font-semibold">
+          Profile
+        </h2>
+        <ProfileForm name={me.name ?? ""} username={me.username ?? ""} regionId={me.defaultRegionId ?? ""} regions={regions} />
+      </section>
 
       <section aria-labelledby="accounts-heading" className="space-y-3">
         <h2 id="accounts-heading" className="text-xl font-semibold">
@@ -84,6 +94,20 @@ async function Profile() {
       </section>
 
       <NotificationsToggle publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
+
+      <ul className="space-y-1">
+        <li>
+          <Link href="/rules" className="inline-flex min-h-12 items-center font-semibold text-roller underline underline-offset-4">
+            How the game works
+          </Link>
+        </li>
+        <li>
+          {/* a file download, not a page: plain <a> so the router leaves it alone */}
+          <a href="/me/export" download className="inline-flex min-h-12 items-center font-semibold text-roller underline underline-offset-4">
+            Download my birds as a spreadsheet (CSV)
+          </a>
+        </li>
+      </ul>
 
       {user.role === "ADMIN" && (
         <Link href="/admin" className="inline-flex min-h-12 items-center font-semibold text-roller underline underline-offset-4">
@@ -120,7 +144,7 @@ async function Ledger({ userId }: { userId: string }) {
         <strong className="text-lilac">{fmt(earned - used)}</strong>.
       </p>
       {ledger.length === 0 ? (
-        <p className="text-ink-soft">No jokers yet. Three birds from one group earns your first.</p>
+        <p className="text-ink-soft">No jokers yet. Three birds from one family in a month earns your first.</p>
       ) : (
         <ul className="divide-y divide-rule rounded-2xl border border-rule bg-paper-raised">
           {ledger.map((m) => (
@@ -130,7 +154,7 @@ async function Ledger({ userId }: { userId: string }) {
                 <span className="text-lilac">+{fmt(m.groupJokers + m.bonusJokers)}</span>
               </p>
               <p className="text-sm text-ink-soft">
-                {fmt(m.groupJokers)} from groups
+                {fmt(m.groupJokers)} from families
                 {m.bonusLines.length > 0 && `, ${m.bonusLines.map((l) => `${l.rule} ${l.value > 0 ? "+" : ""}${l.value}`).join(", ")}`}
                 {m.used > 0 && `. ${fmt(m.used)} spent later.`}
               </p>

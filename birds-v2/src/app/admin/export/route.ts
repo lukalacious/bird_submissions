@@ -1,13 +1,7 @@
 import { getCurrentUser } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { getChallengeMonth } from "@/lib/challenge-time";
-
-const csv = (v: unknown) => {
-  const s = v === null || v === undefined ? "" : String(v);
-  // quote everything that could break a cell; neutralise spreadsheet formulas
-  const safe = /^[=+\-@]/.test(s) ? `'${s}` : s;
-  return /[",\n]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
-};
+import { csvResponse } from "@/lib/csv";
 
 /** Season export for Dale's records (replaces the Sheets sync). Admins only. */
 export async function GET(request: Request) {
@@ -34,11 +28,5 @@ export async function GET(request: Request) {
       s.isLifer ? "yes" : "", s.photo?.url ?? "", s.photo?.status.toLowerCase() ?? "",
     ]),
   ];
-  return new Response(rows.map((r) => r.map(csv).join(",")).join("\n") + "\n", {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="twitch-${year}.csv"`,
-      "Cache-Control": "private, no-store",
-    },
-  });
+  return csvResponse(rows, `twitch-${year}.csv`);
 }
