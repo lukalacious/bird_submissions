@@ -2,6 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/lib/db";
 import { DEFAULT_TIMEZONE, type ChallengeMonth } from "@/lib/challenge-time";
+import { resolveMonthRules } from "@/lib/rules/month-rules";
 
 export const SETTINGS_TAG = "settings";
 
@@ -35,8 +36,5 @@ export async function getMonthRules({ year, month }: ChallengeMonth) {
     getSettings(),
     db.monthlySettings.findUnique({ where: { year_month: { year, month } } }),
   ]);
-  return {
-    maxBirds: monthly?.maxBirdsPerPeriod ?? settings.maxBirdsPerPeriod,
-    eliminationThreshold: monthly?.eliminationThreshold ?? settings.eliminationThreshold,
-  };
+  return resolveMonthRules(settings, monthly);
 }

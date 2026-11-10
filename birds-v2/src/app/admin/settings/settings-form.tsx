@@ -63,7 +63,7 @@ export function SettingsForm({ values }: { values: SettingsValues }) {
       </fieldset>
 
       <label className="block space-y-1">
-        <span className="block text-xl font-semibold">Rules shown to players</span>
+        <span className="block text-xl font-semibold">Extra rules shown to players</span>
         <textarea name="rules" defaultValue={values.rules ?? ""} rows={8} maxLength={5000} className="block w-full rounded-xl border border-rule bg-paper-raised p-4" />
       </label>
 

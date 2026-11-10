@@ -8,6 +8,11 @@ import { checkInDeadline, getChallengeMonth, monthEnd, openCheckInMonth, timeUnt
 import { db } from "@/lib/db";
 import { getMonthRules, getSettings } from "@/lib/settings";
 import { getMonthSnapshot } from "@/lib/player";
+import { getGoldenBirdsFor } from "@/lib/checklist";
+import { PHOTO_PROOF_FROM_SEASON } from "@/lib/rules/check-in-bonus";
+import type { Standing } from "@/lib/rules/standing";
+import { getStandings } from "@/lib/standing";
+import { Check, Camera, Circle } from "lucide-react";
 
 export const metadata = { title: "Today" };
 
@@ -25,6 +30,33 @@ function formatJokers(n: number) {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
+const birds = (n: number) => `${n} ${n === 1 ? "bird" : "birds"}`;
+
+/** What month-end would do with today's numbers, in one sentence. */
+function standingLine(s: Standing, threshold: number, monthName: string, maxEmptyMonths: number | null) {
+  switch (s.kind) {
+    case "safe":
+      return { tone: "ok", text: `Safe for ${monthName}: you have the ${threshold} needed to stay in.` };
+    case "covered":
+      return {
+        tone: "ok",
+        text: `${birds(s.shortfall)} short of the ${threshold} needed to stay in. Your jokers cover that at month-end, one per missing bird.`,
+      };
+    case "at-risk":
+      return {
+        tone: "alarm",
+        text:
+          s.reason === "empty-months"
+            ? `${maxEmptyMonths} months in a row with no birds ends your season, jokers or not. Twitch ${birds(s.birdsToSafety)} to stay in.`
+            : `${birds(s.shortfall)} short of the ${threshold} needed, and your jokers don't cover it. Twitch ${birds(s.birdsToSafety)} more to stay in.`,
+      };
+    case "exempt":
+      return { tone: "ok", text: "Your first month doesn't count towards elimination. From next month you need the monthly target, or jokers for the gap." };
+    case "out":
+      return { tone: "soft", text: "You're out of this season's challenge. You can still follow everyone in Sightings." };
+  }
+}
+
 export default function TodayPage() {
   return (
     <Suspense fallback={<TodaySkeleton />}>
@@ -40,15 +72,22 @@ async function Today() {
   const current = getChallengeMonth(new Date(), settings.timezone);
   const checkInMonth = openCheckInMonth({ deadlineDay: settings.checkInDeadlineDay, timeZone: settings.timezone });
   const checkInKey = checkInMonth && { userId_year_month: { userId: user.id, ...checkInMonth } };
-  const [rules, snapshot, checkIn, checkInJokers] = await Promise.all([
+  const [rules, snapshot, standings, golden, checkIn, checkInJokers] = await Promise.all([
     getMonthRules(current),
     getMonthSnapshot(user.id, current),
+    getStandings(current, user.id),
+    db.user
+      .findUnique({ where: { id: user.id }, select: { defaultRegionId: true } })
+      .then((me) => getGoldenBirdsFor(user.id, current, me?.defaultRegionId ?? null)),
     checkInKey ? db.monthlyCheckIn.findUnique({ where: checkInKey, select: { id: true } }) : null,
     checkInKey ? db.userJoker.findUnique({ where: checkInKey, select: { bonusJokers: true } }) : null,
   ]);
   const checkInDone = Boolean(checkIn);
   const monthName = MONTHS.format(new Date(Date.UTC(current.year, current.month - 1, 15)));
   const remaining = Math.max(0, rules.maxBirds - snapshot.birdCount);
+  const standing = standings.players[0].standing;
+  const line = standingLine(standing, standings.threshold, monthName, settings.maxEmptyMonths);
+  const photoProof = current.year >= PHOTO_PROOF_FROM_SEASON;
 
   return (
     <div className="space-y-10">
@@ -68,8 +107,15 @@ async function Today() {
           <span className="font-display text-2xl font-semibold">{snapshot.birdCount}</span>
           <span className="text-ink-soft"> of {rules.maxBirds} birds</span>
         </p>
-        {remaining > 0 && <p className="-mt-3 text-ink-soft">{remaining} to go before month-end</p>}
-        {snapshot.birdCount === 0 ? (
+        {remaining > 0 && standing.kind !== "out" && <p className="-mt-3 text-ink-soft">{remaining} to go before month-end</p>}
+        <p
+          className={`max-w-prose rounded-xl px-4 py-3 ${
+            line.tone === "alarm" ? "border-2 border-alarm font-semibold" : line.tone === "ok" ? "bg-paper-sunk" : "bg-paper-sunk text-ink-soft"
+          }`}
+        >
+          {line.text}
+        </p>
+        {standing.kind === "out" ? null : snapshot.birdCount === 0 ? (
           <Link
             href="/twitch"
             className="inline-flex min-h-12 items-center rounded-full bg-roller px-6 font-semibold text-roller-ink"
@@ -87,6 +133,39 @@ async function Today() {
           )
         )}
       </section>
+
+      {golden.length > 0 && (
+        <section aria-labelledby="golden-heading" className="space-y-3 rounded-2xl border border-rule bg-paper-raised p-5">
+          <h2 id="golden-heading" className="text-xl font-semibold">
+            {monthName}&apos;s golden birds
+          </h2>
+          <p className="text-ink-soft">
+            {photoProof
+              ? "Each one you prove with a photo is a bonus joker, up to 5. Add the photo from your list on Twitch."
+              : "Each one you see is a bonus joker, up to 5. Count them on your check-in."}
+          </p>
+          <ul className="space-y-2">
+            {golden.map((g) => (
+              <li key={g.speciesId} className="flex items-center gap-3">
+                {g.state === "proven" || (g.state === "seen" && !photoProof) ? (
+                  <Check aria-hidden className="size-5 shrink-0 text-roller" strokeWidth={3} />
+                ) : g.state === "seen" ? (
+                  <Camera aria-hidden className="size-5 shrink-0 text-ink-soft" />
+                ) : (
+                  <Circle aria-hidden className="size-5 shrink-0 text-rule" />
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold">{g.name}</span>
+                  <i className="block truncate text-sm text-ink-soft">{g.scientificName}</i>
+                </span>
+                <span className="text-sm text-ink-soft">
+                  {g.state === "unseen" ? "Not yet" : g.state === "proven" ? "Proven" : photoProof ? "Seen, needs a photo" : "Seen"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {checkInMonth && (
         <section aria-labelledby="checkin-heading" className="space-y-2 rounded-2xl border border-rule bg-paper-raised p-5">
@@ -124,6 +203,10 @@ async function Today() {
           </p>
         )}
       </section>
+
+      <Link href="/rules" className="inline-flex min-h-12 items-center font-semibold text-roller underline underline-offset-4">
+        How the game works
+      </Link>
     </div>
   );
 }

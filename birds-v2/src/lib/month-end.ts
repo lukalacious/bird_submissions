@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { isMonthOpen, openMonths, previousMonth, type ChallengeMonth } from "@/lib/challenge-time";
 import { planElimination } from "@/lib/rules/elimination";
+import { emptyStreak } from "@/lib/rules/standing";
 import { getMonthRules, getSettings } from "@/lib/settings";
 
 export const MONTH_END = "month-end";
@@ -64,16 +65,13 @@ export async function closeMonth(month: ChallengeMonth): Promise<MonthEndSummary
         }
         if (status.joinedMonth >= month.month) continue;
 
-        let emptyStreak = 0;
-        for (let m = month.month; m >= status.joinedMonth && (counts.get(`${userId}:${m}`) ?? 0) === 0; m--) emptyStreak++;
-
         const plan = planElimination({
           birdCount: counts.get(`${userId}:${month.month}`) ?? 0,
           threshold,
           jokerMonths: jokers
             .filter((j) => j.userId === userId)
             .map((j) => ({ year: j.year, month: j.month, available: j.totalJokers - j.usedJokers })),
-          emptyStreak,
+          emptyStreak: emptyStreak((m) => counts.get(`${userId}:${m}`) ?? 0, month.month, status.joinedMonth),
           maxEmptyMonths: settings.maxEmptyMonths,
           poolFractions: settings.poolFractionalJokers,
         });

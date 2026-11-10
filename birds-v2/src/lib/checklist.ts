@@ -130,3 +130,41 @@ export async function getAllSpecies() {
     .map((s) => ({ id: s.id, scientificName: s.scientificName, displayName: s.birds[0].displayName, alphabeticalName: s.birds[0].alphabeticalName }))
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 }
+
+export interface GoldenBirdStatus {
+  speciesId: string;
+  name: string;
+  scientificName: string;
+  /** not twitched this season / twitched but no photo / twitched with a photo */
+  state: "unseen" | "seen" | "proven";
+}
+
+/** A month's golden birds and how far one player has got with each. */
+export async function getGoldenBirdsFor(userId: string, month: ChallengeMonth, regionId: string | null): Promise<GoldenBirdStatus[]> {
+  const ids = await getGoldenSpecies(month);
+  if (ids.length === 0) return [];
+  const [species, mine] = await Promise.all([
+    db.species.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, scientificName: true, birds: { select: { displayName: true, regionId: true }, orderBy: { displayName: "asc" } } },
+    }),
+    db.submission.findMany({
+      where: { userId, year: month.year, speciesId: { in: ids } },
+      select: { speciesId: true, photo: { select: { status: true } } },
+    }),
+  ]);
+  const mineBy = new Map(mine.map((s) => [s.speciesId, s]));
+  return species
+    .map((sp) => {
+      const sub = mineBy.get(sp.id);
+      const proven = Boolean(sub?.photo && sub.photo.status !== "REJECTED");
+      return {
+        speciesId: sp.id,
+        // the name the player's own region uses, when it lists the species
+        name: (sp.birds.find((b) => b.regionId === regionId) ?? sp.birds[0])?.displayName ?? sp.scientificName,
+        scientificName: sp.scientificName,
+        state: proven ? ("proven" as const) : sub ? ("seen" as const) : ("unseen" as const),
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}

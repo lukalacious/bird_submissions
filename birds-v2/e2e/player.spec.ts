@@ -7,6 +7,10 @@ test("Today shows this month's tally", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("img", { name: /^0 of \d+ birds twitched this month$/ })).toBeVisible();
   await expect(page.getByRole("link", { name: /Twitch your first bird/ })).toBeVisible();
+  // a brand-new player is told their first month is free, and can read the rules
+  await expect(page.getByText(/first month doesn't count/)).toBeVisible();
+  await page.getByRole("link", { name: "How the game works" }).click();
+  await expect(page.getByRole("heading", { name: "Staying in" })).toBeVisible();
 });
 
 test("twitch a bird, see the joker preview, then remove it", async ({ page }) => {
@@ -60,7 +64,7 @@ test("old Flock links still work", async ({ page }) => {
   await expect(page).toHaveURL(/\/sightings$/);
 });
 
-for (const path of ["/", "/twitch", "/sightings", "/sightings?tab=species", "/sightings?tab=jokers", "/me", "/me/birds", "/check-in"]) {
+for (const path of ["/", "/rules", "/twitch", "/sightings", "/sightings?tab=species", "/sightings?tab=jokers", "/me", "/me/birds", "/check-in"]) {
   test(`no serious accessibility problems on ${path}`, async ({ page }) => {
     await page.goto(path);
     await page.waitForLoadState("networkidle");

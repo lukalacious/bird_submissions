@@ -91,7 +91,7 @@ export function MonthForm({ year, month, monthLabel, defaults, overrides, golden
         </label>
         <label className="block space-y-1">
           <span className="block font-semibold">Birds needed to stay in</span>
-          <span className="block text-sm text-ink-soft">Blank = the season default ({defaults.threshold}).</span>
+          <span className="block text-sm text-ink-soft">Blank = the same as birds allowed. Never more than birds allowed.</span>
           <input type="number" name="threshold" min={0} max={31} defaultValue={overrides.threshold ?? ""} className="block min-h-12 w-32 rounded-xl border border-rule bg-paper-raised px-4" />
         </label>
       </div>
