@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateMonthBonus, type CheckInAnswers } from "./check-in-bonus";
+import { calculateMonthBonus, carriedLegacyLines, type CheckInAnswers } from "./check-in-bonus";
 
 const none: CheckInAnswers = { within15km: false, beyond750km: false, nonMotorisedCount: 0, liferCount: 0 };
 
@@ -49,5 +49,45 @@ describe("calculateMonthBonus — 2026 keeps v1's rules", () => {
   it("v1 maximum is still 21", () => {
     const max = { within15km: true, beyond750km: false, nonMotorisedCount: 99, liferCount: 9, goldenCount: 9, photoCount: 9 };
     expect(calculateMonthBonus({ year: 2026, checkIn: max, goldenWithPhoto: 0 }).total).toBe(21);
+  });
+});
+
+describe("admin adjustments", () => {
+  it("adds each correction as its own line, with or without a check-in", () => {
+    const { total, breakdown } = calculateMonthBonus({
+      year: 2027,
+      checkIn: null,
+      goldenWithPhoto: 1,
+      adjustments: [
+        { reason: "missed lifer", amount: 1 },
+        { reason: "photo was of a captive bird", amount: -1.5 },
+      ],
+    });
+    expect(total).toBe(0.5);
+    expect(breakdown).toEqual([
+      { rule: "Golden birds with photos (1)", value: 1 },
+      { rule: "Admin: missed lifer", value: 1 },
+      { rule: "Admin: photo was of a captive bird", value: -1.5 },
+    ]);
+  });
+});
+
+describe("v1 photo awards survive a recalculation", () => {
+  const stored = [
+    { rule: "Lifers (2)", value: 2 },
+    { rule: "Photo award: Cape Gannet", value: 2 },
+    { rule: "Admin: old correction", value: 1 },
+  ];
+
+  it("picks only the per-photo award lines out of a stored breakdown", () => {
+    expect(carriedLegacyLines(stored)).toEqual([{ rule: "Photo award: Cape Gannet", value: 2 }]);
+    expect(carriedLegacyLines(null)).toEqual([]);
+    expect(carriedLegacyLines([{ rule: 3 }, "x"])).toEqual([]);
+  });
+
+  it("keeps them for 2026, ignores them from 2027", () => {
+    const carried = carriedLegacyLines(stored);
+    expect(calculateMonthBonus({ year: 2026, checkIn: null, goldenWithPhoto: 0, carried }).total).toBe(2);
+    expect(calculateMonthBonus({ year: 2027, checkIn: null, goldenWithPhoto: 0, carried }).total).toBe(0);
   });
 });

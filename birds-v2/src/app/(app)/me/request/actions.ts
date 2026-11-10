@@ -21,17 +21,19 @@ export async function createChangeRequest(_prev: ActionResult | null, formData: 
   if (!parsed.success) return { ok: false, error: "Choose what you'd like changed." };
   const { submissionId, type, replacementBirdId, note } = parsed.data;
 
-  const sub = await db.submission.findFirst({ where: { id: submissionId, userId: user.id } });
+  const sub = await db.submission.findFirst({ where: { id: submissionId, userId: user.id }, include: { bird: { select: { displayName: true } } } });
   if (!sub) return { ok: false, error: "That bird isn't on your list." };
   const settings = await getSettings();
   const open = openMonths({ graceHours: settings.graceHours, timeZone: settings.timezone });
   if (open.some((m) => m.year === sub.year && m.month === sub.month)) {
     return { ok: false, error: "That month is still open, so you can change it yourself on Twitch." };
   }
+  let replacementLabel: string | null = null;
   if (type === "SWAP") {
     if (!replacementBirdId) return { ok: false, error: "Pick the bird it should be." };
     const bird = await db.bird.findFirst({ where: { id: replacementBirdId, regionId: sub.regionId } });
     if (!bird) return { ok: false, error: "Pick a bird from the same region." };
+    replacementLabel = bird.displayName;
   }
   if (type === "OTHER" && !note) return { ok: false, error: "Tell the admin what needs changing." };
 
@@ -42,6 +44,7 @@ export async function createChangeRequest(_prev: ActionResult | null, formData: 
     data: {
       userId: user.id, type, year: sub.year, month: sub.month, submissionId,
       replacementBirdId: type === "SWAP" ? replacementBirdId : null, note: note || null,
+      birdLabel: sub.bird?.displayName ?? sub.customName, replacementLabel,
     },
   });
   redirect("/me/birds?requested=1");

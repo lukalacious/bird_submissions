@@ -81,6 +81,7 @@ export async function executeMerge(sourceId: string, targetId: string, adminId: 
         months.set(`${sj.year}-${sj.month}`, { year: sj.year, month: sj.month });
       }
       await tx.jokerSpend.updateMany({ where: { userId: sourceId }, data: { userId: targetId } });
+      await tx.jokerAdjustment.updateMany({ where: { userId: sourceId }, data: { userId: targetId } });
 
       // Season status: earliest join month, target's elimination state
       for (const ss of await tx.userChallengeStatus.findMany({ where: { userId: sourceId } })) {

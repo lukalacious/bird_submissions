@@ -43,6 +43,7 @@ model User {
   checkIns          MonthlyCheckIn[]
   jokers            UserJoker[]
   jokerSpends       JokerSpend[]
+  jokerAdjustments  JokerAdjustment[]
   challengeStatus   UserChallengeStatus[]
   changeRequests    ChangeRequest[]
   pushSubscriptions PushSubscription[]
@@ -297,6 +298,38 @@ model JokerSpend {
   @@index([userId, coversYear, coversMonth])
 }
 
+// An admin's manual correction to one player-month's bonus jokers (v1 had
+// "assign bonus"). Its own rows, so the single bonus writer includes them
+// every time it rebuilds the month instead of overwriting them.
+model JokerAdjustment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  year      Int
+  month     Int
+  amount    Float
+  reason    String
+  adminId   String
+  createdAt DateTime @default(now())
+
+  @@index([userId, year, month])
+}
+
+// What admins did by hand, and to whom: eliminations, reinstatements, role
+// changes, removals, joker adjustments. Plain ids, so rows outlive players.
+model AdminLog {
+  id          String   @id @default(cuid())
+  adminId     String
+  adminName   String
+  action      String
+  playerId    String?
+  playerName  String?
+  detail      String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model UserChallengeStatus {
   id               String    @id @default(cuid())
   userId           String
@@ -368,6 +401,9 @@ model ChangeRequest {
   month             Int
   submissionId      String?
   replacementBirdId String?
+  // names as they were when asked, so history still reads after the change is applied
+  birdLabel         String?
+  replacementLabel  String?
   note              String?
   status            RequestStatus     @default(PENDING)
   adminNote         String?

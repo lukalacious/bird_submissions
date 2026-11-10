@@ -15,6 +15,9 @@ export default function ChangesPage({ searchParams }: PageProps<"/admin/changes"
       <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-paper-sunk" />}>
         <Queue searchParams={searchParams} />
       </Suspense>
+      <Suspense fallback={null}>
+        <History />
+      </Suspense>
     </div>
   );
 }
@@ -41,8 +44,8 @@ async function Queue({ searchParams }: Pick<PageProps<"/admin/changes">, "search
             <li key={r.id} className="space-y-3 rounded-2xl border border-rule bg-paper-raised p-4">
               <p>
                 <strong>{r.user.username ?? r.user.name}</strong>, {MONTH.format(new Date(Date.UTC(r.year, r.month - 1, 15)))}:{" "}
-                {TYPE[r.type]} <strong>{r.submissionId ? subLabel.get(r.submissionId) : "?"}</strong>
-                {r.type === "SWAP" && r.replacementBirdId && <> → <strong>{birdLabel.get(r.replacementBirdId)}</strong></>}
+                {TYPE[r.type]} <strong>{r.birdLabel ?? (r.submissionId ? subLabel.get(r.submissionId) : null) ?? "a bird"}</strong>
+                {r.type === "SWAP" && r.replacementBirdId && <> → <strong>{r.replacementLabel ?? birdLabel.get(r.replacementBirdId)}</strong></>}
               </p>
               {r.note && <p className="text-ink-soft">“{r.note}”</p>}
               <div className="flex flex-wrap items-end gap-3">
@@ -64,5 +67,46 @@ async function Queue({ searchParams }: Pick<PageProps<"/admin/changes">, "search
         </ul>
       )}
     </>
+  );
+}
+
+const DAY = new Intl.DateTimeFormat("en-ZA", { day: "numeric", month: "short", timeZone: "Africa/Johannesburg" });
+
+/** The last 30 decisions, so admins can see what was done and why. */
+async function History() {
+  await requireAdmin();
+  const decided = await db.changeRequest.findMany({
+    where: { status: { not: "PENDING" } },
+    orderBy: { resolvedAt: "desc" },
+    take: 30,
+    include: { user: { select: { name: true, username: true } } },
+  });
+  if (decided.length === 0) return null;
+  const admins = await db.user.findMany({ where: { id: { in: decided.map((d) => d.resolvedById!).filter(Boolean) } }, select: { id: true, name: true, username: true } });
+  const adminName = new Map(admins.map((a) => [a.id, a.username ?? a.name ?? "an admin"]));
+
+  return (
+    <section aria-labelledby="decided-heading" className="space-y-3">
+      <h2 id="decided-heading" className="text-xl font-semibold">
+        Recently decided
+      </h2>
+      <ul className="divide-y divide-rule rounded-2xl border border-rule bg-paper-raised">
+        {decided.map((r) => (
+          <li key={r.id} className="space-y-1 px-4 py-3">
+            <p>
+              <strong>{r.status === "APPROVED" ? "Applied" : "Declined"}</strong>: {r.user.username ?? r.user.name},{" "}
+              {MONTH.format(new Date(Date.UTC(r.year, r.month - 1, 15)))}, {TYPE[r.type].toLowerCase()} {r.birdLabel ?? "a bird"}
+              {r.type === "SWAP" && r.replacementLabel && ` → ${r.replacementLabel}`}
+            </p>
+            <p className="text-sm text-ink-soft">
+              {r.resolvedAt && DAY.format(r.resolvedAt)}
+              {r.resolvedById && ` by ${adminName.get(r.resolvedById) ?? "an admin"}`}
+              {r.note && ` · player: “${r.note}”`}
+              {r.adminNote && ` · admin: “${r.adminNote}”`}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

@@ -12,6 +12,9 @@ export default function AdminPage() {
       <Suspense fallback={<div className="h-32 animate-pulse rounded-2xl bg-paper-sunk" />}>
         <LinkRequests />
       </Suspense>
+      <Suspense fallback={null}>
+        <AdminLog />
+      </Suspense>
     </div>
   );
 }
@@ -62,6 +65,42 @@ async function LinkRequests() {
                   </button>
                 </form>
               </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+const WHEN = new Intl.DateTimeFormat("en-ZA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Johannesburg" });
+
+/** What admins changed by hand, newest first. */
+async function AdminLog() {
+  await requireAdmin();
+  const log = await db.adminLog.findMany({ orderBy: { createdAt: "desc" }, take: 30 });
+  return (
+    <section aria-labelledby="log-heading" className="space-y-3">
+      <h2 id="log-heading" className="text-xl font-semibold">
+        Done by hand
+      </h2>
+      {log.length === 0 ? (
+        <p className="max-w-prose text-ink-soft">
+          Nothing yet. Eliminations, reinstatements, joker adjustments, role changes and removals made by an admin are
+          listed here.
+        </p>
+      ) : (
+        <ul className="divide-y divide-rule rounded-2xl border border-rule bg-paper-raised">
+          {log.map((l) => (
+            <li key={l.id} className="px-4 py-3">
+              <p>
+                <strong>{l.action}</strong>
+                {l.playerName && `: ${l.playerName}`}
+                {l.detail && ` (${l.detail})`}
+              </p>
+              <p className="text-sm text-ink-soft">
+                {WHEN.format(l.createdAt)} by {l.adminName}
+              </p>
             </li>
           ))}
         </ul>

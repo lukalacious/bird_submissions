@@ -29,6 +29,10 @@ export function calculateMonthBonus(input: {
   checkIn: CheckInAnswers | null;
   /** golden birds of the month with a (non-rejected) photo filed that month */
   goldenWithPhoto: number;
+  /** v1-era lines with no v2 source (per-photo admin awards), kept verbatim */
+  carried?: BonusLine[];
+  /** manual corrections by an admin, each shown as its own line */
+  adjustments?: { reason: string; amount: number }[];
 }): { total: number; breakdown: BonusLine[] } {
   const { year, checkIn: a, goldenWithPhoto } = input;
   const legacy = year < PHOTO_PROOF_FROM_SEASON;
@@ -51,6 +55,20 @@ export function calculateMonthBonus(input: {
   // Golden birds → 1 each, max 5, proven by a photo; doesn't need the check-in
   if (!legacy) lines.push({ rule: `Golden birds with photos (${goldenWithPhoto})`, value: Math.min(goldenWithPhoto, 5) });
 
+  if (legacy) lines.push(...(input.carried ?? []));
+  for (const adj of input.adjustments ?? []) lines.push({ rule: `Admin: ${adj.reason}`, value: adj.amount });
+
   const breakdown = lines.filter((l) => l.value !== 0);
   return { total: breakdown.reduce((sum, l) => sum + l.value, 0), breakdown };
+}
+
+/**
+ * v1 admins awarded jokers per photo; those exist only as "Photo award: …"
+ * lines in the stored breakdown. Rebuilding a 2026 month must keep them.
+ */
+export function carriedLegacyLines(storedBreakdown: unknown): BonusLine[] {
+  if (!Array.isArray(storedBreakdown)) return [];
+  return storedBreakdown.filter(
+    (l): l is BonusLine => typeof l?.rule === "string" && typeof l?.value === "number" && l.rule.startsWith("Photo award:")
+  );
 }

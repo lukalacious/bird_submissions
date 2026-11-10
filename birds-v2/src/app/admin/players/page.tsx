@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/dal";
@@ -18,7 +19,7 @@ export default function PlayersPage({ searchParams }: PageProps<"/admin/players"
 
 async function Players({ searchParams }: Pick<PageProps<"/admin/players">, "searchParams">) {
   await requireAdmin();
-  const { merged } = await searchParams;
+  const { merged, done } = await searchParams;
   const { currentYear } = await getSettings();
   const players = await db.user.findMany({
     orderBy: [{ name: "asc" }],
@@ -40,6 +41,15 @@ async function Players({ searchParams }: Pick<PageProps<"/admin/players">, "sear
           Merged. Everything now sits on {label(players.find((p) => p.id === merged) ?? players[0])}.
         </p>
       )}
+
+      {typeof done === "string" && (
+        <p role="status" className="rounded-xl bg-roller-wash p-4 font-semibold">
+          {done}
+        </p>
+      )}
+      <p className="max-w-prose text-ink-soft">
+        Open a player to adjust their jokers, put them out or back in, make them an admin, or remove them.
+      </p>
 
       <section aria-labelledby="merge-heading" className="space-y-3 rounded-2xl border border-rule bg-paper-raised p-5">
         <h2 id="merge-heading" className="text-xl font-semibold">
@@ -92,8 +102,10 @@ async function Players({ searchParams }: Pick<PageProps<"/admin/players">, "sear
             {players.map((p) => (
               <tr key={p.id}>
                 <td className="py-2 pr-4">
-                  {p.username ?? p.name}
-                  {p.role === "ADMIN" && <span className="ml-2 text-sm text-lilac">admin</span>}
+                  <Link href={`/admin/players/${p.id}`} className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
+                    {p.username ?? p.name ?? p.email}
+                  </Link>
+                  {p.role === "ADMIN" && <span className="ml-2 text-sm text-ink-soft">admin</span>}
                 </td>
                 <td className="py-2 pr-4 text-ink-soft">{p.email}</td>
                 <td className="py-2 pr-4 text-right tabular-nums">{p._count.submissions}</td>
