@@ -26,7 +26,7 @@ The 2027 rebuild of the Twitch bird-a-day challenge. Runs in parallel with v1
 | Twitch (checklist) | `src/app/(app)/twitch/` | search-first, tray in localStorage, `submitBirds` / `removeBird` |
 | Photos | `src/components/photo-button.tsx`, `src/lib/upload-image.ts`, `src/app/api/upload/` | golden-bird proof only (`lib/rules/golden.ts`); canvas shrink → direct Blob upload. Profile pictures: `components/avatar-upload.tsx` |
 | Check-in (replaces Google Form) | `src/app/(app)/check-in/` | pre-filled from the player's data |
-| Flock | `src/app/(app)/flock/`, `src/lib/flock.ts` | cached, one tab loaded at a time |
+| Sightings (was Flock) | `src/app/(app)/sightings/`, `src/lib/sightings.ts`, `src/lib/species-summary.ts` | Latest, Species, Table, Photos, Jokers; cached, one tab loaded at a time; `?m=2026-11` month or `?m=2026` season |
 | Me, ledger, my birds, change requests | `src/app/(app)/me/` | |
 | Identity | `src/app/welcome/`, `src/lib/identity.ts`, `src/lib/merge-*.ts` | "Are you already playing?", linking, merges |
 | Admin | `src/app/admin/` | claims, players/merge, changes, photos, check-ins, months, settings, CSV |

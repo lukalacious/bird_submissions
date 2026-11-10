@@ -39,15 +39,28 @@ test("a species can't be added twice in a season", async ({ page }) => {
   await expect(page.getByText(/^Twitched in /).first()).toBeVisible();
 });
 
-test("Flock tabs load one section at a time", async ({ page }) => {
-  await page.goto("/flock?tab=leaderboard");
-  await expect(page.getByRole("link", { name: "Leaderboard" })).toHaveAttribute("aria-current", "page");
+test("Sightings tabs load one section at a time", async ({ page }) => {
+  await page.goto("/sightings?tab=table");
+  await expect(page.getByRole("link", { name: "Table" })).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("table")).toBeVisible();
   await page.getByRole("link", { name: "Photos" }).click();
   await expect(page).toHaveURL(/tab=photos/);
 });
 
-for (const path of ["/", "/twitch", "/flock", "/me", "/me/birds", "/check-in"]) {
+test("Species lists what the club has seen and who saw it", async ({ page }) => {
+  await page.goto("/sightings?tab=species");
+  await expect(page.getByRole("heading", { level: 2 })).toBeVisible();
+  await expect(page.getByLabel("Find a bird, family or player")).toBeVisible();
+  await page.getByRole("link", { name: "Whole season" }).click();
+  await expect(page).toHaveURL(/m=\d{4}(&|$)/);
+});
+
+test("old Flock links still work", async ({ page }) => {
+  await page.goto("/flock");
+  await expect(page).toHaveURL(/\/sightings$/);
+});
+
+for (const path of ["/", "/twitch", "/sightings", "/sightings?tab=species", "/sightings?tab=jokers", "/me", "/me/birds", "/check-in"]) {
   test(`no serious accessibility problems on ${path}`, async ({ page }) => {
     await page.goto(path);
     await page.waitForLoadState("networkidle");

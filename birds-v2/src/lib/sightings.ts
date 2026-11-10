@@ -3,6 +3,8 @@ import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/lib/db";
 import type { ChallengeMonth } from "@/lib/challenge-time";
 import { feedTag, leaderboardTag } from "@/lib/tags";
+import type { Period } from "@/lib/period";
+import { summariseSpecies, type SpeciesSummary } from "@/lib/species-summary";
 
 /**
  * Community reads. Same for every viewer, so they're cached server-side and
@@ -123,4 +125,96 @@ export async function getGallery(): Promise<GalleryPhoto[]> {
     bird: p.submission.bird?.displayName ?? p.submission.customName ?? "Unknown bird",
     playerName: p.user.username ?? p.user.name ?? "Player",
   }));
+}
+
+/** Every species the club has seen in a month or a season, optionally one region. */
+export async function getSpeciesSeen(period: Period, regionId: string | null): Promise<SpeciesSummary> {
+  "use cache";
+  cacheTag(feedTag);
+  cacheLife("minutes");
+
+  const subs = await db.submission.findMany({
+    where: {
+      year: period.year,
+      ...(period.kind === "month" ? { month: period.month } : {}),
+      ...(regionId ? { regionId } : {}),
+    },
+    select: {
+      userId: true,
+      speciesId: true,
+      customName: true,
+      month: true,
+      isLifer: true,
+      createdAt: true,
+      user: { select: { name: true, username: true } },
+      bird: {
+        select: { displayName: true, species: { select: { scientificName: true, group: { select: { name: true } } } } },
+      },
+    },
+  });
+  return summariseSpecies(
+    subs.map((s) => ({
+      userId: s.userId,
+      playerName: s.user.username ?? s.user.name ?? "Player",
+      speciesId: s.speciesId,
+      name: s.bird?.displayName ?? s.customName ?? "Unknown bird",
+      scientificName: s.bird?.species.scientificName ?? null,
+      family: s.bird?.species.group?.name ?? null,
+      month: s.month,
+      isLifer: s.isLifer,
+      at: s.createdAt.toISOString(),
+    }))
+  );
+}
+
+export interface ClubJokerRow {
+  userId: string;
+  name: string;
+  isEliminated: boolean;
+  earned: number;
+  used: number;
+  months: { month: number; fromFamilies: number; bonus: number; bonusLines: { rule: string; value: number }[]; used: number }[];
+}
+
+/** Everyone's joker balance for a season, richest first. */
+export async function getClubJokers(year: number): Promise<ClubJokerRow[]> {
+  "use cache";
+  cacheTag(feedTag);
+  cacheLife("minutes");
+
+  const [rows, users, statuses] = await Promise.all([
+    db.userJoker.findMany({ where: { year }, orderBy: { month: "asc" } }),
+    db.user.findMany({ select: { id: true, name: true, username: true } }),
+    db.userChallengeStatus.findMany({ where: { year, isEliminated: true }, select: { userId: true } }),
+  ]);
+  const out = new Set(statuses.map((s) => s.userId));
+  const byUser = new Map<string, ClubJokerRow>();
+  const nameOf = new Map(users.map((u) => [u.id, u.username ?? u.name ?? "Player"]));
+
+  for (const r of rows) {
+    if (r.totalJokers === 0 && r.usedJokers === 0) continue;
+    if (!byUser.has(r.userId)) {
+      byUser.set(r.userId, {
+        userId: r.userId,
+        name: nameOf.get(r.userId) ?? "Player",
+        isEliminated: out.has(r.userId),
+        earned: 0,
+        used: 0,
+        months: [],
+      });
+    }
+    const row = byUser.get(r.userId)!;
+    row.earned += r.totalJokers;
+    row.used += r.usedJokers;
+    row.months.push({
+      month: r.month,
+      fromFamilies: r.jokers,
+      bonus: r.bonusJokers,
+      bonusLines: Array.isArray(r.bonusBreakdown) ? (r.bonusBreakdown as ClubJokerRow["months"][number]["bonusLines"]) : [],
+      used: r.usedJokers,
+    });
+  }
+  return [...byUser.values()].sort(
+    (a, b) => Number(a.isEliminated) - Number(b.isEliminated) || b.earned - b.used - (a.earned - a.used) || a.name.localeCompare(b.name)
+  );
 }

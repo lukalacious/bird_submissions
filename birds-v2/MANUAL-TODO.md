@@ -87,7 +87,7 @@ is asked "are you X?". Then check:
 - [ ] **Me**: tap your picture to set a profile photo
 - [ ] **Me** → turn **Reminders** on. On iPhone, add the site to your Home Screen first.
 - [ ] Put it on your Home Screen (Today shows how) and open it like an app
-- [ ] **Flock**: leaderboard numbers match the live app
+- [ ] **Sightings → Table**: numbers match the live app. **Species**: step back a few months, open a bird to see who saw it
 - [ ] **Me** → *Open admin* (you're an admin): Players, Months, Settings all load
 
 You were eliminated in April 2026, so Twitch shows "You're out of this season".
@@ -195,7 +195,7 @@ safe to merge. Rollback is deleting the variable and redeploying. Code:
 | 31 Dec 22:10 | Migrate production (commands in F2): dry run, read the report, then `--apply` | you + Claude |
 | 31 Dec 22:30 | **Point twitch-v2 at production:** Vercel → twitch-v2 → Settings → Environment Variables (Production): `DATABASE_URL` = production *pooled* URL (`-pooler` host), `DIRECT_DATABASE_URL` = production direct URL, **delete `STAGING_SITE`**. Deployments → Redeploy (its build runs `prisma migrate deploy`, now a no-op) | you |
 | 31 Dec 22:40 | **Move the domain** (F3). Then on bird-submissions, if `NEXTAUTH_URL` is set, change it to `https://twitch-2026.vercel.app` and redeploy, or v1 sign-ins bounce to v2 | you |
-| 31 Dec 22:45 | Smoke test on v2 at bird-submissions.vercel.app: sign in, Today shows December, Flock leaderboard right, no test-site banner. On twitch-2026.vercel.app: banner, read-only | you |
+| 31 Dec 22:45 | Smoke test on v2 at bird-submissions.vercel.app: sign in, Today shows December, Sightings table right, no test-site banner. On twitch-2026.vercel.app: banner, read-only | you |
 | 1 Jan 00:00 | 2027 opens on v2 | — |
 | 3 Jan 02:15 | v2 closes December (after the 48h grace); check Admin → Overview and the jokers ledger | you |
 | 7 Feb | First in-app check-in closes (January's) | — |

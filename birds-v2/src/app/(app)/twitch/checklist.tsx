@@ -136,7 +136,7 @@ export function Checklist({ userId, regions, regionId, birds, golden: goldenList
         <h1 className="text-3xl font-semibold">Twitch</h1>
         <p className="max-w-prose text-ink-soft">
           You&apos;re out of this season&apos;s challenge, so the checklist is closed. You can still follow everyone in
-          Flock.
+          Sightings.
         </p>
       </div>
     );

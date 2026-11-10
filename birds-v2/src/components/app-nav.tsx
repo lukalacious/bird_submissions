@@ -7,7 +7,7 @@ import { Bird, Binoculars, CircleUserRound, Sunrise, type LucideIcon } from "luc
 const TABS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/", label: "Today", icon: Sunrise },
   { href: "/twitch", label: "Twitch", icon: Binoculars },
-  { href: "/flock", label: "Flock", icon: Bird },
+  { href: "/sightings", label: "Sightings", icon: Bird },
   { href: "/me", label: "Me", icon: CircleUserRound },
 ];
 

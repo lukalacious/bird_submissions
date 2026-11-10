@@ -23,7 +23,7 @@
 - **Jokers.** Players earn jokers for things like keeping every sighting within 15 km of home, or birding without a motorised vehicle. Some choices cost jokers.
 - **Elimination.** Miss the monthly target and each missing bird spends a joker from an earlier month. Run out and you're out. A month-end cron does the sums.
 - **Golden birds.** Each month has a short list of special species worth extra. From the 2027 season they must be proven with a photo.
-- **The Flock.** A leaderboard, a latest-sightings feed and a photo wall keep the club nosy about each other.
+- **Sightings.** The club's species list for any month or season (who saw what, and what only one person has), a latest feed, the standings table, a photo wall and everyone's joker balances.
 - **Monthly check-in.** A short questionnaire at month end awards the bonus jokers. In v2 it lives in the app and is pre-filled from what you already logged.
 
 The full joker arithmetic is in [`birds-app/docs/JOKER-MATH-LOGIC.md`](birds-app/docs/JOKER-MATH-LOGIC.md).

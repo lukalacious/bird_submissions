@@ -37,6 +37,10 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
     ],
   },
+  async redirects() {
+    // "Flock" was renamed; keep old links and home-screen shortcuts working
+    return [{ source: "/flock", destination: "/sightings", permanent: true }];
+  },
   async headers() {
     return [
       {
